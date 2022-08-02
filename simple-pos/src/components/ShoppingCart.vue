@@ -55,6 +55,9 @@
 </template>
 
 <script>
+import { mapState, mapActions } from 'pinia'
+import { useCartStore } from '../stores/cart'
+
   export default {
     data: () => ({
         currency: '৳',
@@ -66,31 +69,13 @@
             name: 'FOO',
             type: 'percent',
             amount: 10,
-        },
-        items: [
-            {
-                id: 1,
-                name: 'Item 1',
-                price: 10,
-                quantity: 1
-            },
-            {
-                id: 2,
-                name: 'Item 2',
-                price: 20,
-                quantity: 2
-            },
-            {
-                id: 3,
-                name: 'Item 3',
-                price: 30,
-                quantity: 3
-            }
-        ],
+        }
     }),
     computed: {
+        ...mapState(useCartStore, ['items']),
+
         subtotal() {
-            return this.items.reduce((total, item) => {
+            return Object.values(this.items).reduce((total, item) => {
                 return total + (item.price * item.quantity);
             }, 0);
         },
@@ -121,7 +106,7 @@
             }
         },
         formatCurrency( amount ) {
-            return this.currency + amount;
+            return this.currency + amount.toFixed(2);
         }
     }
   }
