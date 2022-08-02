@@ -1,9 +1,18 @@
-<script setup lang="ts">
-import TheWelcome from "@/components/TheWelcome.vue";
-</script>
-
 <template>
-  <main>
-    <TheWelcome />
-  </main>
+  <shopping-cart />
 </template>
+
+<script lang="ts">
+import { defineComponent } from 'vue';
+
+// Components
+import ShoppingCart from "@/components/ShoppingCart.vue";
+
+export default defineComponent({
+  name: 'HomeView',
+
+  components: {
+    ShoppingCart
+  },
+});
+</script>
