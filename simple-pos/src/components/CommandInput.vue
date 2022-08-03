@@ -7,6 +7,8 @@
     v-model="command"
     :error="error"
     @keyup.enter="executeCommand"
+    @keyup.up="historyUp"
+    @keyup.down="historyDown"
   ></v-text-field>
 </template>
 
@@ -20,6 +22,8 @@ export default {
     return {
       command: "",
       error: false,
+      history: [],
+      commandHistoryPointer: 0,
     };
   },
   methods: {
@@ -27,10 +31,31 @@ export default {
 
     executeCommand() {
       if (this.addItemBySku() || this.clear() || this.reduceItemBySku()) {
-        this.command = "";
-        this.error = false;
+        this.onCommandSuccess( this.command );
       } else {
         this.error = true;
+      }
+    },
+    onCommandSuccess(command) {
+      this.history.push(command);
+      this.command = "";
+      this.error = false;
+      this.commandHistoryPointer = this.history.length;
+    },
+    historyUp() {
+      if (this.commandHistoryPointer > 0) {
+        this.commandHistoryPointer--;
+        this.command = this.history[this.commandHistoryPointer];
+      }
+    },
+    historyDown() {
+      if (this.commandHistoryPointer < this.history.length - 1) {
+        this.commandHistoryPointer++;
+        this.command = this.history[this.commandHistoryPointer];
+      }
+      else {
+        this.command = "";
+        this.commandHistoryPointer = this.history.length;
       }
     },
     clear() {
