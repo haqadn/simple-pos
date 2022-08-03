@@ -1,0 +1,59 @@
+<template>
+  <v-text-field
+    label="Command"
+    variant="outlined"
+    prefix="> "
+    autofocus
+    v-model="command"
+    :error="error"
+    @keyup.enter="executeCommand"
+  ></v-text-field>
+</template>
+
+<script>
+import { mapState, mapActions } from "pinia";
+import { useItemStore } from "../stores/items";
+import { useCartStore } from "../stores/cart";
+
+export default {
+  data() {
+    return {
+      command: "",
+      error: false,
+    };
+  },
+  methods: {
+    ...mapActions(useCartStore, ["addToCart", "clearCart"]),
+
+    executeCommand() {
+      if (this.addItemBySku() || this.clear()) {
+        this.command = "";
+        this.error = false;
+      } else {
+        this.error = true;
+      }
+    },
+    clear() {
+      if (this.command === "clear") {
+        this.clearCart();
+        this.command = "";
+        return true;
+      }
+      return false;
+    },
+    addItemBySku() {
+      const sku = this.command.split(" ")[0];
+      const quantity = this.command.split(" ")[1] || 1;
+      const item = this.items.find((item) => item.sku === sku);
+      if (item) {
+        this.addToCart(item, quantity);
+        return true;
+      }
+      return false;
+    },
+  },
+  computed: {
+    ...mapState(useItemStore, ["items"]),
+  },
+};
+</script>

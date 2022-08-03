@@ -4,6 +4,7 @@
       <v-col
         cols="8"
       >
+        <command-input></command-input>
         <item-list />
       </v-col>
       <v-col cols="4">
@@ -19,13 +20,15 @@ import { defineComponent } from 'vue';
 // Components
 import ShoppingCart from "@/components/ShoppingCart.vue";
 import ItemList from "@/components/ItemList.vue";
+import CommandInput from '@/components/CommandInput.vue';
 
 export default defineComponent({
   name: 'HomeView',
 
   components: {
     ShoppingCart,
-    ItemList
+    ItemList,
+    CommandInput
   },
 });
 </script>
