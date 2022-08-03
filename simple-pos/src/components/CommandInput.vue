@@ -27,11 +27,11 @@ export default {
     };
   },
   methods: {
-    ...mapActions(useCartStore, ["addToCart", "clearCart", "reduceFromCart"]),
+    ...mapActions(useCartStore, ["addToCart", "clearCart", "reduceFromCart", "addCartCustomerInfo"]),
 
     executeCommand() {
-      if (this.addItemBySku() || this.clear() || this.reduceItemBySku()) {
-        this.onCommandSuccess( this.command );
+      if (this.addItemBySku() || this.clear() || this.reduceItemBySku() || this.addCustomerInfo()) {
+        this.onCommandSuccess(this.command);
       } else {
         this.error = true;
       }
@@ -52,8 +52,7 @@ export default {
       if (this.commandHistoryPointer < this.history.length - 1) {
         this.commandHistoryPointer++;
         this.command = this.history[this.commandHistoryPointer];
-      }
-      else {
+      } else {
         this.command = "";
         this.commandHistoryPointer = this.history.length;
       }
@@ -65,6 +64,13 @@ export default {
         return true;
       }
       return false;
+    },
+    addCustomerInfo() {
+      const command = this.command.split(" ");
+      if (["name", "phone"].includes(command[0])) {
+        this.addCartCustomerInfo(command[0], command[1]);
+        return true;
+      }
     },
     addItemBySku() {
       const sku = this.command.split(" ")[0];

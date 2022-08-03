@@ -1,8 +1,26 @@
 <template>
   <v-card class="mx-auto" max-width="600">
     <v-toolbar color="secondary">
-      <v-toolbar-title>Shopping Cart</v-toolbar-title>
+      <v-toolbar-title>Cart</v-toolbar-title>
     </v-toolbar>
+
+    <v-table v-if="customer.name || customer.phone">
+      <thead>
+        <tr>
+          <td colspan="2">Customer Info</td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-if="customer.name">
+          <th>Name</th>
+          <td>{{ customer.name }}</td>
+        </tr>
+        <tr v-if="customer.phone">
+          <th>Phone</th>
+          <td>{{ customer.phone }}</td>
+        </tr>
+      </tbody>
+    </v-table>
 
     <v-list lines="two">
       <v-list-item
@@ -67,7 +85,7 @@ export default {
     },
   }),
   computed: {
-    ...mapState(useCartStore, ["items"]),
+    ...mapState(useCartStore, ["items", "customer"]),
 
     subtotal() {
       return Object.values(this.items).reduce((total, item) => {

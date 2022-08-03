@@ -2,6 +2,10 @@ import { defineStore } from "pinia";
 
 export const useCartStore = defineStore("cart", {
   state: () => ({
+    customer: {
+      name: "",
+      phone: ""
+    },
     items: {},
   }),
   actions: {
@@ -25,6 +29,9 @@ export const useCartStore = defineStore("cart", {
       if (this.items[item.id].quantity <= 0) {
         delete this.items[item.id];
       }
+    },
+    addCartCustomerInfo(info, value) {
+      this.customer[info] = value;
     },
     clearCart() {
       this.items = {};
