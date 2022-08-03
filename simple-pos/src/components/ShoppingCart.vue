@@ -4,23 +4,29 @@
       <v-toolbar-title>Cart</v-toolbar-title>
     </v-toolbar>
 
-    <v-table v-if="customer.name || customer.phone">
-      <thead>
-        <tr>
-          <td colspan="2">Customer Info</td>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-if="customer.name">
-          <th>Name</th>
-          <td>{{ customer.name }}</td>
-        </tr>
-        <tr v-if="customer.phone">
-          <th>Phone</th>
-          <td>{{ customer.phone }}</td>
-        </tr>
-      </tbody>
-    </v-table>
+
+    <v-container fluid>
+      <v-row>
+        <v-col>
+          <v-text-field
+            label="Customer Name"
+            variant="outlined"
+            shaped
+            v-model="customer.name"
+            hide-details="auto"
+          ></v-text-field>
+        </v-col>
+        <v-col>
+          <v-text-field
+            label="Customer Phone"
+            variant="outlined"
+            shaped
+            v-model="customer.phone"
+            hide-details="auto"
+          ></v-text-field>
+        </v-col>
+      </v-row>
+    </v-container>
 
     <v-list lines="two">
       <v-list-item
