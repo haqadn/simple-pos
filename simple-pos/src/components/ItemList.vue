@@ -1,12 +1,15 @@
 <template>
   <v-row>
     <v-col v-for="item in items" :key="item.id">
-      <v-card min-width="200" @click="() => addToCart(item)">
-        <v-card-text>
-          <p class="text-h5 text--primary">{{ item.name }}</p>
-          <p class="text-disabled">{{ item.sku }}</p>
-          <div class="text--primary">{{ item.price }}</div>
-        </v-card-text>
+      <v-card
+        :color="cartItems[item.id] ? 'success' : ''"
+        :theme="cartItems[item.id] ? 'dark' : 'lite'"
+        min-width="200" 
+        @click="() => addToCart(item)"
+      >
+        <v-card-title>{{ item.name }}</v-card-title>
+        <v-card-subtitle>{{ item.sku }}</v-card-subtitle>
+        <v-card-text>{{ item.price }}</v-card-text>
       </v-card>
     </v-col>
   </v-row>
@@ -25,6 +28,9 @@ export default {
     ...mapActions(useCartStore, ["addToCart"]),
   },
   computed: {
+    ...mapState(useCartStore, {
+      cartItems: 'items'
+    }),
     ...mapState(useItemStore, ["items"]),
   },
 };
