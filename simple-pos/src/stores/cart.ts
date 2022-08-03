@@ -14,8 +14,20 @@ export const useCartStore = defineStore("cart", {
             : parseInt(quantity),
       };
     },
+    reduceFromCart(item, quantity = 1) {
+      if (!(item.id in this.items)) return;
+
+      this.items[item.id] = {
+        ...item,
+        quantity: this.items[item.id].quantity - parseInt(quantity),
+      };
+
+      if (this.items[item.id].quantity <= 0) {
+        delete this.items[item.id];
+      }
+    },
     clearCart() {
       this.items = {};
-    }
+    },
   },
 });

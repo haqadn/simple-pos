@@ -23,10 +23,10 @@ export default {
     };
   },
   methods: {
-    ...mapActions(useCartStore, ["addToCart", "clearCart"]),
+    ...mapActions(useCartStore, ["addToCart", "clearCart", "reduceFromCart"]),
 
     executeCommand() {
-      if (this.addItemBySku() || this.clear()) {
+      if (this.addItemBySku() || this.clear() || this.reduceItemBySku()) {
         this.command = "";
         this.error = false;
       } else {
@@ -47,6 +47,19 @@ export default {
       const item = this.items.find((item) => item.sku === sku);
       if (item) {
         this.addToCart(item, quantity);
+        return true;
+      }
+      return false;
+    },
+    reduceItemBySku() {
+      const reduce = ["reduce", "rd"].includes(this.command.split(" ")[0]);
+      if (!reduce) return false;
+
+      const sku = this.command.split(" ")[1];
+      const quantity = this.command.split(" ")[2] || 1;
+      const item = this.items.find((item) => item.sku === sku);
+      if (item) {
+        this.reduceFromCart(item, quantity);
         return true;
       }
       return false;

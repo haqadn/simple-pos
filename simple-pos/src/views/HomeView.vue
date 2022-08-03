@@ -1,9 +1,7 @@
 <template>
   <v-container fluid>
     <v-row>
-      <v-col
-        cols="8"
-      >
+      <v-col cols="8">
         <command-input></command-input>
         <item-list />
       </v-col>
@@ -15,20 +13,20 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent } from "vue";
 
 // Components
 import ShoppingCart from "@/components/ShoppingCart.vue";
 import ItemList from "@/components/ItemList.vue";
-import CommandInput from '@/components/CommandInput.vue';
+import CommandInput from "@/components/CommandInput.vue";
 
 export default defineComponent({
-  name: 'HomeView',
+  name: "HomeView",
 
   components: {
     ShoppingCart,
     ItemList,
-    CommandInput
+    CommandInput,
   },
 });
 </script>
