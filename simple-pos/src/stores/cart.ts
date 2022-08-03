@@ -4,7 +4,7 @@ export const useCartStore = defineStore("cart", {
   state: () => ({
     customer: {
       name: "",
-      phone: ""
+      phone: "",
     },
     items: {},
   }),

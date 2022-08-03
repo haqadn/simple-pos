@@ -4,7 +4,6 @@
       <v-toolbar-title>Cart</v-toolbar-title>
     </v-toolbar>
 
-
     <v-container fluid>
       <v-row>
         <v-col>
@@ -28,22 +27,30 @@
       </v-row>
     </v-container>
 
-    <v-list lines="two">
-      <v-list-item
-        v-for="(item, i) in items"
-        :key="item.id"
-        :title="item.name"
-        :subtitle="formatCurrency(item.price) + 'x' + item.quantity"
-      >
-        <template v-slot:prepend>
-          <v-avatar color="grey-lighten-1">{{ i + 1 }}</v-avatar>
-        </template>
+    <v-table>
+      <thead>
+        <tr>
+          <td>Item</td>
+          <td>Quantity</td>
+          <td class="text-right">Total</td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="item in items" :key="item.id">
+          <td>
+            <p class="text-body-1">{{ item.name }}</p>
+            <p class="text-subtitle-2 text-disabled">
+              {{ formatCurrency(item.price) }}
+            </p>
+          </td>
+          <td><quantity-control v-model="item.quantity"></quantity-control></td>
+          <td class="text-right">
+            {{ formatCurrency(item.price * item.quantity) }}
+          </td>
+        </tr>
+      </tbody>
+    </v-table>
 
-        <template v-slot:append>
-          {{ formatCurrency(item.price * item.quantity) }}
-        </template>
-      </v-list-item>
-    </v-list>
     <v-divider></v-divider>
     <v-list lines="two">
       <v-list-item
@@ -76,8 +83,12 @@
 <script>
 import { mapState, mapActions } from "pinia";
 import { useCartStore } from "../stores/cart";
+import QuantityControl from "./QuantityControl.vue";
 
 export default {
+  components: {
+    QuantityControl,
+  },
   data: () => ({
     currency: "৳",
     discount: {

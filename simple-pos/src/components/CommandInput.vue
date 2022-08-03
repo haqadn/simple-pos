@@ -27,10 +27,20 @@ export default {
     };
   },
   methods: {
-    ...mapActions(useCartStore, ["addToCart", "clearCart", "reduceFromCart", "addCartCustomerInfo"]),
+    ...mapActions(useCartStore, [
+      "addToCart",
+      "clearCart",
+      "reduceFromCart",
+      "addCartCustomerInfo",
+    ]),
 
     executeCommand() {
-      if (this.addItemBySku() || this.clear() || this.reduceItemBySku() || this.addCustomerInfo()) {
+      if (
+        this.addItemBySku() ||
+        this.clear() ||
+        this.reduceItemBySku() ||
+        this.addCustomerInfo()
+      ) {
         this.onCommandSuccess(this.command);
       } else {
         this.error = true;
