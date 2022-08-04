@@ -26,6 +26,7 @@ export default {
   }),
   methods: {
     ...mapActions(useCartStore, ["addToCart"]),
+    ...mapActions(useItemStore, ["loadItems"]),
   },
   computed: {
     ...mapState(useCartStore, {
@@ -33,14 +34,8 @@ export default {
     }),
     ...mapState(useItemStore, ["items"]),
   },
+  created() {
+    this.loadItems();
+  }
 };
 </script>
-
-<style>
-.v-card--reveal {
-  bottom: 0;
-  opacity: 1 !important;
-  position: absolute;
-  width: 100%;
-}
-</style>
