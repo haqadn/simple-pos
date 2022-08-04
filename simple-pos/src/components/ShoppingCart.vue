@@ -43,7 +43,7 @@
               {{ formatCurrency(item.price) }}
             </p>
           </td>
-          <td><quantity-control v-model="item.quantity"></quantity-control></td>
+          <td><quantity-control :item="item"></quantity-control></td>
           <td class="text-right">
             {{ formatCurrency(item.price * item.quantity) }}
           </td>

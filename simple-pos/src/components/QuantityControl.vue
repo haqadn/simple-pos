@@ -3,12 +3,13 @@
     <v-text-field
       outlined
       dense
-      :value="modelValue"
+      :value="item.quantity"
       max-width="100"
       prepend-icon="mdi-minus"
       append-icon="mdi-plus"
-      @click:prepend="() => input(modelValue - 1)"
-      @click:append="() => input(modelValue + 1)"
+      @click:prepend="() => reduceFromCart(item)"
+      @click:append="() => addToCart(item)"
+      @input="event => input(event.target.value)"
       class="text-center"
       hide-details="auto"
     ></v-text-field>
@@ -16,18 +17,21 @@
 </template>
 
 <script>
+import { mapActions } from "pinia";
+import { useCartStore } from "../stores/cart";
+
 export default {
-  data() {
-    return {
-      content: this.modelValue,
-    };
-  },
-  props: ["modelValue"],
-  emits: ["update:modelValue"],
+  props: ["item"],
   methods: {
-    input(newValue) {
-      console.log("Shopuld update", newValue);
-      this.$emit("update:modelValue", newValue);
+    ...mapActions(useCartStore, ["addToCart", "reduceFromCart"]),
+
+    input(value) {
+      const diff = parseInt(value) - this.item.quantity;
+      if (diff > 0) {
+        this.addToCart(this.item, diff);
+      } else if (diff < 0) {
+        this.reduceFromCart(this.item, -diff);
+      }
     },
   },
 };

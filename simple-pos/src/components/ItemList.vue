@@ -4,7 +4,7 @@
       <v-card
         :color="cartItems[item.id] ? 'success' : ''"
         :theme="cartItems[item.id] ? 'dark' : 'lite'"
-        min-width="200" 
+        min-width="200"
         @click="() => addToCart(item)"
       >
         <v-card-title>{{ item.name }}</v-card-title>
