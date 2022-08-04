@@ -29,6 +29,7 @@ export default {
   methods: {
     ...mapActions(useCartStore, [
       "addToCart",
+      "setItemQuantity",
       "clearCart",
       "reduceFromCart",
       "addCartCustomerInfo",
@@ -38,7 +39,7 @@ export default {
       if (
         this.addItemBySku() ||
         this.clear() ||
-        this.reduceItemBySku() ||
+        this.removeItemBySku() ||
         this.addCustomerInfo()
       ) {
         this.onCommandSuccess(this.command);
@@ -84,23 +85,33 @@ export default {
     },
     addItemBySku() {
       const sku = this.command.split(" ")[0];
-      const quantity = this.command.split(" ")[1] || 1;
       const item = this.items.find((item) => item.sku === sku);
-      if (item) {
-        this.addToCart(item, quantity);
+      if ( item ) {
+        const quantity = this.command.split(" ")[1];
+
+        if (quantity) {
+          this.setItemQuantity(item, quantity);
+        } else {
+          this.addToCart(item);
+        }
+
         return true;
       }
       return false;
     },
-    reduceItemBySku() {
-      const reduce = ["reduce", "rd"].includes(this.command.split(" ")[0]);
+    removeItemBySku() {
+      const reduce = ["remove", "rm"].includes(this.command.split(" ")[0]);
       if (!reduce) return false;
 
       const sku = this.command.split(" ")[1];
-      const quantity = this.command.split(" ")[2] || 1;
       const item = this.items.find((item) => item.sku === sku);
+      const quantity = this.command.split(" ")[2];
       if (item) {
-        this.reduceFromCart(item, quantity);
+        if( quantity ) {
+          this.reduceFromCart(item, quantity);
+        } else {
+          this.setItemQuantity(item, 0);
+        }
         return true;
       }
       return false;

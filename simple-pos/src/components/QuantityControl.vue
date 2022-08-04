@@ -9,7 +9,7 @@
       append-icon="mdi-plus"
       @click:prepend="() => reduceFromCart(item)"
       @click:append="() => addToCart(item)"
-      @input="event => input(event.target.value)"
+      @input="event => setItemQuantity(item, event.target.value)"
       class="text-center"
       hide-details="auto"
     ></v-text-field>
@@ -23,16 +23,7 @@ import { useCartStore } from "../stores/cart";
 export default {
   props: ["item"],
   methods: {
-    ...mapActions(useCartStore, ["addToCart", "reduceFromCart"]),
-
-    input(value) {
-      const diff = parseInt(value) - this.item.quantity;
-      if (diff > 0) {
-        this.addToCart(this.item, diff);
-      } else if (diff < 0) {
-        this.reduceFromCart(this.item, -diff);
-      }
-    },
+    ...mapActions(useCartStore, ["addToCart", "reduceFromCart", "setItemQuantity"]),
   },
 };
 </script>
