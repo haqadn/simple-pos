@@ -1,6 +1,6 @@
 <template>
   <v-card class="mx-auto" max-width="600">
-    <v-toolbar color="secondary">
+    <v-toolbar color="success">
       <v-toolbar-title>Cart</v-toolbar-title>
     </v-toolbar>
 
