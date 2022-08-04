@@ -8,4 +8,4 @@ loadFonts();
 
 const pinia = createPinia();
 
-createApp(App).use(router).use(vuetify).use(pinia).mount("#app");
+createApp(App).use(router).use(vuetify).use(pinia).mount("#pos-app");
