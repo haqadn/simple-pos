@@ -33,7 +33,7 @@ export const useCartStore = defineStore("cart", {
             : parseInt(quantity),
       };
     },
-    reduceFromCart(item, quantity = null) {
+    reduceFromCart(item, quantity = 1) {
       if (!(item.id in this.items) || quantity < 1) return;
 
       this.items[item.id] = {
