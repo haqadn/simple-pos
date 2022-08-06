@@ -42,6 +42,7 @@ export const useCartStore = defineStore("cart", {
       }
       data.line_items = Object.values(state.items).map((item) => ({
         product_id: item.id,
+        id: item.line_item_id,
         quantity: item.quantity,
       }));
 
@@ -77,6 +78,7 @@ export const useCartStore = defineStore("cart", {
       data.line_items.forEach((item) => {
         this.items[item.product_id] = {
           ...item,
+          line_item_id: item.id,
           id: item.product_id,
           product_id: undefined, // We are using `id` instead of `product_id` in the local state
         };
@@ -126,7 +128,7 @@ export const useCartStore = defineStore("cart", {
       if( amount >= this.total ) {
         this.setPaid = true;
       }
-      this.customerNote = `Initial payment: ${amount}`;
+      this.customerNote = `Last recorded payment: ${amount}`;
     },
     clearCart() {
       this.$reset();
