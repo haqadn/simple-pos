@@ -56,15 +56,6 @@
     <v-divider></v-divider>
     <v-list lines="two">
       <v-list-item
-        v-if="discount.amount > 0"
-        title="Discount"
-        :subtitle="formatDiscount(discount.value)"
-      >
-        <template v-slot:append>
-          {{ formatCurrency(totalDiscount) }}
-        </template>
-      </v-list-item>
-      <v-list-item
         v-if="coupon.amount > 0"
         title="Coupon"
         :subtitle="coupon.name"
@@ -75,7 +66,17 @@
       </v-list-item>
       <v-list-item title="Total">
         <template v-slot:append>
-          <strong>{{ formatCurrency(total) }}</strong>
+          <strong>{{ formatCurrency(subtotal) }}</strong>
+        </template>
+      </v-list-item>
+      <v-list-item title="Payment" v-if="payment">
+        <template v-slot:append>
+          <strong>{{ formatCurrency(payment) }}</strong>
+        </template>
+      </v-list-item>
+      <v-list-item title="Remaining" v-if="payment">
+        <template v-slot:append>
+          <strong>{{ formatCurrency(remainingAmount) }}</strong>
         </template>
       </v-list-item>
     </v-list>
@@ -83,7 +84,7 @@
 </template>
 
 <script>
-import { mapState, mapActions } from "pinia";
+import { mapState, mapActions, mapGetters } from "pinia";
 import { useCartStore } from "../stores/cart";
 import QuantityControl from "./QuantityControl.vue";
 
@@ -93,29 +94,27 @@ export default {
   },
   data: () => ({
     currency: "৳",
-    discount: {
-      type: "percent",
-      value: 10,
-    },
     coupon: {
       name: "FOO",
       type: "percent",
-      amount: 10,
+      amount: 0,
     },
   }),
   computed: {
-    ...mapState(useCartStore, ["items", "customer", "orderId"]),
+    ...mapState(useCartStore, [
+      "items",
+      "customer",
+      "orderId",
+      "payment",
+      "subtotal",
+      "remainingAmount",
+    ]),
 
-    subtotal() {
-      return Object.values(this.items).reduce((total, item) => {
-        return total + item.price * item.quantity;
-      }, 0);
-    },
-    totalDiscount() {
+    formattedDiscount() {
       if (this.discount.type === "percent") {
-        return this.subtotal * (this.discount.value / 100);
+        return this.discount.value + "%";
       } else {
-        return this.discount.value;
+        return this.currency + this.discount.value;
       }
     },
     couponDiscount() {
@@ -125,18 +124,8 @@ export default {
         return this.coupon.amount;
       }
     },
-    total() {
-      return this.subtotal - this.totalDiscount - this.couponDiscount;
-    },
   },
   methods: {
-    formatDiscount(amount) {
-      if (this.discount.type === "percent") {
-        return amount + "%";
-      } else {
-        return this.currency + amount;
-      }
-    },
     formatCurrency(amount) {
       return this.currency + amount.toFixed(2);
     },

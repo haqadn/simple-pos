@@ -35,6 +35,7 @@ export default {
       "clearCart",
       "reduceFromCart",
       "addCartCustomerInfo",
+      "addCartPayment"
     ]),
 
     executeCommand() {
@@ -42,8 +43,9 @@ export default {
         this.clear() ||
         this.removeItemBySku() ||
         this.addCustomerInfo() ||
-        this.saveOrderData() ||
         this.openOrder() ||
+        this.saveOrderData() ||
+        this.addPayment() ||
         this.addItemBySku()
       ) {
         this.onCommandSuccess(this.command);
@@ -122,6 +124,14 @@ export default {
         } else {
           this.setItemQuantity(item, 0);
         }
+        return true;
+      }
+      return false;
+    },
+    addPayment() {
+      const command = this.command.split(" ");
+      if (command[0] === "pay") {
+        this.addCartPayment(parseFloat(command[1]));
         return true;
       }
       return false;

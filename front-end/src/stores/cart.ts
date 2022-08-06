@@ -9,7 +9,18 @@ export const useCartStore = defineStore("cart", {
     },
     items: {},
     orderId: null,
+    payment: 0,
   }),
+  getters: {
+    subtotal(state) {
+      return Object.values(state.items).reduce((total, item) => {
+        return total + item.price * item.quantity;
+      }, 0);
+    },
+    remainingAmount(state) {
+      return state.subtotal - state.payment;
+    }
+  },
   actions: {
     async saveOrder() {
       const data = {};
@@ -85,6 +96,9 @@ export const useCartStore = defineStore("cart", {
     },
     addCartCustomerInfo(info, value) {
       this.customer[info] = value;
+    },
+    addCartPayment(amount) {
+      this.payment = amount;
     },
     clearCart() {
       this.$reset();
