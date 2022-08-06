@@ -1,7 +1,9 @@
 <template>
   <v-card class="mx-auto" max-width="600">
     <v-toolbar color="success">
-      <v-toolbar-title>Cart</v-toolbar-title>
+      <v-toolbar-title>
+        {{ orderId ? `Order #${orderId}` : "Cart" }}
+      </v-toolbar-title>
     </v-toolbar>
 
     <v-container fluid>
@@ -102,7 +104,7 @@ export default {
     },
   }),
   computed: {
-    ...mapState(useCartStore, ["items", "customer"]),
+    ...mapState(useCartStore, ["items", "customer", "orderId"]),
 
     subtotal() {
       return Object.values(this.items).reduce((total, item) => {

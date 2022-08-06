@@ -38,11 +38,11 @@ export default {
 
     executeCommand() {
       if (
-        this.addItemBySku() ||
         this.clear() ||
         this.removeItemBySku() ||
         this.addCustomerInfo() ||
-        this.saveOrderData()
+        this.saveOrderData() ||
+        this.addItemBySku()
       ) {
         this.onCommandSuccess(this.command);
       } else {

@@ -8,11 +8,12 @@ export const useCartStore = defineStore("cart", {
       phone: "",
     },
     items: {},
+    orderId: null,
   }),
   actions: {
     async saveOrder() {
-      const data = {}
-      if( this.customer.name || this.customer.phone ) {
+      const data = {};
+      if (this.customer.name || this.customer.phone) {
         data.billing = {
           first_name: this.customer.name.split(" ")[0],
           last_name: this.customer.name.split(" ")[1],
@@ -20,12 +21,26 @@ export const useCartStore = defineStore("cart", {
           username: this.customer.phone,
         };
       }
-      data.line_items = Object.values(this.items).map(item => ({
+      data.line_items = Object.values(this.items).map((item) => ({
         product_id: item.id,
         quantity: item.quantity,
       }));
 
-      await OrdersAPI.saveOrder(data);
+      const response = await OrdersAPI.saveOrder(data);
+      this.updateOrderData(response.data);
+    },
+    updateOrderData(data) {
+      this.addCartCustomerInfo(
+        "name",
+        `${data.billing.first_name} ${data.billing.last_name}`.trim()
+      );
+      this.addCartCustomerInfo("phone", data.billing.phone);
+      this.orderId = data.id;
+      this.items = data.line_items.map((item) => ({
+        ...item,
+        id: item.product_id,
+        product_id: undefined, // We are using `id` instead of `product_id` in the local state
+      }));
     },
     setItemQuantity(item, quantity) {
       if (!this.items[item.id]) {
