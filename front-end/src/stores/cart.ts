@@ -67,7 +67,7 @@ export const useCartStore = defineStore("cart", {
       this.customer[info] = value;
     },
     clearCart() {
-      this.items = {};
+      this.$reset();
     },
   },
 });

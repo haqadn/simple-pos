@@ -84,6 +84,12 @@ export default {
         this.addCartCustomerInfo(command[0], command[1]);
         return true;
       }
+      if( command[0] === "cus" ) {
+        this.addCartCustomerInfo("phone", command[1]);
+        this.addCartCustomerInfo("name", command[2]);
+        return true;
+      }
+      return false;
     },
     addItemBySku() {
       const sku = this.command.split(" ")[0];
