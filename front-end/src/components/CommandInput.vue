@@ -28,6 +28,7 @@ export default {
   },
   methods: {
     ...mapActions(useCartStore, [
+      "saveOrder",
       "addToCart",
       "setItemQuantity",
       "clearCart",
@@ -40,7 +41,8 @@ export default {
         this.addItemBySku() ||
         this.clear() ||
         this.removeItemBySku() ||
-        this.addCustomerInfo()
+        this.addCustomerInfo() ||
+        this.saveOrderData()
       ) {
         this.onCommandSuccess(this.command);
       } else {
@@ -112,6 +114,13 @@ export default {
         } else {
           this.setItemQuantity(item, 0);
         }
+        return true;
+      }
+      return false;
+    },
+    saveOrderData() {
+      if (this.command === "save") {
+        this.saveOrder();
         return true;
       }
       return false;

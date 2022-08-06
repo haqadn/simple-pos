@@ -1,3 +1,4 @@
+import OrdersAPI from "@/api/orders";
 import { defineStore } from "pinia";
 
 export const useCartStore = defineStore("cart", {
@@ -9,6 +10,23 @@ export const useCartStore = defineStore("cart", {
     items: {},
   }),
   actions: {
+    async saveOrder() {
+      const data = {}
+      if( this.customer.name || this.customer.phone ) {
+        data.billing = {
+          first_name: this.customer.name.split(" ")[0],
+          last_name: this.customer.name.split(" ")[1],
+          phone: this.customer.phone,
+          username: this.customer.phone,
+        };
+      }
+      data.line_items = Object.values(this.items).map(item => ({
+        product_id: item.id,
+        quantity: item.quantity,
+      }));
+
+      await OrdersAPI.saveOrder(data);
+    },
     setItemQuantity(item, quantity) {
       if (!this.items[item.id]) {
         this.addToCart(item, quantity);
