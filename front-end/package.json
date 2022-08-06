@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "scripts": {
     "serve": "vite preview",
-    "build": "vite build --watch",
+    "build-dev": "vite build -m development --watch",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
-    "build-only": "vite build",
+    "build": "vite build",
     "dev": "vite",
     "preview": "vite preview --port 4173",
     "type-check": "vue-tsc --noEmit"
