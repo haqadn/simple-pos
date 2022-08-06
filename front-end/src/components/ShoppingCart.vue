@@ -79,6 +79,17 @@
           <strong>{{ formatCurrency(remainingAmount) }}</strong>
         </template>
       </v-list-item>
+      <v-list-item>
+        <template v-slot>
+          <v-text-field
+            v-model="customerNote"
+            outlined
+            hide-details="auto"
+            label="Note"
+            placeholder="Enter note"
+          ></v-text-field>
+        </template>
+      </v-list-item>
     </v-list>
   </v-card>
 </template>
@@ -108,6 +119,7 @@ export default {
       "payment",
       "subtotal",
       "remainingAmount",
+      "customerNote",
     ]),
 
     formattedDiscount() {

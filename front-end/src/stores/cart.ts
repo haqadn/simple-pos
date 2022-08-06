@@ -9,7 +9,10 @@ export const useCartStore = defineStore("cart", {
     },
     items: {},
     orderId: null,
+    status: 'pending',
+    customerNote: "",
     payment: 0,
+    setPaid: false,
   }),
   getters: {
     subtotal(state) {
@@ -17,11 +20,18 @@ export const useCartStore = defineStore("cart", {
         return total + item.price * item.quantity;
       }, 0);
     },
+    total(state) {
+      return state.subtotal;
+    },
     remainingAmount(state) {
-      return state.subtotal - state.payment;
+      return state.total - state.payment;
     },
     cartPayload(state) {
-      const data = {};
+      const data = {
+        status: state.status,
+        set_paid: state.setPaid,
+        customer_note: state.customerNote,
+      };
       if (state.customer.name || state.customer.phone) {
         data.billing = {
           first_name: state.customer.name.split(" ")[0],
@@ -40,10 +50,11 @@ export const useCartStore = defineStore("cart", {
   },
   actions: {
     async saveOrder() {
+      let response;
       if( this.orderId ) {
-        const response = await OrdersAPI.updateOrder(this.orderId, this.cartPayload);
+        response = await OrdersAPI.updateOrder(this.orderId, this.cartPayload);
       } else {
-        const response = await OrdersAPI.saveOrder(this.cartPayload);
+        response = await OrdersAPI.saveOrder(this.cartPayload);
       }
       this.updateOrderData(response.data);
     },
@@ -58,7 +69,10 @@ export const useCartStore = defineStore("cart", {
         `${data.billing.first_name} ${data.billing.last_name}`.trim()
       );
       this.addCartCustomerInfo("phone", data.billing.phone);
+
+      this.status = data.status;
       this.orderId = data.id;
+      this.customerNote = data.customer_note;
       this.items = {};
       data.line_items.forEach((item) => {
         this.items[item.product_id] = {
@@ -109,6 +123,10 @@ export const useCartStore = defineStore("cart", {
     },
     addCartPayment(amount) {
       this.payment = amount;
+      if( amount >= this.total ) {
+        this.setPaid = true;
+      }
+      this.customerNote = `Initial payment: ${amount}`;
     },
     clearCart() {
       this.$reset();
