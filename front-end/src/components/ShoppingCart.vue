@@ -84,7 +84,7 @@
 </template>
 
 <script>
-import { mapState, mapActions, mapGetters } from "pinia";
+import { mapState } from "pinia";
 import { useCartStore } from "../stores/cart";
 import QuantityControl from "./QuantityControl.vue";
 

@@ -5,6 +5,10 @@ export default class OrdersAPI extends API {
     return await this.client.post("/orders", order);
   }
 
+  static async updateOrder(id, order) {
+    return await this.client.put(`/orders/${id}`, order);
+  }
+
   static async getOrder(id) {
     return await this.client.get(`/orders/${id}`);
   }

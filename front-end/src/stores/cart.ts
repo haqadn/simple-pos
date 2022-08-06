@@ -19,25 +19,32 @@ export const useCartStore = defineStore("cart", {
     },
     remainingAmount(state) {
       return state.subtotal - state.payment;
-    }
-  },
-  actions: {
-    async saveOrder() {
+    },
+    cartPayload(state) {
       const data = {};
-      if (this.customer.name || this.customer.phone) {
+      if (state.customer.name || state.customer.phone) {
         data.billing = {
-          first_name: this.customer.name.split(" ")[0],
-          last_name: this.customer.name.split(" ")[1],
-          phone: this.customer.phone,
-          username: this.customer.phone,
+          first_name: state.customer.name.split(" ")[0],
+          last_name: state.customer.name.split(" ")[1],
+          phone: state.customer.phone,
+          username: state.customer.phone,
         };
       }
-      data.line_items = Object.values(this.items).map((item) => ({
+      data.line_items = Object.values(state.items).map((item) => ({
         product_id: item.id,
         quantity: item.quantity,
       }));
 
-      const response = await OrdersAPI.saveOrder(data);
+      return data;
+    }
+  },
+  actions: {
+    async saveOrder() {
+      if( this.orderId ) {
+        const response = await OrdersAPI.updateOrder(this.orderId, this.cartPayload);
+      } else {
+        const response = await OrdersAPI.saveOrder(this.cartPayload);
+      }
       this.updateOrderData(response.data);
     },
     async loadOrder(id) {
@@ -52,11 +59,14 @@ export const useCartStore = defineStore("cart", {
       );
       this.addCartCustomerInfo("phone", data.billing.phone);
       this.orderId = data.id;
-      this.items = data.line_items.map((item) => ({
-        ...item,
-        id: item.product_id,
-        product_id: undefined, // We are using `id` instead of `product_id` in the local state
-      }));
+      this.items = {};
+      data.line_items.forEach((item) => {
+        this.items[item.product_id] = {
+          ...item,
+          id: item.product_id,
+          product_id: undefined, // We are using `id` instead of `product_id` in the local state
+        };
+      });
     },
     setItemQuantity(item, quantity) {
       if (!this.items[item.id]) {
