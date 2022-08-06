@@ -29,6 +29,7 @@ export default {
   methods: {
     ...mapActions(useCartStore, [
       "saveOrder",
+      "loadOrder",
       "addToCart",
       "setItemQuantity",
       "clearCart",
@@ -42,6 +43,7 @@ export default {
         this.removeItemBySku() ||
         this.addCustomerInfo() ||
         this.saveOrderData() ||
+        this.openOrder() ||
         this.addItemBySku()
       ) {
         this.onCommandSuccess(this.command);
@@ -84,7 +86,7 @@ export default {
         this.addCartCustomerInfo(command[0], command[1]);
         return true;
       }
-      if( command[0] === "cus" ) {
+      if (command[0] === "cus") {
         this.addCartCustomerInfo("phone", command[1]);
         this.addCartCustomerInfo("name", command[2]);
         return true;
@@ -94,7 +96,7 @@ export default {
     addItemBySku() {
       const sku = this.command.split(" ")[0];
       const item = this.items.find((item) => item.sku === sku);
-      if ( item ) {
+      if (item) {
         const quantity = this.command.split(" ")[1];
 
         if (quantity) {
@@ -115,7 +117,7 @@ export default {
       const item = this.items.find((item) => item.sku === sku);
       const quantity = this.command.split(" ")[2];
       if (item) {
-        if( quantity ) {
+        if (quantity) {
           this.reduceFromCart(item, quantity);
         } else {
           this.setItemQuantity(item, 0);
@@ -127,6 +129,13 @@ export default {
     saveOrderData() {
       if (this.command === "save") {
         this.saveOrder();
+        return true;
+      }
+      return false;
+    },
+    openOrder() {
+      if (this.command.split(" ")[0] === "open") {
+        this.loadOrder(this.command.split(" ")[1]);
         return true;
       }
       return false;

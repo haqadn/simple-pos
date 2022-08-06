@@ -29,6 +29,11 @@ export const useCartStore = defineStore("cart", {
       const response = await OrdersAPI.saveOrder(data);
       this.updateOrderData(response.data);
     },
+    async loadOrder(id) {
+      this.clearCart();
+      const response = await OrdersAPI.getOrder(id);
+      this.updateOrderData(response.data);
+    },
     updateOrderData(data) {
       this.addCartCustomerInfo(
         "name",
