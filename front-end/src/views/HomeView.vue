@@ -1,13 +1,16 @@
 <template>
   <v-container fluid>
-    <v-row>
+    <v-row class="d-print-none">
       <v-col cols="8">
-        <command-input></command-input>
+        <command-input/>
         <item-list />
       </v-col>
       <v-col cols="4">
         <shopping-cart />
       </v-col>
+    </v-row>
+    <v-row class="d-print-block">
+      <printable-shopping-cart />
     </v-row>
   </v-container>
 </template>
@@ -17,6 +20,7 @@ import { defineComponent } from "vue";
 
 // Components
 import ShoppingCart from "@/components/ShoppingCart.vue";
+import PrintableShoppingCart from "@/components/PrintableShoppingCart.vue";
 import ItemList from "@/components/ItemList.vue";
 import CommandInput from "@/components/CommandInput.vue";
 
@@ -27,6 +31,7 @@ export default defineComponent({
     ShoppingCart,
     ItemList,
     CommandInput,
+    PrintableShoppingCart,
   },
 });
 </script>
