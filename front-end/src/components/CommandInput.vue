@@ -147,7 +147,7 @@ export default {
       return false;
     },
     saveOrderData() {
-      if (this.command === "save") {
+      if (this.command === "up") {
         this.saveOrder();
         return true;
       }
