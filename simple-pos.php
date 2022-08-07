@@ -7,6 +7,11 @@
  * Author URI:        https://eadnan.com
  * Domain Path:       /languages
  */
+require plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
+require_once plugin_dir_path( __FILE__ ) . 'utils/class-profile-assigner.php';
+require_once plugin_dir_path( __FILE__ ) . 'utils/class-hotspot.php';
+
+
 function spos_register_scripts() {
     wp_register_style( 'simple-pos-iconfont', 'https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css', array(), '1.0.0', 'all' );
     wp_register_style( 'simple-pos', plugins_url( 'front-end/dist/assets/style.css', __FILE__ ), array('simple-pos-iconfont'), '1.0.0', 'all' );
@@ -38,10 +43,15 @@ function spos_add_type_attribute($tag, $handle, $src) {
     return $tag;
 }
 
-function spos_new_order( $order_id, $order ) {
-    require_once plugin_dir_path( __FILE__ ) . 'utils/class-hotspot.php';
+function spos_assign_hotspot_profile( $order_id, $order ) {
     $hotspot = new Hotspot( $order_id );
-
-    $order->update_meta_data( 'wifi-password', $hotspot->getPassword() );
+    $profile_assigner = new Profile_Assigner($order);
+    $hotspot->assign_profile( $profile_assigner->get_profile_name() );
 }
-add_action( 'woocommerce_new_order', 'spos_new_order', 10, 2 );
+function spos_create_hotspot_user( $order_id ) {
+    $hotspot = new Hotspot( $order_id );
+    $hotspot->create_user();
+}
+add_action( 'woocommerce_new_order', 'spos_create_hotspot_user' );
+add_action( 'woocommerce_new_order', 'spos_assign_hotspot_profile', 10, 2 );
+add_action( 'woocommerce_update_order', 'spos_assign_hotspot_profile', 10, 2 );
