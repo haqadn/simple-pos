@@ -147,9 +147,7 @@ export const useCartStore = defineStore("cart", {
         quantity: this.items[item.id].quantity - parseInt(quantity),
       };
 
-      if (this.items[item.id].quantity <= 0) {
-        delete this.items[item.id];
-      }
+      this.items[item.id].quantity = Math.max(0, this.items[item.id].quantity);
     },
     addCartCustomerInfo(info, value) {
       this.customer[info] = value;

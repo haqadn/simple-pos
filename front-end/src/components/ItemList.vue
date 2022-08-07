@@ -2,7 +2,7 @@
   <v-row>
     <v-col v-for="item in items" :key="item.id">
       <v-card
-        :color="cartItems[item.id] ? 'success' : ''"
+        :color="cartItems[item.id] && cartItems[item.id].quantity > 0 ? 'success' : ''"
         :theme="cartItems[item.id] ? 'dark' : 'lite'"
         min-width="200"
         @click="() => addToCart(item)"

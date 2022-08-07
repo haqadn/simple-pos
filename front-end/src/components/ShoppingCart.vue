@@ -44,16 +44,16 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in items" :key="item.id">
+        <tr v-for="cartItem in filteredCartItems" :key="cartItem.id">
           <td>
-            <p class="text-body-1">{{ item.name }}</p>
+            <p class="text-body-1">{{ cartItem.name }}</p>
             <p class="text-subtitle-2 text-disabled">
-              {{ formatCurrency(item.price) }}
+              {{ formatCurrency(cartItem.price) }}
             </p>
           </td>
-          <td><quantity-control :item="item"></quantity-control></td>
+          <td><quantity-control :item="cartItem"></quantity-control></td>
           <td class="text-right total-column">
-            {{ formatCurrency(item.price * item.quantity) }}
+            {{ formatCurrency(cartItem.price * cartItem.quantity) }}
           </td>
         </tr>
       </tbody>
@@ -88,7 +88,11 @@
               {{ coupon.code }}
 
               <template v-slot:append>
-                <v-icon @click="() => removeCoupon(coupon.code)" color="red" icon="mdi-close"></v-icon>
+                <v-icon
+                  @click="() => removeCoupon(coupon.code)"
+                  color="red"
+                  icon="mdi-close"
+                ></v-icon>
               </template>
             </v-list-item>
           </v-list>
@@ -138,6 +142,10 @@ export default {
       "coupons",
       "discountTotal",
     ]),
+
+    filteredCartItems() {
+      return Object.values(this.items).filter((item) => item.quantity > 0);
+    },
 
     formattedDiscount() {
       if (this.discount.type === "percent") {
