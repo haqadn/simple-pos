@@ -114,6 +114,11 @@ export const useCartStore = defineStore("cart", {
         };
       });
       this.coupons = data.coupon_lines || [];
+
+      this.$router.push({
+        name: "order",
+        params: { id: this.orderId },
+      });
     },
     setItemQuantity(item, quantity) {
       if (!this.items[item.id]) {
@@ -161,6 +166,7 @@ export const useCartStore = defineStore("cart", {
     },
     clearCart() {
       this.$reset();
+      this.$router.push({ name: "home" });
     },
   },
 });

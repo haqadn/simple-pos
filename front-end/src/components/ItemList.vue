@@ -2,7 +2,9 @@
   <v-row>
     <v-col v-for="item in items" :key="item.id">
       <v-card
-        :color="cartItems[item.id] && cartItems[item.id].quantity > 0 ? 'success' : ''"
+        :color="
+          cartItems[item.id] && cartItems[item.id].quantity > 0 ? 'success' : ''
+        "
         :theme="cartItems[item.id] ? 'dark' : 'lite'"
         min-width="200"
         @click="() => addToCart(item)"
@@ -25,17 +27,20 @@ export default {
     reveal: false,
   }),
   methods: {
-    ...mapActions(useCartStore, ["addToCart"]),
+    ...mapActions(useCartStore, ["addToCart", "loadOrder"]),
     ...mapActions(useItemStore, ["loadItems"]),
   },
   computed: {
     ...mapState(useCartStore, {
-      cartItems: 'items'
+      cartItems: "items",
     }),
     ...mapState(useItemStore, ["items"]),
   },
-  created() {
-    this.loadItems();
-  }
+  async created() {
+    await this.loadItems();
+    if (this.$route.params.id) {
+      await this.loadOrder(this.$route.params.id);
+    }
+  },
 };
 </script>
