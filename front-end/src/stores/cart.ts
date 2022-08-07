@@ -1,3 +1,4 @@
+import CouponsAPI from "@/api/coupons";
 import OrdersAPI from "@/api/orders";
 import { defineStore } from "pinia";
 
@@ -9,10 +10,12 @@ export const useCartStore = defineStore("cart", {
     },
     items: {},
     orderId: null,
-    status: 'pending',
+    status: "pending",
     customerNote: "",
     payment: 0,
     setPaid: false,
+    coupons: [],
+    discountTotal: 0,
   }),
   getters: {
     subtotal(state) {
@@ -31,6 +34,14 @@ export const useCartStore = defineStore("cart", {
         status: state.status,
         set_paid: state.setPaid,
         customer_note: state.customerNote,
+        coupon_lines: state.coupons.map((coupon) => ({
+          code: coupon.code,
+        })),
+        line_items: Object.values(state.items).map((item) => ({
+          product_id: item.id,
+          id: item.line_item_id,
+          quantity: item.quantity,
+        })),
       };
       if (state.customer.name || state.customer.phone) {
         data.billing = {
@@ -40,19 +51,37 @@ export const useCartStore = defineStore("cart", {
           username: state.customer.phone,
         };
       }
-      data.line_items = Object.values(state.items).map((item) => ({
-        product_id: item.id,
-        id: item.line_item_id,
-        quantity: item.quantity,
-      }));
 
       return data;
-    }
+    },
   },
   actions: {
+    async addCoupon(code) {
+      try {
+        const response = await CouponsAPI.getCoupon(code);
+        const coupon = response.data[0];
+        if( !coupon ) {
+          throw new Error("Coupon not found");
+        }
+        const expiry = new Date(coupon.date_expires);
+        if ( coupon.date_expires !== null && new Date() > expiry) {
+          console.log( coupon, typeof coupon.date_expires, expiry, new Date() );
+          throw new Error("Coupon expired");
+        }
+        if( this.coupons.find(c => c.code === code) ) {
+          return;
+        }
+        this.coupons.push(coupon);
+      } catch (error) {
+        return alert(error.message);
+      }
+    },
+    removeCoupon(code) {
+      this.coupons = this.coupons.filter((coupon) => coupon.code !== code);
+    },
     async saveOrder() {
       let response;
-      if( this.orderId ) {
+      if (this.orderId) {
         response = await OrdersAPI.updateOrder(this.orderId, this.cartPayload);
       } else {
         response = await OrdersAPI.saveOrder(this.cartPayload);
@@ -74,6 +103,7 @@ export const useCartStore = defineStore("cart", {
       this.status = data.status;
       this.orderId = data.id;
       this.customerNote = data.customer_note;
+      this.discountTotal = parseFloat(data.discount_total);
       this.items = {};
       data.line_items.forEach((item) => {
         this.items[item.product_id] = {
@@ -83,6 +113,7 @@ export const useCartStore = defineStore("cart", {
           product_id: undefined, // We are using `id` instead of `product_id` in the local state
         };
       });
+      this.coupons = data.coupon_lines || [];
     },
     setItemQuantity(item, quantity) {
       if (!this.items[item.id]) {
@@ -125,10 +156,10 @@ export const useCartStore = defineStore("cart", {
     },
     addCartPayment(amount) {
       this.payment = amount;
-      if( amount >= this.total ) {
+      if (amount >= this.total) {
         this.setPaid = true;
       }
-      this.customerNote = `Last recorded payment: ${amount}`;
+      this.customerNote = `Payment before change: ${amount}`;
     },
     clearCart() {
       this.$reset();

@@ -1,9 +1,15 @@
 <template>
   <v-card class="mx-auto" max-width="600">
     <v-toolbar color="success">
-      <v-toolbar-title>
-        {{ orderId ? `Order #${orderId}` : "Cart" }}
+      <v-toolbar-title v-if="orderId">
+        Order
+        <a
+          target="_blank"
+          :href="`/wp-admin/post.php?post=${orderId}&action=edit`"
+          >#{{ orderId }}</a
+        >
       </v-toolbar-title>
+      <v-toolbar-title v-else> Cart </v-toolbar-title>
     </v-toolbar>
 
     <v-container fluid>
@@ -34,7 +40,7 @@
         <tr>
           <td>Item</td>
           <td>Quantity</td>
-          <td class="text-right">Total</td>
+          <td>Total</td>
         </tr>
       </thead>
       <tbody>
@@ -46,7 +52,7 @@
             </p>
           </td>
           <td><quantity-control :item="item"></quantity-control></td>
-          <td class="text-right">
+          <td class="text-right total-column">
             {{ formatCurrency(item.price * item.quantity) }}
           </td>
         </tr>
@@ -55,28 +61,37 @@
 
     <v-divider></v-divider>
     <v-list lines="two">
-      <v-list-item
-        v-if="coupon.amount > 0"
-        title="Coupon"
-        :subtitle="coupon.name"
-      >
-        <template v-slot:append>
-          {{ formatCurrency(couponDiscount) }}
-        </template>
-      </v-list-item>
       <v-list-item title="Total">
         <template v-slot:append>
           <strong>{{ formatCurrency(subtotal) }}</strong>
         </template>
       </v-list-item>
+      <v-list-item title="Discount" v-if="discountTotal">
+        <template v-slot:append>
+          {{ formatCurrency(discountTotal) }}
+        </template>
+      </v-list-item>
       <v-list-item title="Payment" v-if="payment">
         <template v-slot:append>
-          <strong>{{ formatCurrency(payment) }}</strong>
+          {{ formatCurrency(payment) }}
         </template>
       </v-list-item>
       <v-list-item title="Remaining" v-if="payment">
         <template v-slot:append>
-          <strong>{{ formatCurrency(remainingAmount) }}</strong>
+          {{ formatCurrency(remainingAmount) }}
+        </template>
+      </v-list-item>
+      <v-list-item title="Coupons" v-if="coupons.length > 0">
+        <template v-slot>
+          <v-list>
+            <v-list-item v-for="coupon in coupons" :key="coupon.id">
+              {{ coupon.code }}
+
+              <template v-slot:append>
+                <v-icon @click="() => removeCoupon(coupon.code)" color="red" icon="mdi-close"></v-icon>
+              </template>
+            </v-list-item>
+          </v-list>
         </template>
       </v-list-item>
       <v-list-item>
@@ -95,7 +110,7 @@
 </template>
 
 <script>
-import { mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 import { useCartStore } from "../stores/cart";
 import QuantityControl from "./QuantityControl.vue";
 
@@ -120,6 +135,8 @@ export default {
       "subtotal",
       "remainingAmount",
       "customerNote",
+      "coupons",
+      "discountTotal",
     ]),
 
     formattedDiscount() {
@@ -138,9 +155,17 @@ export default {
     },
   },
   methods: {
+    ...mapActions(useCartStore, ["removeCoupon"]),
+
     formatCurrency(amount) {
       return this.currency + amount.toFixed(2);
     },
   },
 };
 </script>
+
+<style scoped>
+.total-column {
+  word-break: keep-all;
+}
+</style>
