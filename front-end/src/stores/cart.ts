@@ -60,15 +60,15 @@ export const useCartStore = defineStore("cart", {
       try {
         const response = await CouponsAPI.getCoupon(code);
         const coupon = response.data[0];
-        if( !coupon ) {
+        if (!coupon) {
           throw new Error("Coupon not found");
         }
         const expiry = new Date(coupon.date_expires);
-        if ( coupon.date_expires !== null && new Date() > expiry) {
-          console.log( coupon, typeof coupon.date_expires, expiry, new Date() );
+        if (coupon.date_expires !== null && new Date() > expiry) {
+          console.log(coupon, typeof coupon.date_expires, expiry, new Date());
           throw new Error("Coupon expired");
         }
-        if( this.coupons.find(c => c.code === code) ) {
+        if (this.coupons.find((c) => c.code === code)) {
           return;
         }
         this.coupons.push(coupon);
@@ -84,6 +84,11 @@ export const useCartStore = defineStore("cart", {
       if (this.orderId) {
         response = await OrdersAPI.updateOrder(this.orderId, this.cartPayload);
       } else {
+        if (
+          this.items.reduce((total, item) => total + item.quantity, 0) === 0
+        ) {
+          return;
+        }
         response = await OrdersAPI.saveOrder(this.cartPayload);
       }
       this.updateOrderData(response.data);
