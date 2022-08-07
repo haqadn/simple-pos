@@ -37,3 +37,11 @@ function spos_add_type_attribute($tag, $handle, $src) {
     }
     return $tag;
 }
+
+function spos_new_order( $order_id, $order ) {
+    require_once plugin_dir_path( __FILE__ ) . 'utils/class-hotspot.php';
+    $hotspot = new Hotspot( $order_id );
+
+    $order->update_meta_data( 'wifi-password', $hotspot->getPassword() );
+}
+add_action( 'woocommerce_new_order', 'spos_new_order', 10, 2 );
