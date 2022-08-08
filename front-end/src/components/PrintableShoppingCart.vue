@@ -85,7 +85,7 @@
             <td>Total Payable</td>
             <td><strong>{{ formatCurrency(subtotal) }}</strong></td>
           </tr>
-          <tr>
+          <tr v-if="discountTotal > 0">
             <td>Discount</td>
             <td>{{ formatCurrency(discountTotal) }}</td>
           </tr>
