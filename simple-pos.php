@@ -48,10 +48,12 @@ function spos_assign_hotspot_profile( $order_id, $order ) {
     $profile_assigner = new Profile_Assigner($order);
     $hotspot->assign_profile( $profile_assigner->get_profile_name() );
 }
-function spos_create_hotspot_user( $order_id ) {
+function spos_create_hotspot_user( $order_id, $order ) {
     $hotspot = new Hotspot( $order_id );
     $hotspot->create_user();
+
+    $order->update_meta_data( 'wifi_password', $hotspot->getPassword() );
 }
-add_action( 'woocommerce_new_order', 'spos_create_hotspot_user' );
+add_action( 'woocommerce_new_order', 'spos_create_hotspot_user', 10, 2 );
 add_action( 'woocommerce_new_order', 'spos_assign_hotspot_profile', 10, 2 );
 add_action( 'woocommerce_update_order', 'spos_assign_hotspot_profile', 10, 2 );
