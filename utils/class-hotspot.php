@@ -60,6 +60,13 @@ class Hotspot {
     }
 
     private function generatePassword() {
-        return wp_generate_password( 5, false, false );
+        $chars = 'abcdefghijklmnpqrstuvwxyz123456789';
+
+        $password = '';
+        for ( $i = 0; $i < 5; $i++ ) {
+            $password .= substr( $chars, wp_rand( 0, strlen( $chars ) - 1 ), 1 );
+        }
+
+        return $password;
     }
 }
