@@ -17,7 +17,8 @@ function spos_register_scripts() {
     wp_register_style( 'simple-pos', plugins_url( 'front-end/dist/assets/style.css', __FILE__ ), array('simple-pos-iconfont'), '1.0.0', 'all' );
     wp_register_script( 'simple-pos', plugins_url( 'front-end/dist/index.js', __FILE__ ), array(), '1.0.0', true );
     wp_localize_script( 'simple-pos', 'simplePosSettings', array(
-        'nonce' => wp_create_nonce( 'wp_rest' )
+        'nonce' => wp_create_nonce( 'wp_rest' ),
+        'apiBase' => rest_url( 'wc/v3' ),
     ) );
 }
 add_action( 'wp_enqueue_scripts', 'spos_register_scripts' );

@@ -9,7 +9,7 @@
         <shopping-cart />
       </v-col>
     </v-row>
-    <v-row class="d-print-block">
+    <v-row class="d-print-block d-none">
       <printable-shopping-cart />
     </v-row>
   </v-container>

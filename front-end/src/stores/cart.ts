@@ -16,6 +16,7 @@ export const useCartStore = defineStore("cart", {
     setPaid: false,
     coupons: [],
     discountTotal: 0,
+    wifiPassword: "",
   }),
   getters: {
     subtotal(state) {
@@ -85,7 +86,7 @@ export const useCartStore = defineStore("cart", {
         response = await OrdersAPI.updateOrder(this.orderId, this.cartPayload);
       } else {
         if (
-          this.items.reduce((total, item) => total + item.quantity, 0) === 0
+          Object.values(this.items).reduce((total, item) => total + item.quantity, 0) === 0
         ) {
           return;
         }
@@ -94,11 +95,11 @@ export const useCartStore = defineStore("cart", {
       this.updateOrderData(response.data);
     },
     async loadOrder(id) {
-      this.clearCart();
       const response = await OrdersAPI.getOrder(id);
       this.updateOrderData(response.data);
     },
     updateOrderData(data) {
+      this.clearCart();
       this.addCartCustomerInfo(
         "name",
         `${data.billing.first_name} ${data.billing.last_name}`.trim()
@@ -119,6 +120,10 @@ export const useCartStore = defineStore("cart", {
         };
       });
       this.coupons = data.coupon_lines || [];
+
+      if( data.meta_data.find((meta) => meta.key === "wifi_password") ) {
+        this.wifiPassword = data.meta_data.find((meta) => meta.key === "wifi_password").value;
+      }
 
       this.$router.push({
         name: "order",
