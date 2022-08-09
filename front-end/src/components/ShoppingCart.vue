@@ -5,7 +5,7 @@
         Order
         <a
           target="_blank"
-          :href="`/wp-admin/post.php?post=${orderId}&action=edit`"
+          :href="`${adminUrl}post.php?post=${orderId}&action=edit`"
           >#{{ orderId }}</a
         >
       </v-toolbar-title>
@@ -117,6 +117,7 @@
 import { mapActions, mapState } from "pinia";
 import { useCartStore } from "../stores/cart";
 import QuantityControl from "./QuantityControl.vue";
+import config from "../utils/config";
 
 export default {
   components: {
@@ -129,6 +130,7 @@ export default {
       type: "percent",
       amount: 0,
     },
+    adminUrl: config.adminUrl,
   }),
   computed: {
     ...mapState(useCartStore, [
