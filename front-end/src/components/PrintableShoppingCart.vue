@@ -52,7 +52,7 @@
         Girls School Road, Chhatak, Sunamganj
       </p>
 
-      <p class="text-h4 text-bold">Order# {{ orderId }}</p>
+      <p class="text-h4 text-bold" v-if="orderId">Order# {{ orderId }}</p>
     </header>
     <main>
       <v-table>
@@ -112,7 +112,7 @@
         </tbody>
       </v-table>
 
-      <div class="wifi-details">
+      <div v-if="wifiPassword" class="wifi-details">
         <svg
           class="wifi-icon"
           xmlns="http://www.w3.org/2000/svg"
