@@ -48,7 +48,7 @@
         </g>
       </svg>
       <p class="text-caption mb-3">
-        <strong>Phone: </strong> 01765553555 <br>
+        <strong>Phone: </strong> 01765553555 <br />
         Girls School Road, Chhatak, Sunamganj
       </p>
 
@@ -65,7 +65,9 @@
         <tbody>
           <tr v-for="cartItem in filteredCartItems" :key="cartItem.id">
             <td>
-              <p class="text-body-1">{{ cartItem.name }} x{{ cartItem.quantity }}</p>
+              <p class="text-body-1">
+                {{ cartItem.name }} x{{ cartItem.quantity }}
+              </p>
               <p class="text-caption">
                 {{ formatCurrency(cartItem.price) }}
               </p>
@@ -83,7 +85,9 @@
         <tbody>
           <tr>
             <td>Total Payable</td>
-            <td><strong>{{ formatCurrency(subtotal) }}</strong></td>
+            <td>
+              <strong>{{ formatCurrency(subtotal) }}</strong>
+            </td>
           </tr>
           <tr v-if="discountTotal > 0">
             <td>Discount</td>
@@ -108,9 +112,30 @@
         </tbody>
       </v-table>
 
-      <div class="wifi-password">
-        <p>Your WIFI password is:</p>
-        <p class="text-h5">{{ wifiPassword }}</p>
+      <div class="wifi-details">
+        <svg
+          class="wifi-icon"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M12,21L15.6,16.2C14.6,15.45 13.35,15 12,15C10.65,15 9.4,15.45 8.4,16.2L12,21M12,3C7.95,3 4.21,4.34 1.2,6.6L3,9C5.5,7.12 8.62,6 12,6C15.38,6 18.5,7.12 21,9L22.8,6.6C19.79,4.34 16.05,3 12,3M12,9C9.3,9 6.81,9.89 4.8,11.4L6.6,13.8C8.1,12.67 9.97,12 12,12C14.03,12 15.9,12.67 17.4,13.8L19.2,11.4C17.19,9.89 14.7,9 12,9Z"
+          />
+        </svg>
+        <span class="text-caption">Your free wifi details:</span><br />
+
+        <table>
+          <tbody>
+            <tr>
+              <th>Order #:</th>
+              <td>{{ orderId }}</td>
+            </tr>
+            <tr>
+              <th>Password:</th>
+              <td>{{ wifiPassword }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </main>
   </div>
@@ -187,9 +212,17 @@ header {
   text-align: right;
 }
 
-.wifi-password {
-  text-align: center;
+.wifi-details {
+  margin: 1em;
   border: 1px double black;
   padding: 10pt;
+  text-align: left;
+}
+
+.wifi-icon {
+  width: 1em;
+  height: 1em;
+  vertical-align: middle;
+  margin-right: 0.5em;
 }
 </style>
