@@ -59,8 +59,11 @@ class Hotspot {
         return $this->password;
     }
 
+    /**
+     * Loosly based on wp_generate_password()
+     */
     private function generatePassword() {
-        $chars = 'abcdefghijklmnpqrstuvwxyz123456789';
+        $chars = '0123456789';
 
         $password = '';
         for ( $i = 0; $i < 5; $i++ ) {
