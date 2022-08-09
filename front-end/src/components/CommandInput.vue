@@ -169,6 +169,7 @@ export default {
         this.addCartPayment(paymentAmount);
         window.onafterprint = (e) => {
           this.clearCart();
+          window.onafterprint = null;
         };
         window.print();
         return true;
