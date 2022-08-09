@@ -96,10 +96,10 @@ export const useCartStore = defineStore("cart", {
     },
     async loadOrder(id) {
       const response = await OrdersAPI.getOrder(id);
+      this.clearCart();
       this.updateOrderData(response.data);
     },
     updateOrderData(data) {
-      this.clearCart();
       this.addCartCustomerInfo(
         "name",
         `${data.billing.first_name} ${data.billing.last_name}`.trim()
