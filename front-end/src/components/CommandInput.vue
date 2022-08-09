@@ -39,7 +39,7 @@ export default {
       "addCoupon",
     ]),
 
-    executeCommand() {
+    async executeCommand() {
       if (
         this.clear() ||
         this.removeItemBySku() ||
@@ -48,6 +48,7 @@ export default {
         this.saveOrderData() ||
         this.addPayment() ||
         this.applyCoupon() ||
+        (await this.markDone()) ||
         this.addItemBySku()
       ) {
         this.onCommandSuccess(this.command);
@@ -153,6 +154,27 @@ export default {
       }
       return false;
     },
+    async markDone() {
+      const command = this.command.split(" ");
+
+      if (command[0] === "done") {
+        const paymentAmount = parseFloat(command[1]);
+        await this.saveOrder();
+        if (this.total > paymentAmount) {
+          alert(
+            "Payment amount must be greater than or equal to the total amount"
+          );
+          return false;
+        }
+        this.addCartPayment(paymentAmount);
+        window.onafterprint = (e) => {
+          this.clearCart();
+        };
+        window.print();
+        return true;
+      }
+      return false;
+    },
     openOrder() {
       if (this.command.split(" ")[0] === "open") {
         this.loadOrder(this.command.split(" ")[1]);
@@ -163,6 +185,7 @@ export default {
   },
   computed: {
     ...mapState(useItemStore, ["items"]),
+    ...mapState(useCartStore, ["total"]),
   },
 };
 </script>
