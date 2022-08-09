@@ -52,7 +52,7 @@
         Girls School Road, Chhatak, Sunamganj
       </p>
 
-      <h2>Order# {{ orderId }}</h2>
+      <p class="text-h4 text-bold">Order# {{ orderId }}</p>
     </header>
     <main>
       <v-table>
