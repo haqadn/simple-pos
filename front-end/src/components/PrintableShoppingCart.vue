@@ -200,6 +200,7 @@ export default {
 <style scoped>
 * {
   color: black !important;
+  word-break: keep-all;
 }
 .logo {
   max-width: 70%;

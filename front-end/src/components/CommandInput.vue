@@ -167,6 +167,7 @@ export default {
           return false;
         }
         this.addCartPayment(paymentAmount);
+        await this.saveOrder();
         window.onafterprint = (e) => {
           this.clearCart();
           window.onafterprint = null;
