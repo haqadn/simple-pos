@@ -167,15 +167,20 @@ export default {
           return false;
         }
         this.addCartPayment(paymentAmount);
-        await this.saveOrder();
-        window.onafterprint = (e) => {
-          this.clearCart();
-          window.onafterprint = null;
-        };
-        window.print();
+        await Promise.all([this.saveOrder(), this.printReceipt()]);
+        this.clearCart();
         return true;
       }
       return false;
+    },
+    async printReceipt() {
+      return new Promise((resolve) => {
+        window.onafterprint = (e) => {
+          resolve();
+          window.onafterprint = null;
+        };
+        window.print();
+      });
     },
     openOrder() {
       if (this.command.split(" ")[0] === "open") {
