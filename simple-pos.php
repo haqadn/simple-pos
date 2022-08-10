@@ -45,17 +45,38 @@ function spos_add_type_attribute($tag, $handle, $src) {
     return $tag;
 }
 
+function spos_create_hotspot_user( $order_id, $order ) {
+    // No wifi password is set in this order
+    if( !$order->get_meta('wifi_password') ) {
+        return;
+    }
+
+    $hotspot = new Hotspot( $order_id );
+    $hotspot->setPassword( $order->get_meta('wifi_password') );
+    $hotspot->create_user();
+}
+add_action( 'spos_create_hotspot_user', 'spos_create_hotspot_user', 10, 2 );
+
 function spos_assign_hotspot_profile( $order_id, $order ) {
+    // No wifi password is set in this order
+    if( !$order->get_meta('wifi_password') ) {
+        return;
+    }
+
     $hotspot = new Hotspot( $order_id );
     $profile_assigner = new Profile_Assigner($order);
     $hotspot->assign_profile( $profile_assigner->get_profile_name() );
 }
-function spos_create_hotspot_user( $order_id, $order ) {
-    $hotspot = new Hotspot( $order_id );
-    $hotspot->create_user();
+add_action( 'spos_assign_hotspot_profile', 'spos_assign_hotspot_profile', 10, 2 );
 
-    $order->update_meta_data( 'wifi_password', $hotspot->getPassword() );
+function spos_on_order_created( $order_id, $order ) {
+    $order->update_meta_data( 'wifi_password', Hotspot::generatePassword() );
+    wp_schedule_single_event( time(), 'spos_create_hotspot_user', array( $order_id, $order ) );
+    wp_schedule_single_event( time()+1, 'spos_assign_hotspot_profile', array( $order_id, $order ) );
 }
-add_action( 'woocommerce_new_order', 'spos_create_hotspot_user', 10, 2 );
-add_action( 'woocommerce_new_order', 'spos_assign_hotspot_profile', 10, 2 );
-add_action( 'woocommerce_update_order', 'spos_assign_hotspot_profile', 10, 2 );
+// add_action( 'woocommerce_new_order', 'spos_on_order_created', 10, 2 );
+
+function spos_on_order_updated( $order_id, $order ) {
+    wp_schedule_single_event( time(), 'spos_assign_hotspot_profile', array( $order_id, $order ) );
+}
+// add_action( 'woocommerce_update_order', 'spos_on_order_updated', 10, 2 );
