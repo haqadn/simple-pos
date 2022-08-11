@@ -158,16 +158,29 @@ export default {
       const command = this.command.split(" ");
 
       if (command[0] === "done") {
-        const paymentAmount = command[1] ? parseFloat( command[1] ) : this.total;
-        await this.saveOrder();
+        const paymentAmount = command[1] ? parseFloat(command[1]) : this.total;
         if (this.total > paymentAmount) {
           alert(
             "Payment amount must be greater than or equal to the total amount"
           );
           return false;
         }
-        this.addCartPayment(paymentAmount);
-        await Promise.all([this.saveOrder(), this.printReceipt()]);
+
+        // If there is a coupon, recalculate then save the order
+        if (this.coupons.length > 0) {
+          // Save for recalculation
+          await this.saveOrder();
+          this.addCartPayment(paymentAmount);
+
+          // Save again for marking paid
+          await Promise.all([this.saveOrder(), this.printReceipt()]);
+        } else {
+          this.addCartPayment(paymentAmount);
+          await this.saveOrder();
+          await this.printReceipt();
+          this.clearCart();
+        }
+
         this.clearCart();
         return true;
       }
@@ -192,7 +205,7 @@ export default {
   },
   computed: {
     ...mapState(useItemStore, ["items"]),
-    ...mapState(useCartStore, ["total"]),
+    ...mapState(useCartStore, ["total", "coupons"]),
   },
 };
 </script>
