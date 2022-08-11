@@ -138,6 +138,28 @@
         </table>
       </div>
     </main>
+    <div v-if="orderId">
+      <div
+        class="token"
+        v-for="cartItem in filteredCartItems"
+        :key="cartItem.id"
+      >
+        <dl>
+          <dt>Order#</dt>
+          <dd>{{ orderId }}</dd>
+        </dl>
+        <dl>
+          <dt>Item</dt>
+          <dd>
+            {{ cartItem.name }} <b v-if="cartItem.sku">({{ cartItem.sku }})</b>
+          </dd>
+        </dl>
+        <dl>
+          <dt>Quantity</dt>
+          <dd>{{ cartItem.quantity }}</dd>
+        </dl>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -225,5 +247,24 @@ header {
   height: 1em;
   vertical-align: middle;
   margin-right: 0.5em;
+}
+
+.token {
+  page-break-before: always;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: max-content auto;
+}
+
+dt {
+  grid-column-start: 1;
+}
+
+dd {
+  grid-column-start: 2;
+  font-weight: bold;
+  margin-left: 2em;
 }
 </style>
