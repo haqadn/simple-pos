@@ -158,7 +158,7 @@ export default {
       const command = this.command.split(" ");
 
       if (command[0] === "done") {
-        const paymentAmount = parseFloat(command[1]);
+        const paymentAmount = command[1] ? parseFloat( command[1] ) : this.total;
         await this.saveOrder();
         if (this.total > paymentAmount) {
           alert(
