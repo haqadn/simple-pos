@@ -17,6 +17,7 @@ export const useCartStore = defineStore("cart", {
     coupons: [],
     discountTotal: 0,
     wifiPassword: "",
+    saving: false,
   }),
   getters: {
     subtotal(state) {
@@ -82,15 +83,22 @@ export const useCartStore = defineStore("cart", {
     },
     async saveOrder() {
       let response;
+      if( this.saving ) {
+        return;
+      }
       if (this.orderId) {
+        this.saving = true;
         response = await OrdersAPI.updateOrder(this.orderId, this.cartPayload);
+        this.saving = false;
       } else {
         if (
           Object.values(this.items).reduce((total, item) => total + item.quantity, 0) === 0
         ) {
           return;
         }
+        this.saving = true;
         response = await OrdersAPI.saveOrder(this.cartPayload);
+        this.saving = false;
       }
       this.updateOrderData(response.data);
     },
