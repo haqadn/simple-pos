@@ -40,6 +40,7 @@ export default {
     ]),
 
     async executeCommand() {
+      this.command = this.command.trim();
       if (
         this.clear() ||
         this.removeItemBySku() ||
