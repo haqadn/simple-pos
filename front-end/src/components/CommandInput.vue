@@ -189,8 +189,8 @@ export default {
     async printReceipt() {
       return new Promise((resolve) => {
         window.onafterprint = (e) => {
-          resolve();
           window.onafterprint = null;
+          resolve();
         };
         window.print();
       });
