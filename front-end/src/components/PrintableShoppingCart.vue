@@ -138,7 +138,7 @@
         </table>
       </div>
     </main>
-    <div v-if="orderId">
+    <div v-if="printTickets">
       <div
         class="token"
         v-for="cartItem in filteredCartItems"
@@ -189,6 +189,11 @@ export default {
       "discountTotal",
       "wifiPassword",
     ]),
+
+    printTickets() {
+      // return !!this.orderId;
+      return false;
+    },
 
     filteredCartItems() {
       return Object.values(this.items).filter((item) => item.quantity > 0);
