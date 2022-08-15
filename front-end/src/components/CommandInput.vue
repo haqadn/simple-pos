@@ -179,7 +179,6 @@ export default {
           this.addCartPayment(paymentAmount);
           await this.saveOrder();
           await this.printReceipt();
-          this.clearCart();
         }
 
         this.clearCart();
