@@ -158,7 +158,7 @@ export default {
     async markDone() {
       const command = this.command.split(" ");
 
-      if (command[0] === "done") {
+      if (["done", "dn"].includes(command[0])) {
         const paymentAmount = command[1] ? parseFloat(command[1]) : this.total;
         if (this.total > paymentAmount) {
           alert(
