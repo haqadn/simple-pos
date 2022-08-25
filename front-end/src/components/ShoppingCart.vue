@@ -117,6 +117,24 @@
           ></v-text-field>
         </template>
       </v-list-item>
+      <v-list-item>
+        <v-btn
+          variant="flat"
+          :disabled="subtotal === 0"
+          class="mr-2"
+          @click="saveOrder"
+          >Save Only</v-btn
+        >
+        <v-btn
+          variant="tonal"
+          color="success"
+          :disabled="subtotal === 0"
+          @click="done"
+          >Done</v-btn
+        >
+
+        <v-btn variant="flat" class="float-right" @click="clearCart">Clear</v-btn>
+      </v-list-item>
     </v-list>
   </v-card>
 </template>
@@ -173,10 +191,32 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useCartStore, ["removeCoupon", "addCartPayment"]),
+    ...mapActions(useCartStore, [
+      "removeCoupon",
+      "addCartPayment",
+      "saveOrder",
+      "clearCart",
+    ]),
 
     formatCurrency(amount) {
       return this.currency + amount.toFixed(2);
+    },
+
+    printReceipt() {
+      return new Promise((resolve) => {
+        window.onafterprint = (e) => {
+          window.onafterprint = null;
+          resolve();
+        };
+        window.print();
+      });
+    },
+
+    async done() {
+      await this.saveOrder();
+      await this.printReceipt();
+
+      this.clearCart();
     },
   },
 };
