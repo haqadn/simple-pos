@@ -60,27 +60,35 @@
     </v-table>
 
     <v-divider></v-divider>
+    <v-table class="cart-summary">
+      <tbody>
+        <tr>
+          <td>Total</td>
+          <th>{{ formatCurrency(subtotal) }}</th>
+        </tr>
+        <tr v-if="discountTotal">
+          <td>Discount</td>
+          <th>{{ formatCurrency(discountTotal) }}</th>
+        </tr>
+        <tr>
+          <td>Payment</td>
+          <th>
+            <v-text-field
+              dense
+              hide-details="auto"
+              variant="underlined"
+              :value="payment"
+              @input="(event) => addCartPayment(event.target.value)"
+            />
+          </th>
+        </tr>
+        <tr v-if="payment != ''">
+          <td>Remaining</td>
+          <th>{{ formatCurrency(remainingAmount) }}</th>
+        </tr>
+      </tbody>
+    </v-table>
     <v-list lines="two">
-      <v-list-item title="Total">
-        <template v-slot:append>
-          <strong>{{ formatCurrency(subtotal) }}</strong>
-        </template>
-      </v-list-item>
-      <v-list-item title="Discount" v-if="discountTotal">
-        <template v-slot:append>
-          {{ formatCurrency(discountTotal) }}
-        </template>
-      </v-list-item>
-      <v-list-item title="Payment" v-if="payment">
-        <template v-slot:append>
-          {{ formatCurrency(payment) }}
-        </template>
-      </v-list-item>
-      <v-list-item title="Remaining" v-if="payment">
-        <template v-slot:append>
-          {{ formatCurrency(remainingAmount) }}
-        </template>
-      </v-list-item>
       <v-list-item title="Coupons" v-if="coupons.length > 0">
         <template v-slot>
           <v-list>
@@ -134,10 +142,10 @@ export default {
   }),
   computed: {
     ...mapState(useCartStore, [
+      "payment",
       "items",
       "customer",
       "orderId",
-      "payment",
       "subtotal",
       "remainingAmount",
       "customerNote",
@@ -165,7 +173,7 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useCartStore, ["removeCoupon"]),
+    ...mapActions(useCartStore, ["removeCoupon", "addCartPayment"]),
 
     formatCurrency(amount) {
       return this.currency + amount.toFixed(2);
@@ -177,5 +185,13 @@ export default {
 <style scoped>
 .total-column {
   word-break: keep-all;
+}
+.cart-summary th,
+.cart-summary td {
+  font-size: 1rem !important;
+}
+.cart-summary th {
+  width: 100px;
+  text-align: right;
 }
 </style>

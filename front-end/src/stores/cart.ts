@@ -176,7 +176,11 @@ export const useCartStore = defineStore("cart", {
       this.customer[info] = value;
     },
     addCartPayment(amount) {
-      this.payment = amount;
+      amount = parseFloat(amount);
+      if( isNaN(amount) ) {
+        return;
+      }
+      this.payment = amount
       if (amount >= this.total) {
         this.setPaid = true;
       }
