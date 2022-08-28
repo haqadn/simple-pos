@@ -122,7 +122,7 @@
           variant="flat"
           :disabled="subtotal === 0"
           class="mr-2"
-          @click="saveOrder"
+          @click="save"
           >Save Only</v-btn
         >
         <v-btn
@@ -133,7 +133,7 @@
           >Done</v-btn
         >
 
-        <v-btn variant="flat" class="float-right" @click="clearCart">Clear</v-btn>
+        <v-btn variant="flat" class="float-right" @click="clear">Clear</v-btn>
       </v-list-item>
     </v-list>
   </v-card>
@@ -144,6 +144,9 @@ import { mapActions, mapState } from "pinia";
 import { useCartStore } from "../stores/cart";
 import QuantityControl from "./QuantityControl.vue";
 import config from "../utils/config";
+import DoneCommand from "../commands/done";
+import ClearCommand from "../commands/clear";
+import SaveCommand from "../commands/save";
 
 export default {
   components: {
@@ -191,32 +194,27 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useCartStore, [
-      "removeCoupon",
-      "addCartPayment",
-      "saveOrder",
-      "clearCart",
-    ]),
+    ...mapActions(useCartStore, ["removeCoupon", "addCartPayment"]),
 
     formatCurrency(amount) {
       return this.currency + amount.toFixed(2);
     },
 
-    printReceipt() {
-      return new Promise((resolve) => {
-        window.onafterprint = (e) => {
-          window.onafterprint = null;
-          resolve();
-        };
-        window.print();
-      });
+    async save() {
+      const command = new SaveCommand();
+      await command.execute();
     },
 
     async done() {
-      await this.saveOrder();
-      await this.printReceipt();
+      const command = new DoneCommand();
+      if (command.setAmount(this.payment)) {
+        await command.execute();
+      }
+    },
 
-      this.clearCart();
+    async clear() {
+      const command = new ClearCommand();
+      await command.execute();
     },
   },
 };
