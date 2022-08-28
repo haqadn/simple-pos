@@ -1,18 +1,7 @@
 <template>
   <v-row>
     <v-col v-for="item in items" :key="item.id">
-      <v-card
-        :color="
-          cartItems[item.id] && cartItems[item.id].quantity > 0 ? 'success' : ''
-        "
-        :theme="cartItems[item.id] ? 'dark' : 'lite'"
-        min-width="200"
-        @click="() => addToCart(item)"
-      >
-        <v-card-title>{{ item.name }}</v-card-title>
-        <v-card-subtitle>{{ item.sku }}</v-card-subtitle>
-        <v-card-text>{{ item.price }}</v-card-text>
-      </v-card>
+      <list-item :item="item" />
     </v-col>
   </v-row>
 </template>
@@ -21,13 +10,14 @@
 import { mapState, mapActions } from "pinia";
 import { useItemStore } from "../stores/items";
 import { useCartStore } from "../stores/cart";
+import ListItem from "./ListItem.vue";
 
 export default {
   data: () => ({
     reveal: false,
   }),
   methods: {
-    ...mapActions(useCartStore, ["addToCart", "loadOrder"]),
+    ...mapActions(useCartStore, ["loadOrder"]),
     ...mapActions(useItemStore, ["loadItems"]),
   },
   computed: {
@@ -41,6 +31,9 @@ export default {
     if (this.$route.params.id) {
       await this.loadOrder(this.$route.params.id);
     }
+  },
+  components: {
+    ListItem,
   },
 };
 </script>
