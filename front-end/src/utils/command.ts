@@ -7,6 +7,7 @@ import Done from "../commands/done";
 import OpenOrder from "../commands/open-order";
 import RemoveBySKU from "../commands/remove-by-sku";
 import AddBySKU from "../commands/add-by-sku";
+import ManageStock from "../commands/manage-stock";
 
 const commands = [
   Clear,
@@ -18,6 +19,7 @@ const commands = [
   Coupon,
   Done,
   AddBySKU,
+  ManageStock,
 ];
 
 export function tryToExecuteCommand(line: string) {
