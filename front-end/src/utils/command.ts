@@ -8,12 +8,14 @@ import OpenOrder from "../commands/open-order";
 import RemoveBySKU from "../commands/remove-by-sku";
 import AddBySKU from "../commands/add-by-sku";
 import ManageStock from "../commands/manage-stock";
+import LastOrder from "../commands/last-order";
 
 const commands = [
   Clear,
   AddCustomerInfo,
   Pay,
   Save,
+  LastOrder,
   OpenOrder,
   RemoveBySKU,
   Coupon,

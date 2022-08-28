@@ -12,4 +12,8 @@ export default class OrdersAPI extends API {
   static async getOrder(id) {
     return await this.client.get(`/orders/${id}`);
   }
+
+  static async listOrders(params) {
+    return await this.client.get("/orders", {params});
+  }
 }
