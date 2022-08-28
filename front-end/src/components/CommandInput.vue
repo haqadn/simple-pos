@@ -38,6 +38,7 @@ export default {
       "addCartPayment",
       "addCoupon",
     ]),
+    ...mapActions(useItemStore, ["loadItems"]),
 
     async executeCommand() {
       this.command = this.command.trim();
@@ -81,6 +82,7 @@ export default {
     clear() {
       if (this.command === "clear") {
         this.clearCart();
+        this.loadItems();
         this.command = "";
         return true;
       }
@@ -180,7 +182,7 @@ export default {
           await this.saveOrder();
           await this.printReceipt();
         }
-
+        this.loadItems();
         this.clearCart();
         return true;
       }
