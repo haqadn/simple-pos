@@ -25,7 +25,12 @@ class Authentication {
             if( !$order ) {
                 throw new Exception( 'Order not found' );
             }
-    
+
+            // Do not allow login if the order is more than 2 hours old
+            if( $order->get_date_paid()->getTimestamp() + 2 * 60 * 60 < time() ) {
+                throw new Exception( 'Order expired' );
+            }
+
             $wifiPassword = $order->get_meta( 'wifi_password', true );
             if( $wifiPassword != $password ) {
                 throw new Exception( 'Invalid password' );
