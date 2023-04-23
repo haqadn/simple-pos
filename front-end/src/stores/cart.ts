@@ -188,7 +188,7 @@ export const useCartStore = defineStore("cart", {
     },
     clearCart() {
       this.$reset();
-      this.$router.push({ name: "home" });
+      this.$router.reload();
     },
   },
 });

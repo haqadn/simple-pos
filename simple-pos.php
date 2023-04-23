@@ -48,4 +48,4 @@ function spos_add_type_attribute($tag, $handle, $src) {
 function spos_on_order_created( $order_id, $order ) {
     $order->update_meta_data( 'wifi_password', Hotspot::generatePassword() );
 }
-add_action( 'woocommerce_rest_insert_shop_order_object', 'spos_on_order_created', 10, 2 );
+// add_action( 'woocommerce_new_order', 'spos_on_order_created', 10, 2 );

@@ -1,7 +1,8 @@
 <template>
   <v-row>
     <v-col v-for="item in items" :key="item.id">
-      <list-item :item="item" />
+      <controllable-item v-if="type === 'controllable'" :item="item" />
+      <list-item v-else :item="item" />
     </v-col>
   </v-row>
 </template>
@@ -11,6 +12,7 @@ import { mapState, mapActions } from "pinia";
 import { useItemStore } from "../stores/items";
 import { useCartStore } from "../stores/cart";
 import ListItem from "./ListItem.vue";
+import ControllableItem from "./ControllableItem.vue";
 
 export default {
   data: () => ({
@@ -34,6 +36,13 @@ export default {
   },
   components: {
     ListItem,
+    ControllableItem,
+  },
+  props: {
+    type: {
+      type: String,
+      default: "clickable",
+    },
   },
 };
 </script>
