@@ -68,7 +68,7 @@
         @click="done"
         prepend-icon="mdi-check"
         size="x-large"
-        >Done</v-btn
+        >{{ saveButtonText }}</v-btn
       >
       <v-btn
         v-else
@@ -113,6 +113,14 @@ export default {
     filteredCartItems() {
       return Object.values(this.items).filter((item) => item.quantity > 0);
     },
+
+    saveButtonText() {
+      if (this.orderId != null) {
+        return "Update Order";
+      } else {
+        return "Create Order";
+      }
+    }
   },
   methods: {
     ...mapActions(useCartStore, [
