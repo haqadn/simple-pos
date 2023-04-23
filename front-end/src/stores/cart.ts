@@ -44,6 +44,12 @@ export const useCartStore = defineStore("cart", {
           id: item.line_item_id,
           quantity: item.quantity,
         })),
+        meta_data: [
+          {
+            key: "payment_amount",
+            value: state.payment,
+          }
+        ]
       };
       if (state.customer.name || state.customer.phone) {
         data.billing = {
@@ -133,6 +139,7 @@ export const useCartStore = defineStore("cart", {
         };
       });
       this.coupons = data.coupon_lines || [];
+      this.payment = parseFloat(data.meta_data.find((meta) => meta.key === "payment_amount").value);
 
       if (data.meta_data.find((meta) => meta.key === "wifi_password")) {
         this.wifiPassword = data.meta_data.find(

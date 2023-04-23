@@ -44,7 +44,13 @@
           </tr>
           <tr>
             <td>Received</td>
-            <td class="amount-column">{{ payment }}</td>
+            <td class="amount-column">
+              <v-text-field
+                variant="underlined"
+                v-model="payment"
+                @input="(e) => addCartPayment(e.target.value)"
+              ></v-text-field>
+            </td>
           </tr>
           <tr :class="{ 'text-red': remainingAmount > 0 }">
             <td>Change</td>
@@ -138,7 +144,7 @@ export default {
     async cancel() {
       console.log(this.orderId);
       if (this.orderId != null) {
-        console.log('cancelling');
+        console.log("cancelling");
         await OrdersAPI.cancelOrder(this.orderId);
       }
       this.clearCart();
