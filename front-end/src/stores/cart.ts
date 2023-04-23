@@ -81,9 +81,9 @@ export const useCartStore = defineStore("cart", {
     removeCoupon(code) {
       this.coupons = this.coupons.filter((coupon) => coupon.code !== code);
     },
-    async saveOrder() {
+    async saveOrder(withUpdate = true) {
       let response;
-      if( this.saving ) {
+      if (this.saving) {
         return;
       }
       if (this.orderId) {
@@ -92,7 +92,10 @@ export const useCartStore = defineStore("cart", {
         this.saving = false;
       } else {
         if (
-          Object.values(this.items).reduce((total, item) => total + item.quantity, 0) === 0
+          Object.values(this.items).reduce(
+            (total, item) => total + item.quantity,
+            0
+          ) === 0
         ) {
           return;
         }
@@ -100,12 +103,14 @@ export const useCartStore = defineStore("cart", {
         response = await OrdersAPI.saveOrder(this.cartPayload);
         this.saving = false;
       }
-      this.updateOrderData(response.data);
+      if (withUpdate) {
+        this.updateOrderData(response.data);
+      }
     },
     async loadOrder(id) {
       const response = await OrdersAPI.getOrder(id);
       this.clearCart();
-      this.updateOrderData(response.data);
+      this.updateOrderData(response.data, true);
     },
     updateOrderData(data) {
       this.addCartCustomerInfo(
@@ -129,8 +134,10 @@ export const useCartStore = defineStore("cart", {
       });
       this.coupons = data.coupon_lines || [];
 
-      if( data.meta_data.find((meta) => meta.key === "wifi_password") ) {
-        this.wifiPassword = data.meta_data.find((meta) => meta.key === "wifi_password").value;
+      if (data.meta_data.find((meta) => meta.key === "wifi_password")) {
+        this.wifiPassword = data.meta_data.find(
+          (meta) => meta.key === "wifi_password"
+        ).value;
       }
 
       this.$router.push({
@@ -177,10 +184,10 @@ export const useCartStore = defineStore("cart", {
     },
     addCartPayment(amount) {
       amount = parseFloat(amount);
-      if( isNaN(amount) ) {
+      if (isNaN(amount)) {
         return;
       }
-      this.payment = amount
+      this.payment = amount;
       if (amount >= this.total) {
         this.setPaid = true;
       }

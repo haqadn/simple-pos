@@ -48,7 +48,9 @@
           </tr>
           <tr :class="{ 'text-red': remainingAmount > 0 }">
             <td>Change</td>
-            <td class="amount-column">{{ -1 * remainingAmount }}</td>
+            <td class="amount-column">
+              <b>{{ -1 * remainingAmount }}</b>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -63,7 +65,7 @@
         >Done</v-btn
       >
 
-      <v-btn prepend-icon="mdi-close" variant="flat" @click="clear"
+      <v-btn prepend-icon="mdi-close" variant="flat" @click="clearCart"
         >Cancel</v-btn
       >
     </div>
@@ -74,8 +76,6 @@
 import { mapActions, mapState } from "pinia";
 import { useCartStore } from "../stores/cart";
 import config from "../utils/config";
-import DoneCommand from "../commands/done";
-import ClearCommand from "../commands/clear";
 import SaveCommand from "../commands/save";
 
 export default {
@@ -98,7 +98,12 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useCartStore, ["removeCoupon", "addCartPayment"]),
+    ...mapActions(useCartStore, [
+      "removeCoupon",
+      "addCartPayment",
+      "saveOrder",
+      "clearCart",
+    ]),
 
     formatCurrency(amount) {
       return amount.toFixed(0);
@@ -110,15 +115,8 @@ export default {
     },
 
     async done() {
-      const command = new DoneCommand();
-      if (command.setAmount(this.payment)) {
-        await command.execute();
-      }
-    },
-
-    async clear() {
-      const command = new ClearCommand();
-      await command.execute();
+      this.saveOrder(false);
+      this.clearCart();
     },
   },
 };

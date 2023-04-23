@@ -9,7 +9,7 @@
         {{ item.price }}
       </v-chip>
       <v-chip class="ma-2" color="pink" label text-color="white">
-        <v-icon start icon="mdi-cart"></v-icon>
+        <v-icon start icon="mdi-shopping"></v-icon>
         {{ cartItems[item.id] ? cartItems[item.id].quantity : 0 }}
       </v-chip>
       <v-spacer></v-spacer>
