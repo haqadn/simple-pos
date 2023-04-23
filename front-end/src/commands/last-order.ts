@@ -12,6 +12,7 @@ export default class implements Command {
       per_page: 1,
       orderby: "id",
       order: "desc",
+      status: ["pending", "processing", "on-hold"],
     });
 
     const cartStore = useCartStore();

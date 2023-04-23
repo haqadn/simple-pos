@@ -1,5 +1,5 @@
 <template>
-  <v-card class="mx-auto text-caption pa-3" variant="outline" width="300">
+  <v-card class="mx-auto text-caption pa-3" variant="outlined" width="300">
     <div class="d-flex flex-column fill-height">
       <div class="table-wrapper">
         <table>
@@ -56,17 +56,26 @@
       </table>
       <v-spacer></v-spacer>
       <v-btn
+        v-if="subtotal > 0 || orderId != null"
         variant="tonal"
         color="success"
-        :disabled="subtotal === 0"
         @click="done"
         prepend-icon="mdi-check"
         size="x-large"
         >Done</v-btn
       >
+      <v-btn
+        v-else
+        variant="tonal"
+        color="warning"
+        prepend-icon="mdi-recycle"
+        size="x-large"
+        @click="loadLastOrder"
+        >Last Order</v-btn
+      >
 
-      <v-btn prepend-icon="mdi-close" variant="flat" @click="clearCart"
-        >Cancel</v-btn
+      <v-btn prepend-icon="mdi-close" variant="flat" @click="cancel"
+        >Cancel Order</v-btn
       >
     </div>
   </v-card>
@@ -77,6 +86,8 @@ import { mapActions, mapState } from "pinia";
 import { useCartStore } from "../stores/cart";
 import config from "../utils/config";
 import SaveCommand from "../commands/save";
+import lastOrder from "../commands/last-order";
+import OrdersAPI from "../api/orders";
 
 export default {
   data: () => ({
@@ -116,6 +127,20 @@ export default {
 
     async done() {
       this.saveOrder(false);
+      this.clearCart();
+    },
+
+    async loadLastOrder() {
+      const command = new lastOrder();
+      await command.execute();
+    },
+
+    async cancel() {
+      console.log(this.orderId);
+      if (this.orderId != null) {
+        console.log('cancelling');
+        await OrdersAPI.cancelOrder(this.orderId);
+      }
       this.clearCart();
     },
   },

@@ -16,4 +16,8 @@ export default class OrdersAPI extends API {
   static async listOrders(params) {
     return await this.client.get("/orders", {params});
   }
+
+  static async cancelOrder(id) {
+    return await this.client.put(`/orders/${id}`, { status: "cancelled" } );
+  }
 }
