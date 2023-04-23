@@ -62,6 +62,15 @@
       </table>
       <v-spacer></v-spacer>
       <v-btn
+        v-if="orderId != null"
+        variant="tonal"
+        color="error"
+        @click="this.cancelOrder"
+        prepend-icon="mdi-trash-can-outline"
+        class="mb-3"
+        >Cancel Order</v-btn
+      >
+      <v-btn
         v-if="subtotal > 0 || orderId != null"
         variant="tonal"
         color="success"
@@ -80,8 +89,8 @@
         >Last Order</v-btn
       >
 
-      <v-btn prepend-icon="mdi-close" variant="flat" @click="cancel"
-        >Cancel Order</v-btn
+      <v-btn prepend-icon="mdi-close" variant="flat" @click="clearCart"
+        >Clear</v-btn
       >
     </div>
   </v-card>
@@ -120,7 +129,7 @@ export default {
       } else {
         return "Create Order";
       }
-    }
+    },
   },
   methods: {
     ...mapActions(useCartStore, [
@@ -149,8 +158,7 @@ export default {
       await command.execute();
     },
 
-    async cancel() {
-      console.log(this.orderId);
+    async cancelOrder() {
       if (this.orderId != null) {
         console.log("cancelling");
         await OrdersAPI.cancelOrder(this.orderId);
