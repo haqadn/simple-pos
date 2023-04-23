@@ -1,7 +1,7 @@
 <template>
   <v-card class="mx-auto text-caption pa-3" variant="outlined" width="300">
-    <div class="d-flex flex-column fill-height">
-      <div class="table-wrapper">
+    <div class="d-flex flex-column fill-height h-screen">
+      <div class="table-wrapper flex-grow-1">
         <table>
           <tbody>
             <tr v-for="cartItem in filteredCartItems" :key="cartItem.id">
@@ -20,78 +20,80 @@
           </tbody>
         </table>
       </div>
-      <table>
-        <tbody>
-          <tr>
-            <th class="text-left">Total</th>
-            <th class="amount-column">
-              {{ formatCurrency(subtotal) }}
-            </th>
-          </tr>
-          <tr>
-            <td colspan="2" class="text-center py-3">
-              <v-btn
-                v-for="(amount, index) in paymentOptions"
-                :key="index"
-                variant="outlined"
-                rounded="xl"
-                class="payment-button"
-                @click="addCartPayment(amount)"
-              >
-                {{ amount }}
-              </v-btn>
-            </td>
-          </tr>
-          <tr>
-            <td>Received</td>
-            <td class="amount-column">
-              <v-text-field
-                variant="underlined"
-                v-model="payment"
-                @input="(e) => addCartPayment(e.target.value)"
-              ></v-text-field>
-            </td>
-          </tr>
-          <tr :class="{ 'text-red': remainingAmount > 0 }">
-            <td>Change</td>
-            <td class="amount-column">
-              <b>{{ -1 * remainingAmount }}</b>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <v-spacer></v-spacer>
-      <v-btn
-        v-if="orderId != null"
-        variant="tonal"
-        color="error"
-        @click="this.cancelOrder"
-        prepend-icon="mdi-trash-can-outline"
-        class="mb-3"
-        >Cancel Order</v-btn
-      >
-      <v-btn
-        v-if="subtotal > 0 || orderId != null"
-        variant="tonal"
-        color="success"
-        @click="done"
-        prepend-icon="mdi-check"
-        size="x-large"
-        >{{ saveButtonText }}</v-btn
-      >
-      <v-btn
-        v-else
-        variant="tonal"
-        color="warning"
-        prepend-icon="mdi-recycle"
-        size="x-large"
-        @click="loadLastOrder"
-        >Last Order</v-btn
-      >
+      <div>
+        <table class="mb-10">
+          <tbody>
+            <tr>
+              <th class="text-left">Total</th>
+              <th class="amount-column">
+                {{ formatCurrency(subtotal) }}
+              </th>
+            </tr>
+            <tr>
+              <td colspan="2" class="text-center py-3">
+                <v-btn
+                  v-for="(amount, index) in paymentOptions"
+                  :key="index"
+                  variant="outlined"
+                  rounded="xl"
+                  class="payment-button"
+                  @click="addCartPayment(amount)"
+                >
+                  {{ amount }}
+                </v-btn>
+              </td>
+            </tr>
+            <tr>
+              <td>Received</td>
+              <td class="amount-column">
+                <v-text-field
+                  variant="underlined"
+                  v-model="payment"
+                  @input="(e) => addCartPayment(e.target.value)"
+                ></v-text-field>
+              </td>
+            </tr>
+            <tr :class="{ 'text-red': remainingAmount > 0 }">
+              <td>Change</td>
+              <td class="amount-column">
+                <b>{{ -1 * remainingAmount }}</b>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <v-spacer></v-spacer>
+        <v-btn
+          v-if="orderId != null"
+          variant="tonal"
+          color="error"
+          @click="this.cancelOrder"
+          prepend-icon="mdi-trash-can-outline"
+          class="mb-3"
+          >Cancel Order</v-btn
+        >
+        <v-btn
+          v-if="subtotal > 0 || orderId != null"
+          variant="tonal"
+          color="success"
+          @click="done"
+          prepend-icon="mdi-check"
+          size="x-large"
+          >{{ saveButtonText }}</v-btn
+        >
+        <v-btn
+          v-else
+          variant="tonal"
+          color="warning"
+          prepend-icon="mdi-recycle"
+          size="x-large"
+          @click="loadLastOrder"
+          >Last Order</v-btn
+        >
 
-      <v-btn prepend-icon="mdi-close" variant="flat" @click="clearCart"
-        >Clear</v-btn
-      >
+        <v-btn prepend-icon="mdi-close" variant="flat" @click="clearCart"
+          >Clear</v-btn
+        >
+      </div>
     </div>
   </v-card>
 </template>
@@ -179,7 +181,6 @@ export default {
 }
 .table-wrapper {
   overflow-y: auto;
-  height: 50%;
 }
 .table-wrapper table {
   height: 100%;
