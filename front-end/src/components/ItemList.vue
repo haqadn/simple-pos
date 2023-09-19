@@ -1,10 +1,21 @@
 <template>
-  <v-row>
-    <v-col v-for="item in items" :key="item.id">
-      <controllable-item v-if="type === 'controllable'" :item="item" />
-      <list-item v-else :item="item" />
-    </v-col>
-  </v-row>
+  <div>
+    <v-row v-for="category in categories" :key="category.id">
+      <v-col class="v-col-12">
+        <h4>{{ category.name }}</h4>
+      </v-col>
+
+      <v-col
+        v-for="item in items.filter(
+          (item) => item.categories[0].id === category.id
+        )"
+        :key="item.id"
+      >
+        <controllable-item v-if="type === 'controllable'" :item="item" />
+        <list-item v-else :item="item" />
+      </v-col>
+    </v-row>
+  </div>
 </template>
 
 <script>
@@ -20,16 +31,17 @@ export default {
   }),
   methods: {
     ...mapActions(useCartStore, ["loadOrder"]),
-    ...mapActions(useItemStore, ["loadItems"]),
+    ...mapActions(useItemStore, ["loadItems", "loadCategories"]),
   },
   computed: {
     ...mapState(useCartStore, {
       cartItems: "items",
     }),
-    ...mapState(useItemStore, ["items"]),
+    ...mapState(useItemStore, ["items", "categories"]),
   },
   async created() {
-    await this.loadItems();
+    await Promise.all([this.loadItems(), this.loadCategories()]);
+
     if (this.$route.params.id) {
       await this.loadOrder(this.$route.params.id);
     }

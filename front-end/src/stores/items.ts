@@ -4,6 +4,7 @@ import { defineStore } from "pinia";
 export const useItemStore = defineStore("items", {
   state: () => ({
     items: [],
+    categories: [],
   }),
   actions: {
     async loadItems() {
@@ -17,6 +18,12 @@ export const useItemStore = defineStore("items", {
           regular_price: parseFloat(item.regular_price),
         }
       });
+    },
+    async loadCategories() {
+      const response = await ProductsAPI.getCategories();
+      const items = response.data;
+
+      this.categories = items;
     }
   }
 });

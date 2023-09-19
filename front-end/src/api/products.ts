@@ -1,6 +1,10 @@
 import { API } from "./api";
 
 export default class ProductsAPI extends API {
+  static async getCategories() {
+    return await this.client.get('/products/categories');
+  }
+
   static async getProducts() {
     return await this.client.get('/products?per_page=100&status=publish');
   }
