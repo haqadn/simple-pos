@@ -44,7 +44,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="cartItem in filteredCartItems" :key="cartItem.id">
+        <tr v-for="cartItem in filteredCartItems" :key="cartItem.product_id">
           <td>
             <p class="text-body-1">{{ cartItem.name }}</p>
             <p class="text-subtitle-2 text-disabled">

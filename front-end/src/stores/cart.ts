@@ -2,13 +2,33 @@ import CouponsAPI from "@/api/coupons";
 import OrdersAPI from "@/api/orders";
 import { defineStore } from "pinia";
 
+type LineItem = {
+  product_id: number;
+  line_item_id?: number;
+  quantity: number;
+  price: number;
+  name: string;
+};
+
+type Product = {
+  id: number;
+  price: number;
+  name: string;
+  sku: string;
+};
+
+type Customer = {
+  name: string;
+  phone: string;
+};
+
 export const useCartStore = defineStore("cart", {
   state: () => ({
-    customer: {
+    customer: <Customer>{
       name: "",
       phone: "",
     },
-    items: {},
+    line_items: <LineItem[]>[],
     orderId: null,
     status: "pending",
     customerNote: "",
@@ -21,7 +41,7 @@ export const useCartStore = defineStore("cart", {
   }),
   getters: {
     subtotal(state) {
-      return Object.values(state.items).reduce((total, item) => {
+      return state.line_items.reduce((total, item) => {
         return total + item.price * item.quantity;
       }, 0);
     },
@@ -39,8 +59,8 @@ export const useCartStore = defineStore("cart", {
         coupon_lines: state.coupons.map((coupon) => ({
           code: coupon.code,
         })),
-        line_items: Object.values(state.items).map((item) => ({
-          product_id: item.id,
+        line_items: state.line_items.map((item) => ({
+          product_id: item.product_id,
           id: item.line_item_id,
           quantity: item.quantity,
         })),
@@ -48,8 +68,8 @@ export const useCartStore = defineStore("cart", {
           {
             key: "payment_amount",
             value: state.payment,
-          }
-        ]
+          },
+        ],
       };
       if (state.customer.name || state.customer.phone) {
         data.billing = {
@@ -62,9 +82,24 @@ export const useCartStore = defineStore("cart", {
 
       return data;
     },
+    /**
+     * A filtered list of line items keyd by id.
+     * 
+     * Used for legacy purposes and easily being able to check if a product exists in the cart.
+     */
+    items(state) {
+      const itemsMap: { [id: number]: LineItem } = {};
+      state.line_items.forEach( li => {
+        if (li.quantity > 0) {
+          itemsMap[li.product_id] = li;
+        }
+      });
+
+      return itemsMap;
+    }
   },
   actions: {
-    async addCoupon(code) {
+    async addCoupon(code: string) {
       try {
         const response = await CouponsAPI.getCoupon(code);
         const coupon = response.data[0];
@@ -76,7 +111,7 @@ export const useCartStore = defineStore("cart", {
           console.log(coupon, typeof coupon.date_expires, expiry, new Date());
           throw new Error("Coupon expired");
         }
-        if (this.coupons.find((c) => c.code === code)) {
+        if (this.coupons.find((c: { code: string }) => c.code === code)) {
           return;
         }
         this.coupons.push(coupon);
@@ -98,7 +133,7 @@ export const useCartStore = defineStore("cart", {
         this.saving = false;
       } else {
         if (
-          Object.values(this.items).reduce(
+          Object.values(this.line_items).reduce(
             (total, item) => total + item.quantity,
             0
           ) === 0
@@ -110,15 +145,15 @@ export const useCartStore = defineStore("cart", {
         this.saving = false;
       }
       if (withUpdate) {
-        this.updateOrderData(response.data);
+        this.hydrateOrderData(response.data);
       }
     },
-    async loadOrder(id) {
+    async loadOrder(id: string) {
       const response = await OrdersAPI.getOrder(id);
       this.clearCart();
-      this.updateOrderData(response.data, true);
+      this.hydrateOrderData(response.data);
     },
-    updateOrderData(data) {
+    hydrateOrderData(data) {
       this.addCartCustomerInfo(
         "name",
         `${data.billing.first_name} ${data.billing.last_name}`.trim()
@@ -129,81 +164,104 @@ export const useCartStore = defineStore("cart", {
       this.orderId = data.id;
       this.customerNote = data.customer_note;
       this.discountTotal = parseFloat(data.discount_total);
-      this.items = {};
+      this.line_items = [];
       data.line_items.forEach((item) => {
-        this.items[item.product_id] = {
+        this.line_items.push({
           ...item,
           line_item_id: item.id,
-          id: item.product_id,
-          product_id: undefined, // We are using `id` instead of `product_id` in the local state
-        };
+          product_id: item.product_id,
+        });
       });
       this.coupons = data.coupon_lines || [];
-      this.payment = parseFloat(data.meta_data.find((meta) => meta.key === "payment_amount").value);
-
-      if (data.meta_data.find((meta) => meta.key === "wifi_password")) {
-        this.wifiPassword = data.meta_data.find(
-          (meta) => meta.key === "wifi_password"
-        ).value;
-      }
-
-      // this.$router.push({
-      //   name: "order",
-      //   params: { id: this.orderId },
-      // });
+      this.payment = parseFloat(
+        data.meta_data.find((meta) => meta.key === "payment_amount").value
+      );
     },
-    setItemQuantity(item, quantity) {
-      if (!this.items[item.id]) {
-        this.addToCart(item, quantity);
+    setItemQuantity(product: Product, quantity: number) {
+      const actualQuantity = Math.max(0, quantity);
+
+      let items = [...this.line_items];
+
+      // Do we need to insert a new line item, or can we update the existing one.
+      let needsNewItem = true;
+
+      items = items.map((line_item) => {
+        /*
+         * If there is an existing line item for the same product, we need to set the quantity to zero.
+         * This will make sure the calculation is done again. Woocommerce depends on the API caller to 
+         * set the line item subtotal, which isn't reliable.
+         */
+        if (line_item.product_id === product.id) {
+          if (typeof line_item.line_item_id !== "undefined") {
+            line_item.quantity = 0;
+          } else {
+            line_item.quantity = actualQuantity;
+            needsNewItem = false;
+          }
+        }
+
+        return line_item;
+      });
+
+      if (needsNewItem) {
+        items.push({
+          name: product.name,
+          price: product.price,
+          product_id: product.id,
+          quantity: actualQuantity,
+        });
       }
 
-      const diff = parseInt(quantity) - this.items[item.id].quantity;
-      if (diff > 0) {
-        this.addToCart(item, diff);
-      } else if (diff < 0) {
-        this.reduceFromCart(item, -diff);
-      }
+      this.line_items = items;
     },
-    addToCart(item, quantity = 1) {
+    addToCart(product: Product, quantity = 1) {
       if (quantity < 1) {
         return;
       }
-      this.items[item.id] = {
-        ...item,
-        quantity:
-          item.id in this.items
-            ? this.items[item.id].quantity + parseInt(quantity)
-            : parseInt(quantity),
-      };
-    },
-    reduceFromCart(item, quantity = 1) {
-      if (!(item.id in this.items) || quantity < 1) return;
 
-      this.items[item.id] = {
-        ...item,
-        quantity: this.items[item.id].quantity - parseInt(quantity),
-      };
+      let existingQuantity = 0;
+      const existingLineItem = this.line_items.find(
+        (li) => li.product_id === product.id && li.quantity > 0
+      );
+      if (typeof existingLineItem !== "undefined") {
+        existingQuantity = existingLineItem.quantity;
+      }
 
-      this.items[item.id].quantity = Math.max(0, this.items[item.id].quantity);
+      this.setItemQuantity(product, existingQuantity + quantity);
     },
-    addCartCustomerInfo(info, value) {
-      this.customer[info] = value;
-    },
-    addCartPayment(amount) {
-      amount = parseFloat(amount);
-      if (isNaN(amount)) {
+    reduceFromCart(product: Product, quantity = 1) {
+      if (quantity < 1) {
         return;
       }
-      this.payment = amount;
-      if (amount >= this.total) {
+
+      let existingQuantity = 0;
+      const existingLineItem = this.line_items.find(
+        (li) => li.product_id === product.id && li.quantity > 0
+      );
+      if (typeof existingLineItem !== "undefined") {
+        existingQuantity = existingLineItem.quantity;
+      }
+
+      this.setItemQuantity(product, Math.max(0, existingQuantity - quantity));
+    },
+    addCartCustomerInfo(info: "name" | "phone", value: string) {
+      this.customer[info] = value;
+    },
+    addCartPayment(amount: string) {
+      const amountNumber = parseFloat(amount);
+      if (isNaN(amountNumber)) {
+        return;
+      }
+      this.payment = amountNumber;
+      if (amountNumber >= this.total) {
         this.setPaid = true;
       }
       this.customerNote = `Payment before change: ${amount}`;
     },
     clearCart() {
       this.$reset();
-      if( this.$router.currentRoute.name === 'order' ) {
-        this.$router.push({ name: 'home' });
+      if (this.$router.currentRoute.name === "order") {
+        this.$router.push({ name: "home" });
       }
     },
   },

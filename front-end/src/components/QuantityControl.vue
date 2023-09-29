@@ -7,9 +7,9 @@
       max-width="100"
       prepend-icon="mdi-minus"
       append-icon="mdi-plus"
-      @click:prepend="() => reduceFromCart(item)"
-      @click:append="() => addToCart(item)"
-      @input="event => setItemQuantity(item, event.target.value)"
+      @click:prepend="() => reduceFromCart(product)"
+      @click:append="() => addToCart(product)"
+      @input="event => setItemQuantity(product, event.target.value)"
       class="text-center"
       hide-details="auto"
     ></v-text-field>
@@ -17,13 +17,25 @@
 </template>
 
 <script>
-import { mapActions } from "pinia";
+import { mapActions, mapState } from "pinia";
 import { useCartStore } from "../stores/cart";
+import { useItemStore } from "../stores/items";
 
 export default {
   props: ["item"],
   methods: {
-    ...mapActions(useCartStore, ["addToCart", "reduceFromCart", "setItemQuantity"]),
+    ...mapActions(useCartStore, [
+      "addToCart",
+      "reduceFromCart",
+      "setItemQuantity",
+    ]),
+  },
+  computed: {
+    ...mapState(useItemStore, ["items"]),
+
+    product() {
+      return this.items.find((product) => product.id === this.item.product_id);
+    },
   },
 };
 </script>
