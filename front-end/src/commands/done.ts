@@ -30,34 +30,23 @@ export default class implements Command {
     return true;
   }
 
-  private printReceipt() {
-    return new Promise<void>((resolve) => {
-      window.onafterprint = (e) => {
-        window.onafterprint = null;
-        resolve();
-      };
-      window.print();
-    });
-  }
-
   async execute(): Promise<void> {
     const cartStore = useCartStore();
     const itemStore = useItemStore();
 
-    // If there is a coupon, recalculate then save the order
     if (cartStore.coupons.length > 0) {
-      // Save for recalculation
+      // Recalculate cart
       await cartStore.saveOrder();
-      cartStore.addCartPayment(this.amount);
-
-      // Save again for marking paid
-      await Promise.all([cartStore.saveOrder(), this.printReceipt()]);
-    } else {
-      cartStore.addCartPayment(this.amount);
-      await cartStore.saveOrder();
-      await this.printReceipt();
     }
-    itemStore.loadItems();
-    cartStore.clearCart();
+
+    cartStore.addCartPayment(this.amount);
+    // Mark order as paid
+    await cartStore.saveOrder();
+
+    const confirmation = confirm("Item saved. Clear cart and continue?");
+    if (confirmation) {
+      cartStore.clearCart();
+      itemStore.loadItems();
+    }
   }
 }

@@ -133,10 +133,8 @@ export const useCartStore = defineStore("cart", {
         this.saving = false;
       } else {
         if (
-          Object.values(this.line_items).reduce(
-            (total, item) => total + item.quantity,
-            0
-          ) === 0
+          this.line_items.reduce((total, item) => total + item.quantity, 0) ===
+          0
         ) {
           return;
         }

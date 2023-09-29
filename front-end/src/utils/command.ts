@@ -9,11 +9,13 @@ import RemoveBySKU from "../commands/remove-by-sku";
 import AddBySKU from "../commands/add-by-sku";
 import ManageStock from "../commands/manage-stock";
 import LastOrder from "../commands/last-order";
+import Print from "../commands/print";
 
 const commands = [
   Clear,
   AddCustomerInfo,
   Pay,
+  Print,
   Save,
   LastOrder,
   OpenOrder,
