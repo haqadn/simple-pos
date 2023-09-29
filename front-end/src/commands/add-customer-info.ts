@@ -18,7 +18,7 @@ export default class implements Command {
     if (parts[0] === "cus" && parts.length >= 3) {
       this.info = {
         phone: parts[1],
-        name: parts.slice(2).join(" ");
+        name: parts.slice(2).join(" ")
       };
       return true;
     }

@@ -24,6 +24,12 @@
       </p>
 
       <p class="text-h4 text-bold" v-if="orderId">Order# {{ orderId }}</p>
+
+      <p v-if="customer.name || customer.phone">
+        {{ customer.name }}
+        <span v-if="customer.name && customer.phone"> | </span>
+        {{ customer.phone }}
+      </p>
     </header>
     <main>
       <v-table>
