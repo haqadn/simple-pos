@@ -1,21 +1,7 @@
 import CouponsAPI from "@/api/coupons";
 import OrdersAPI from "@/api/orders";
+import type { LineItem, Product } from "@/types";
 import { defineStore } from "pinia";
-
-type LineItem = {
-  product_id: number;
-  line_item_id?: number;
-  quantity: number;
-  price: number;
-  name: string;
-};
-
-type Product = {
-  id: number;
-  price: number;
-  name: string;
-  sku: string;
-};
 
 type Customer = {
   name: string;

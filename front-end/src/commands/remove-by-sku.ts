@@ -1,6 +1,7 @@
 import type { Command } from "./command";
 import { useItemStore } from "../stores/items";
 import { useCartStore } from "../stores/cart";
+import type { Product } from "@/types";
 
 export default class implements Command {
   private sku!: string;
@@ -27,7 +28,10 @@ export default class implements Command {
     const cartStore = useCartStore();
     const itemStore = useItemStore();
 
-    const item = itemStore.items.find((item) => item.sku === this.sku);
+    const item = itemStore.items.find(
+      (item: Product) =>
+        item.sku === this.sku || item.menu_order === parseInt(this.sku)
+    );
     if (item) {
       if (this.quantity === null) {
         cartStore.setItemQuantity(item, 0);
