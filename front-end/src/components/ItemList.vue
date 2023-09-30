@@ -1,6 +1,9 @@
 <template>
   <div>
-    <v-row v-for="category in categories" :key="category.id">
+    <v-row
+      v-for="category in categories.filter((cat) => cat.count > 0)"
+      :key="category.id"
+    >
       <v-col class="v-col-12">
         <h4>{{ category.name }}</h4>
       </v-col>
