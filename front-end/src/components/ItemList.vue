@@ -1,9 +1,25 @@
 <template>
   <div>
-    <v-row
-      v-for="category in categories.filter((cat) => cat.count > 0)"
-      :key="category.id"
-    >
+    <v-row>
+      <v-btn-group>
+        <v-btn @click="tab = 'popular'">Popular</v-btn>
+        <v-btn @click="tab = 'all'">All</v-btn>
+        <v-btn
+          @click="tab = category.id"
+          v-for="category in categories.filter((cat) => cat.count > 0)"
+          :key="category.id"
+        >
+          {{ category.name }}
+        </v-btn>
+      </v-btn-group>
+    </v-row>
+    <v-row v-if="tab === 'popular'">
+      <v-col v-for="item in popularProducts" :key="item.id">
+        <controllable-item v-if="type === 'controllable'" :item="item" />
+        <list-item v-else :item="item" />
+      </v-col>
+    </v-row>
+    <v-row v-for="category in visibleCategories" :key="category.id">
       <v-col class="v-col-12">
         <h4>{{ category.name }}</h4>
       </v-col>
@@ -31,6 +47,7 @@ import ControllableItem from "./ControllableItem.vue";
 export default {
   data: () => ({
     reveal: false,
+    tab: "popular",
   }),
   methods: {
     ...mapActions(useCartStore, ["loadOrder"]),
@@ -41,6 +58,19 @@ export default {
       cartItems: "items",
     }),
     ...mapState(useItemStore, ["items", "categories"]),
+
+    visibleCategories() {
+      if (this.tab === "all") {
+        return this.categories.filter((cat) => cat.count > 0);
+      }
+
+      return this.categories.filter((cat) => cat.id === this.tab);
+    },
+
+    popularProducts() {
+      const items = [...this.items];
+      return items.slice(0, 10);
+    },
   },
   async created() {
     await Promise.all([this.loadItems(), this.loadCategories()]);

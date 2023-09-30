@@ -6,7 +6,7 @@ export default class ProductsAPI extends API {
   }
 
   static async getProducts() {
-    return await this.client.get('/products?per_page=100&status=publish');
+    return await this.client.get('/products?per_page=100&status=publish&orderby=popularity');
   }
 
   static async updateProduct(productId: number, data: any) {
