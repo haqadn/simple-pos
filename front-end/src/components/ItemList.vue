@@ -27,7 +27,13 @@
       <v-col
         v-for="item in items
           .filter((item) => item.categories[0].id === category.id)
-          .sort((a, b) => (a.price > b.price ? 1 : -1))"
+          .sort((a, b) => {
+            if (a.menu_order !== b.menu_order) {
+              return a.menu_order > b.menu_order ? 1 : -1;
+            }
+
+            return a.price > b.price ? 1 : -1;
+          })"
         :key="item.id"
       >
         <controllable-item v-if="type === 'controllable'" :item="item" />
