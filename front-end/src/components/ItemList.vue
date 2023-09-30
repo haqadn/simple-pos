@@ -25,9 +25,9 @@
       </v-col>
 
       <v-col
-        v-for="item in items.filter(
-          (item) => item.categories[0].id === category.id
-        )"
+        v-for="item in items
+          .filter((item) => item.categories[0].id === category.id)
+          .sort((a, b) => (a.price > b.price ? 1 : -1))"
         :key="item.id"
       >
         <controllable-item v-if="type === 'controllable'" :item="item" />
