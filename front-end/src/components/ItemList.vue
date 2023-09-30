@@ -1,6 +1,6 @@
 <template>
   <div>
-    <v-row>
+    <v-row class="mb-4">
       <v-btn-group>
         <v-btn @click="tab = 'popular'">Popular</v-btn>
         <v-btn @click="tab = 'all'">All</v-btn>
