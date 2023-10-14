@@ -89,7 +89,7 @@
       </tbody>
     </v-table>
     <v-list lines="two">
-      <v-list-item title="Coupons" v-if="coupons.length > 0">
+      <v-list-item title="Coupons">
         <template v-slot>
           <v-list>
             <v-list-item v-for="coupon in coupons" :key="coupon.id">
@@ -102,6 +102,15 @@
                   icon="mdi-close"
                 ></v-icon>
               </template>
+            </v-list-item>
+            <v-list-item>
+              <v-text-field
+                dense
+                hide-details="auto"
+                variant="underlined"
+                v-model="newCoupon"
+                @keyup.enter="insertNewCoupon"
+              />
             </v-list-item>
           </v-list>
         </template>
@@ -120,10 +129,17 @@
       <v-list-item>
         <v-btn
           variant="flat"
+          class="mr-2"
+          :disabled="subtotal === 0"
+          @click="print"
+          >Print</v-btn
+        >
+        <v-btn
+          variant="flat"
           :disabled="subtotal === 0"
           class="mr-2"
           @click="save"
-          >Save Only</v-btn
+          >Save</v-btn
         >
         <v-btn
           variant="tonal"
@@ -147,6 +163,7 @@ import config from "../utils/config";
 import DoneCommand from "../commands/done";
 import ClearCommand from "../commands/clear";
 import SaveCommand from "../commands/save";
+import PrintCommand from "../commands/print";
 
 export default {
   components: {
@@ -154,8 +171,9 @@ export default {
   },
   data: () => ({
     currency: "৳",
+    newCoupon: "",
     coupon: {
-      name: "FOO",
+      name: "",
       type: "percent",
       amount: 0,
     },
@@ -185,16 +203,18 @@ export default {
         return this.currency + this.discount.value;
       }
     },
-    couponDiscount() {
-      if (this.coupon.type === "percent") {
-        return this.subtotal * (this.coupon.amount / 100);
-      } else {
-        return this.coupon.amount;
-      }
-    },
   },
   methods: {
-    ...mapActions(useCartStore, ["removeCoupon", "addCartPayment"]),
+    ...mapActions(useCartStore, [
+      "removeCoupon",
+      "addCartPayment",
+      "addCoupon",
+    ]),
+
+    async insertNewCoupon() {
+      await this.addCoupon(this.newCoupon);
+      this.newCoupon = "";
+    },
 
     formatCurrency(amount) {
       return this.currency + amount.toFixed(2);
@@ -215,6 +235,11 @@ export default {
     async clear() {
       const command = new ClearCommand();
       await command.execute();
+    },
+
+    print() {
+      const command = new PrintCommand();
+      command.execute();
     },
   },
 };

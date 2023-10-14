@@ -140,7 +140,7 @@ export default {
   data: () => ({
     currency: "৳",
     coupon: {
-      name: "FOO",
+      name: "",
       type: "percent",
       amount: 0,
     },
