@@ -240,7 +240,6 @@ export const useCartStore = defineStore("cart", {
       if (amountNumber >= this.total) {
         this.setPaid = true;
       }
-      this.customerNote = `Payment before change: ${amount}`;
     },
     clearCart() {
       this.$reset();
