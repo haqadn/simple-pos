@@ -78,14 +78,6 @@
             <td>Remaining</td>
             <td>{{ formatCurrency(remainingAmount) }}</td>
           </tr>
-          <tr v-if="coupons.length > 0">
-            <td>Coupon</td>
-            <td>
-              <span v-for="coupon in coupons" :key="coupon.id">
-                {{ coupon.code }} <br />
-              </span>
-            </td>
-          </tr>
         </tbody>
       </v-table>
 
