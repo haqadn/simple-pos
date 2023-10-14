@@ -49,3 +49,26 @@ function spos_on_order_created( $order_id, $order ) {
     $order->update_meta_data( 'wifi_password', Hotspot::generatePassword() );
 }
 // add_action( 'woocommerce_new_order', 'spos_on_order_created', 10, 2 );
+
+function spos_register_post_type() {
+    register_post_type( 'qt',
+        array(
+			'labels'                => array(
+                'name'              => 'QT',
+
+			),
+			'public'                => true,
+			'capability_type'       => 'post',
+			'map_meta_cap'          => true,
+			'menu_position'         => 56,
+			'menu_icon'             => 'dashicons-admin-post',
+			'hierarchical'          => false,
+			'rewrite'               => false,
+			'query_var'             => false,
+			'delete_with_user'      => true,
+			'supports'              => array( 'title', 'editor', 'custom-fields' ),
+			'show_in_rest'          => true,
+			'rest_base'             => 'qt',
+		));
+}
+add_action( 'init', 'spos_register_post_type' );
