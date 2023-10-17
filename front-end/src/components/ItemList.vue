@@ -9,7 +9,7 @@
           v-for="category in categories.filter((cat) => cat.count > 0)"
           :key="category.id"
         >
-          {{ category.name }}
+          <span v-html="category.name"></span>
         </v-btn>
       </v-btn-group>
     </v-row>
@@ -21,7 +21,7 @@
     </v-row>
     <v-row v-for="category in visibleCategories" :key="category.id">
       <v-col class="v-col-12">
-        <h4>{{ category.name }}</h4>
+        <h4 v-html="category.name"></h4>
       </v-col>
 
       <v-col
