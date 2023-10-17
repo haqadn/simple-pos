@@ -1,7 +1,7 @@
 <template>
   <div>
     <v-row class="mb-4">
-      <v-btn-group>
+      <v-btn-group class="flex-wrap">
         <v-btn @click="tab = 'popular'">Popular</v-btn>
         <v-btn @click="tab = 'all'">All</v-btn>
         <v-btn
