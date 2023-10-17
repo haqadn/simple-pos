@@ -42,10 +42,10 @@
         <tbody>
           <tr v-for="cartItem in filteredCartItems" :key="cartItem.id">
             <td>
-              <p class="text-body-1">
+              <p class="text-body-1 m-0">
                 {{ cartItem.name }} x{{ cartItem.quantity }}
               </p>
-              <p class="text-caption">
+              <p class="text-caption m-0">
                 {{ formatCurrency(cartItem.price) }}
               </p>
             </td>
@@ -240,5 +240,9 @@ dd {
   grid-column-start: 2;
   font-weight: bold;
   margin-left: 2em;
+}
+
+.m-0 {
+  margin: 0;
 }
 </style>
