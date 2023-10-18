@@ -4,6 +4,16 @@
 
 rm simple-pos.zip
 
+# Bump version
+# Extract the current version from simple-pos.php
+current_version=$(awk -F' ' '/Version:/ {print $NF}' simple-pos.php)
+
+# Increment the version
+new_version=$(echo "$current_version + 0.1" | bc)
+
+# Update the version in simple-pos.php
+awk -v new_version="$new_version" -F' ' '/Version:/ {$NF=new_version} 1' simple-pos.php > temp.php && mv temp.php simple-pos.php
+
 DIR="simple-pos"
 rm -rf $DIR
 
