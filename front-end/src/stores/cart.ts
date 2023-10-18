@@ -70,19 +70,19 @@ export const useCartStore = defineStore("cart", {
     },
     /**
      * A filtered list of line items keyd by id.
-     * 
+     *
      * Used for legacy purposes and easily being able to check if a product exists in the cart.
      */
     items(state) {
       const itemsMap: { [id: number]: LineItem } = {};
-      state.line_items.forEach( li => {
+      state.line_items.forEach((li) => {
         if (li.quantity > 0) {
           itemsMap[li.product_id] = li;
         }
       });
 
       return itemsMap;
-    }
+    },
   },
   actions: {
     async addCoupon(code: string) {
@@ -105,31 +105,51 @@ export const useCartStore = defineStore("cart", {
         return alert(error.message);
       }
     },
-    removeCoupon(code) {
-      this.coupons = this.coupons.filter((coupon) => coupon.code !== code);
+    removeCoupon(code: string) {
+      this.coupons = this.coupons.filter(
+        (coupon: { code: string }) => coupon.code !== code
+      );
     },
     async saveOrder(withUpdate = true) {
-      let response;
       if (this.saving) {
         return;
       }
-      if (this.orderId) {
+      try {
+        let response;
         this.saving = true;
-        response = await OrdersAPI.updateOrder(this.orderId, this.cartPayload);
-        this.saving = false;
-      } else {
-        if (
-          this.line_items.reduce((total, item) => total + item.quantity, 0) ===
-          0
-        ) {
-          return;
+        if (this.orderId) {
+          response = await OrdersAPI.updateOrder(
+            this.orderId,
+            this.cartPayload
+          );
+        } else {
+          if (
+            this.line_items.reduce(
+              (total, item) => total + item.quantity,
+              0
+            ) === 0
+          ) {
+            this.saving = false;
+            return;
+          }
+          response = await OrdersAPI.saveOrder(this.cartPayload);
         }
-        this.saving = true;
-        response = await OrdersAPI.saveOrder(this.cartPayload);
+        if (withUpdate) {
+          this.hydrateOrderData(response.data);
+        }
+      } catch (error) {
+        if (confirm(`Error saving order. Logout and login again! ${error}`)) {
+          const cartInfo = JSON.stringify( {
+            orderId: this.orderId,
+            cartPayload: this.cartPayload,
+          });
+
+          window.localStorage.setItem("cartInfo", cartInfo);
+          const currentUrl = window.location.href;
+          window.location.href = `../wp-login.php?redirect_to=${currentUrl}`;
+        }
+      } finally {
         this.saving = false;
-      }
-      if (withUpdate) {
-        this.hydrateOrderData(response.data);
       }
     },
     async loadOrder(id: string) {
@@ -138,11 +158,13 @@ export const useCartStore = defineStore("cart", {
       this.hydrateOrderData(response.data);
     },
     hydrateOrderData(data) {
-      this.addCartCustomerInfo(
-        "name",
-        `${data.billing.first_name} ${data.billing.last_name}`.trim()
-      );
-      this.addCartCustomerInfo("phone", data.billing.phone);
+      if (data.billing) {
+        this.addCartCustomerInfo(
+          "name",
+          `${data.billing.first_name} ${data.billing.last_name}`.trim()
+        );
+        this.addCartCustomerInfo("phone", data.billing.phone);
+      }
 
       this.status = data.status;
       this.orderId = data.id;
@@ -172,7 +194,7 @@ export const useCartStore = defineStore("cart", {
       items = items.map((line_item) => {
         /*
          * If there is an existing line item for the same product, we need to set the quantity to zero.
-         * This will make sure the calculation is done again. Woocommerce depends on the API caller to 
+         * This will make sure the calculation is done again. Woocommerce depends on the API caller to
          * set the line item subtotal, which isn't reliable.
          */
         if (line_item.product_id === product.id) {

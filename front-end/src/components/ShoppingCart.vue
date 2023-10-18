@@ -217,7 +217,7 @@ export default {
     },
 
     formatCurrency(amount) {
-      return this.currency + amount.toFixed(2);
+      return this.currency + (amount || 0).toFixed(2);
     },
 
     async save() {
