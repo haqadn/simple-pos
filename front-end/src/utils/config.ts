@@ -21,7 +21,7 @@ if (typeof window.simplePosSettings === "undefined" && lsConfig === null) {
 
 let simplePosSettings = window.simplePosSettings as settings;
 
-if (!simplePosSettings) {
+if (lsConfig) {
   simplePosSettings = JSON.parse(lsConfig as string);
 }
 
