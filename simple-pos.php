@@ -20,6 +20,7 @@ function spos_register_scripts() {
         'nonce' => wp_create_nonce( 'wp_rest' ),
         'apiBase' => rest_url( 'wc/v3' ),
         'wpAdmin' => admin_url(),
+        'method' => 'nonce'
     ) );
 }
 add_action( 'wp_enqueue_scripts', 'spos_register_scripts' );

@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "serve": "vite preview",
-    "build-dev": "vite build -m development --watch",
+    "build-dev": "vite build --base=./ -m development --watch",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "build": "vite build --base=./",
     "dev": "vite",
