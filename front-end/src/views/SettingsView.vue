@@ -70,7 +70,7 @@ export default {
         return this.settings.tables.join(",");
       },
       set(value) {
-        this.settings.tables = value.split(",");
+        this.settings.tables = value.split(",").map((table) => table.trim());
       },
     },
   },
