@@ -11,7 +11,10 @@
           :elevated="activeCartReference === cartReference.key"
           :flat="activeCartReference !== cartReference.key"
         >
-          {{ `(${index + 1}) ${cartReference.label}` }}
+          <template v-slot:prepend>
+            <v-chip>{{ index + 1 }}</v-chip>
+          </template>
+          {{ cartReference.label }}
         </v-btn>
         <v-btn @click="createCart()" class="w-100 mb-2"> + </v-btn>
       </v-col>
