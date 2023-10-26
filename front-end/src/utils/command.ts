@@ -10,10 +10,12 @@ import AddBySKU from "../commands/add-by-sku";
 import ManageStock from "../commands/manage-stock";
 import LastOrder from "../commands/last-order";
 import Print from "../commands/print";
+import SelectCart from "../commands/select-cart";
 
 const commands = [
   Clear,
   AddCustomerInfo,
+  SelectCart,
   Pay,
   Print,
   Save,
