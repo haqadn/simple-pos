@@ -1,6 +1,7 @@
 type settings = {
   wpAdmin: string; // WP-Admin URL
   apiBase: string; // API base URL
+  tables: string[]; // List of table numbers
 } & (
   | {
       method: "nonce";
@@ -33,6 +34,6 @@ const config = {
     version: "wc/v3",
   },
   adminUrl: simplePosSettings?.wpAdmin,
-  tables: simplePosSettings?.tables || "1,2,3,4,5,6",
+  tables: simplePosSettings?.tables || [1, 2, 3, 4, 5, 6],
 };
 export default config;
