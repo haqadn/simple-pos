@@ -89,7 +89,7 @@
       </tbody>
     </v-table>
     <v-list lines="two">
-      <v-list-item title="Coupons">
+      <v-list-item title="Coupons" v-if="coupons.length > 0">
         <template v-slot>
           <v-list>
             <v-list-item v-for="coupon in coupons" :key="coupon.id">
@@ -102,15 +102,6 @@
                   icon="mdi-close"
                 ></v-icon>
               </template>
-            </v-list-item>
-            <v-list-item>
-              <v-text-field
-                dense
-                hide-details="auto"
-                variant="underlined"
-                v-model="newCoupon"
-                @keyup.enter="insertNewCoupon"
-              />
             </v-list-item>
           </v-list>
         </template>
@@ -171,7 +162,6 @@ export default {
   },
   data: () => ({
     currency: "৳",
-    newCoupon: "",
     coupon: {
       name: "",
       type: "percent",
@@ -210,11 +200,6 @@ export default {
       "addCartPayment",
       "addCoupon",
     ]),
-
-    async insertNewCoupon() {
-      await this.addCoupon(this.newCoupon);
-      this.newCoupon = "";
-    },
 
     formatCurrency(amount) {
       return this.currency + (amount || 0).toFixed(2);
