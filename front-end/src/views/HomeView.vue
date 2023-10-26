@@ -12,7 +12,7 @@
           :flat="activeCartReference !== cartReference.key"
         >
           <template v-slot:prepend>
-            <v-chip>{{ index + 1 }}</v-chip>
+            <v-chip size="x-small">{{ index + 1 }}</v-chip>
           </template>
           {{ cartReference.label }}
         </v-btn>
