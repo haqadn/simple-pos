@@ -3,7 +3,7 @@
     <v-row class="d-print-none">
       <v-col cols="1">
         <v-btn
-          v-for="(cartReference, index) in cartReferences"
+          v-for="(cartReference, index) in carts"
           :key="cartReference.key"
           @click="setActiveCart(cartReference.key)"
           :color="activeCartReference === cartReference.key ? 'primary' : ''"
@@ -13,7 +13,7 @@
         >
           {{ `(${index + 1}) ${cartReference.label}` }}
         </v-btn>
-        <v-btn @click="addTableReference()" class="w-100 mb-2"> + </v-btn>
+        <v-btn @click="createCart()" class="w-100 mb-2"> + </v-btn>
       </v-col>
       <v-col cols="7">
         <command-input />
@@ -51,11 +51,11 @@ export default defineComponent({
   },
 
   computed: {
-    ...mapState(useCartManagerStore, ["activeCartReference", "cartReferences"]),
+    ...mapState(useCartManagerStore, ["activeCartReference", "carts"]),
   },
 
   methods: {
-    ...mapActions(useCartManagerStore, ["setActiveCart", "addTableReference"]),
+    ...mapActions(useCartManagerStore, ["setActiveCart", "createCart"]),
   },
 
   async mounted() {

@@ -271,9 +271,16 @@ export const useDynamicCartStore = (orderReference: string) =>
         }
       },
       clearCart() {
-        this.$reset();
-        if (this.$router.currentRoute.name === "order") {
-          this.$router.push({ name: "home" });
+        const cartManagerStore = useCartManagerStore();
+        const activeCart = cartManagerStore.activeCart;
+        if( activeCart?.permanent ) {
+          this.$reset();
+          if (this.$router.currentRoute.name === "order") {
+            this.$router.push({ name: "home" });
+          }
+        } else {
+          // Delete the cart from the cart manager.
+          cartManagerStore.deleteCart(activeCart.key);
         }
       },
     },
@@ -283,36 +290,44 @@ export const useDynamicCartStore = (orderReference: string) =>
 export const useCartManagerStore = defineStore("cartManager", {
   state: () => ({
     activeCartReference: `T/${config.tables[0]}`,
-    cartReferences: config.tables.map((table) => ({
+    carts: config.tables.map((table) => ({
       label: `T ${table}`,
       key: `T/${table}`,
       permanent: true,
     })),
-    deliveryReferences: [],
-    courierReferences: [],
   }),
   actions: {
     setActiveCart(reference: string) {
       this.activeCartReference = reference;
     },
-    addTableReference() {
+    createCart() {
       const label = prompt(
         "Enter table name",
         "P"
       );
       if(!label) return;
 
-      this.cartReferences.push({
+      const key = uuid4();
+
+      this.carts.push({
         label,
-        key: `${uuid4()}`,
-        permanent: true,
+        key,
+        permanent: false,
       });
+
+      this.activeCartReference = key;
     },
+    deleteCart(reference: string) {
+      // Delete the currently active cart.
+      this.carts = this.carts.filter((cart) => cart.key !== reference);
+      this.activeCartReference = this.carts[0].key;
+    }
   },
   getters: {
-    cart: (state) => useDynamicCartStore(state.activeCartReference),
+    activeCart: (state) => state.carts.find((cart) => cart.key === state.activeCartReference),
+    cartStore: (state) => useDynamicCartStore(state.activeCartReference),
   },
 });
 
 // Easily access the active cart store from anywhere.
-export const useCartStore = () => useCartManagerStore().cart;
+export const useCartStore = () => useCartManagerStore().cartStore;
