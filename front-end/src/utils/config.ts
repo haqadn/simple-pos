@@ -15,25 +15,24 @@ type settings = {
 
 const lsConfig = localStorage.getItem("simplePosSettings");
 
-if (typeof window.simplePosSettings === "undefined" && lsConfig === null) {
-  throw new Error("simplePosSettings not configured");
-}
-
 let simplePosSettings = window.simplePosSettings as settings;
 
 if (lsConfig) {
   simplePosSettings = JSON.parse(lsConfig as string);
 }
 
+export const hasConfig = !!simplePosSettings;
+
 const config = {
-  method: simplePosSettings.method,
+  method: simplePosSettings?.method || "key",
   api: {
-    url: simplePosSettings.apiBase,
-    nonce: simplePosSettings.nonce,
-    consumerKey: simplePosSettings.consumerKey,
-    consumerSecret: simplePosSettings.consumerSecret,
+    url: simplePosSettings?.apiBase,
+    nonce: simplePosSettings?.nonce,
+    consumerKey: simplePosSettings?.consumerKey,
+    consumerSecret: simplePosSettings?.consumerSecret,
     version: "wc/v3",
   },
-  adminUrl: simplePosSettings.wpAdmin,
+  adminUrl: simplePosSettings?.wpAdmin,
+  tables: simplePosSettings?.tables || "1,2,3,4,5,6",
 };
 export default config;

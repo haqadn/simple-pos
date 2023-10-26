@@ -1,6 +1,13 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import HomeView from "../views/HomeView.vue";
-import TabView from "../views/TabView.vue";
+import SettingsView from "../views/SettingsView.vue";
+import { hasConfig } from "@/utils/config";
+
+function requiresSettings(to) {
+  if (!hasConfig) {
+    return { name: 'settings' };
+  }
+}
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -9,11 +16,12 @@ const router = createRouter({
       path: "/",
       name: "home",
       component: HomeView,
+      beforeEnter: requiresSettings,
     },
     {
-      path: "/tablet",
-      name: "tablet",
-      component: TabView,
+      path: '/settings',
+      name: 'settings',
+      component: SettingsView,
     },
     {
       path: '/:id',
