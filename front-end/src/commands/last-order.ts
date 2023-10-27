@@ -17,7 +17,7 @@ export default class implements Command {
 
     const cartStore = useCartStore();
 
-    cartStore.clearCart();
+    cartStore.clearCart(false);
     cartStore.hydrateOrderData(response.data[0]);
   }
 }

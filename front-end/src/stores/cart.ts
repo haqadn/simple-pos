@@ -178,7 +178,7 @@ export const useDynamicCartStore = (cartReference: string) =>
       },
       async loadOrder(id: string) {
         const response = await OrdersAPI.getOrder(id);
-        this.clearCart();
+        this.clearCart(false);
         this.hydrateOrderData(response.data);
       },
       hydrateOrderData(data) {
@@ -299,7 +299,7 @@ export const useDynamicCartStore = (cartReference: string) =>
           this.setPaid = true;
         }
       },
-      clearCart() {
+      clearCart(deleteCart = true) {
         const cartManagerStore = useCartManagerStore();
         const activeCart = cartManagerStore.activeCart;
         if( activeCart?.permanent ) {
@@ -308,7 +308,7 @@ export const useDynamicCartStore = (cartReference: string) =>
           if (this.$router.currentRoute.name === "order") {
             this.$router.push({ name: "home" });
           }
-        } else {
+        } else if(deleteCart) {
           // Delete the cart from the cart manager.
           cartManagerStore.deleteCart(activeCart.key);
         }
