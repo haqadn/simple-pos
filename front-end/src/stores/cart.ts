@@ -98,6 +98,17 @@ export const useDynamicCartStore = (cartReference: string) =>
       },
     },
     actions: {
+      setCartName(name: string) {
+        // Find the cart name from cartManagerStore.
+        const cartManagerStore = useCartManagerStore();
+        const cart = cartManagerStore.carts.find(
+          (cart) => cart.key === cartReference
+        );
+
+        if(cart) {
+          cart.label = name;
+        }
+      },
       async addCoupon(code: string) {
         try {
           const response = await CouponsAPI.getCoupon(code);
@@ -290,6 +301,7 @@ export const useDynamicCartStore = (cartReference: string) =>
         const activeCart = cartManagerStore.activeCart;
         if( activeCart?.permanent ) {
           this.$reset();
+          this.setCartName(activeCart.originalLabel as string);
           if (this.$router.currentRoute.name === "order") {
             this.$router.push({ name: "home" });
           }
@@ -305,11 +317,12 @@ export const useDynamicCartStore = (cartReference: string) =>
 export const useCartManagerStore = defineStore("cartManager", {
   state: () => ({
     activeCartReference: `T/${config.tables[0]}`,
-    carts: config.tables.map((table) => ({
+    carts: <{ label: string, key: string, originalLabel?: string, permanent: boolean}[]> (config.tables.map((table) => ({
       label: `T ${table}`,
       key: `T/${table}`,
+      originalLabel: `T ${table}`,
       permanent: true,
-    })),
+    }))),
   }),
   actions: {
     setActiveCart(reference: string) {

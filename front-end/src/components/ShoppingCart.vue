@@ -10,6 +10,13 @@
         >
       </v-toolbar-title>
       <v-toolbar-title v-else> Cart </v-toolbar-title>
+      <v-spacer></v-spacer>
+      <v-text-field
+        v-model="currentCartName"
+        outlined
+        hide-details="auto"
+        label="Cart Name"
+      ></v-text-field>
     </v-toolbar>
 
     <v-container fluid>
@@ -183,7 +190,18 @@ export default {
       "customerNote",
       "coupons",
       "discountTotal",
+      "cartName",
     ]),
+
+    currentCartName: {
+      get() {
+        return this.cartName;
+      },
+      set(value) {
+        console.log("Setting", value)
+        this.setCartName(value);
+      },
+    },
 
     filteredCartItems() {
       return Object.values(this.items).filter((item) => item.quantity > 0);
@@ -203,6 +221,7 @@ export default {
       "addCartPayment",
       "addCoupon",
       "addCartCustomerInfo",
+      "setCartName",
     ]),
 
     enableCustomer() {
