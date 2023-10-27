@@ -17,10 +17,7 @@ type Customer = {
 export const useDynamicCartStore = (cartReference: string) =>
   defineStore(`cart/${cartReference}`, {
     state: () => ({
-      customer: <Customer>{
-        name: "",
-        phone: "",
-      },
+      customer: <Customer | null> null,
       line_items: <LineItem[]>[],
       orderId: null,
       status: "pending",
@@ -73,10 +70,10 @@ export const useDynamicCartStore = (cartReference: string) =>
             },
           ],
         };
-        if (state.customer.name || state.customer.phone) {
+        if (state.customer?.name || state.customer?.phone) {
           data.billing = {
             first_name: state.customer.name.split(" ")[0],
-            last_name: state.customer.name.split(" ")[1],
+            last_name: state.customer.name.split(" ").splice(1).join(" "),
             phone: state.customer.phone,
             username: state.customer.phone,
           };
@@ -267,7 +264,16 @@ export const useDynamicCartStore = (cartReference: string) =>
         this.setItemQuantity(product, Math.max(0, existingQuantity - quantity));
       },
       addCartCustomerInfo(info: "name" | "phone", value: string) {
-        this.customer[info] = value;
+        if( !this.customer ) {
+          this.customer = {
+            name: "",
+            phone: "",
+          };
+        }
+        this.customer = {
+          ...this.customer,
+          [info]: value,
+        };
       },
       addCartPayment(amount: string) {
         const amountNumber = parseFloat(amount);
