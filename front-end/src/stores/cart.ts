@@ -14,8 +14,8 @@ type Customer = {
 
 
 // This creates a store for a single cart.
-export const useDynamicCartStore = (orderReference: string) =>
-  defineStore(`cart/${orderReference}`, {
+export const useDynamicCartStore = (cartReference: string) =>
+  defineStore(`cart/${cartReference}`, {
     state: () => ({
       customer: <Customer>{
         name: "",
@@ -33,6 +33,15 @@ export const useDynamicCartStore = (orderReference: string) =>
       saving: false,
     }),
     getters: {
+      cartName() : string {
+        // Find the cart name from cartManagerStore.
+        const cartManagerStore = useCartManagerStore();
+        const cart = cartManagerStore.carts.find(
+          (cart) => cart.key === cartReference
+        );
+
+        return cart?.label || "";
+      },
       subtotal(state) {
         return state.line_items.reduce((total, item) => {
           return total + item.price * item.quantity;
