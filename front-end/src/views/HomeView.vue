@@ -29,7 +29,9 @@
       </v-col>
     </v-row>
     <v-row class="d-print-block d-none">
-      <printable-shopping-cart />
+      <bill-print v-if="printMode === 'bill'" />
+      <kot-print v-if="printMode === 'kot'" />
+      <drawer-print v-if="printMode === 'drawer'" />
     </v-row>
   </v-container>
 </template>
@@ -39,7 +41,9 @@ import { defineComponent } from "vue";
 
 // Components
 import ShoppingCart from "@/components/ShoppingCart.vue";
-import PrintableShoppingCart from "@/components/PrintableShoppingCart.vue";
+import BillPrint from "@/components/BillPrint.vue";
+import KotPrint from "@/components/KotPrint.vue";
+import DrawerPrint from "@/components/DrawerPrint.vue";
 import ItemList from "@/components/ItemList.vue";
 import CommandInput from "@/components/CommandInput.vue";
 import { useCartStore, useCartManagerStore } from "@/stores/cart";
@@ -52,11 +56,17 @@ export default defineComponent({
     ShoppingCart,
     ItemList,
     CommandInput,
-    PrintableShoppingCart,
+    BillPrint,
+    KotPrint,
+    DrawerPrint,
   },
 
   computed: {
-    ...mapState(useCartManagerStore, ["activeCartReference", "carts"]),
+    ...mapState(useCartManagerStore, [
+      "activeCartReference",
+      "carts",
+      "printMode",
+    ]),
   },
 
   methods: {

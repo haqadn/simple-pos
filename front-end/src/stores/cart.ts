@@ -326,8 +326,12 @@ export const useCartManagerStore = defineStore("cartManager", {
       originalLabel: `T ${table}`,
       permanent: true,
     }))),
+    printMode: 'bill',
   }),
   actions: {
+    setPrintMode(mode: string) {
+      this.printMode = mode;
+    },
     setActiveCart(reference: string) {
       this.activeCartReference = reference;
     },

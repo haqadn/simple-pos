@@ -35,5 +35,8 @@ const config = {
   },
   adminUrl: simplePosSettings?.wpAdmin,
   tables: simplePosSettings?.tables || [1, 2, 3, 4, 5, 6],
+  billPrinter: "",
+  kitchenPrinter: "",
+  drawerPrinter: "",
 };
 export default config;

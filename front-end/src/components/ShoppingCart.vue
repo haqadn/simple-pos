@@ -132,8 +132,15 @@
           variant="flat"
           class="mr-2"
           :disabled="subtotal === 0"
-          @click="print"
-          >Print</v-btn
+          @click="printBill"
+          >Bill</v-btn
+        >
+        <v-btn
+          variant="flat"
+          class="mr-2"
+          :disabled="subtotal === 0"
+          @click="printKOT"
+          >KOT</v-btn
         >
         <v-btn
           variant="flat"
@@ -158,7 +165,7 @@
 
 <script>
 import { mapActions, mapState } from "pinia";
-import { useCartStore } from "../stores/cart";
+import { useCartManagerStore, useCartStore } from "../stores/cart";
 import QuantityControl from "./QuantityControl.vue";
 import config from "../utils/config";
 import DoneCommand from "../commands/done";
@@ -215,6 +222,7 @@ export default {
     },
   },
   methods: {
+    ...mapActions(useCartManagerStore, ["setPrintMode"]),
     ...mapActions(useCartStore, [
       "removeCoupon",
       "addCartPayment",
@@ -239,6 +247,7 @@ export default {
     async done() {
       const command = new DoneCommand();
       if (command.setAmount(this.payment)) {
+        this.openDrawer();
         await command.execute();
       }
     },
@@ -248,8 +257,21 @@ export default {
       await command.execute();
     },
 
-    print() {
-      const command = new PrintCommand();
+    printBill() {
+      this.setPrintMode("bill");
+      const command = new PrintCommand("bill");
+      command.execute();
+    },
+
+    printKOT() {
+      this.setPrintMode("kot");
+      const command = new PrintCommand("kot");
+      command.execute();
+    },
+
+    openDrawer() {
+      this.setPrintMode("drawer");
+      const command = new PrintCommand("drawer");
       command.execute();
     },
   },
