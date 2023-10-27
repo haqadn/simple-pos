@@ -1,9 +1,9 @@
 name: Build on Windows
 
 on:
-  push:
-    branches:
-      - main  # adjust with your branch name if it's not main
+  release:
+    types:
+      - created
 
 jobs:
   build:
@@ -16,10 +16,14 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v2
       with:
-        node-version: 14  # use the Node.js version your project requires
+        node-version: 18  # use the Node.js version your project requires
 
     - name: Install dependencies
       run: npm install
+      working-directory: ./front-end
+
+    - name: Build the project
+      run: npm run build
       working-directory: ./front-end
 
     - name: Build Electron app for Windows

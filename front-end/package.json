@@ -14,7 +14,8 @@
     "type-check": "vue-tsc --noEmit",
     "start": "electron-forge start",
     "package": "electron-forge package",
-    "make": "electron-forge make"
+    "make": "electron-forge make",
+    "publish": "electron-forge publish"
   },
   "dependencies": {
     "@mdi/font": "5.9.55",
