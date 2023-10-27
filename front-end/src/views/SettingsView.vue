@@ -105,10 +105,12 @@ export default {
     },
   },
   mounted() {
-    setTimeout(() => window.electron.getPrinters(), 100);
-    window.electron.onPrintersList((printers) => {
-      this.printers = printers;
-    });
+    if (window.electron) {
+      setTimeout(() => window.electron.getPrinters(), 100);
+      window.electron.onPrintersList((printers) => {
+        this.printers = printers;
+      });
+    }
 
     const savedSettings = localStorage.getItem("simplePosSettings");
     if (savedSettings) {

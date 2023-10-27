@@ -198,7 +198,6 @@ export default {
         return this.cartName;
       },
       set(value) {
-        console.log("Setting", value)
         this.setCartName(value);
       },
     },

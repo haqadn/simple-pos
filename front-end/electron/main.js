@@ -23,6 +23,10 @@ const createWindow = () => {
         event.sender.send("printers-list", printers);
       });
     });
+
+    ipcMain.on("print", (event, printer) => {
+      mainWindow.webContents.print({ silent: false, deviceName: printer });
+    });
   });
 
   // Open the DevTools.

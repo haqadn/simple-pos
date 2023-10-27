@@ -19,7 +19,12 @@ export default class implements Command {
         window.onafterprint = null;
         resolve();
       };
-      window.print();
+
+      if (window.electron) {
+        window.electron.print();
+      } else {
+        window.print();
+      }
     });
   }
 
