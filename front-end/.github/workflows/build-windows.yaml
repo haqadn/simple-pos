@@ -19,17 +19,15 @@ jobs:
         node-version: 14  # use the Node.js version your project requires
 
     - name: Install dependencies
-      run: |
-        cd front-end
-        npm install
+      run: npm install
+      working-directory: ./front-end
 
     - name: Build Electron app for Windows
-      run: |
-        cd front-end
-        npm run make
+      run: npm run make
+      working-directory: ./front-end
 
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
         name: windows-app
-        path: out/make/squirrel.windows/x64/  # adjust this path to match the output directory of your Windows build
+        path: front-end/out/make/squirrel.windows/x64/  # adjust this path to match the output directory of your Windows build
