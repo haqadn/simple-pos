@@ -334,8 +334,8 @@ export const useCartManagerStore = defineStore("cartManager", {
     selectCart(index: number) {
       this.activeCartReference = this.carts[index].key;
     },
-    createCart() {
-      const label = prompt(
+    createCart(newCartLabel?: string) {
+      const label = newCartLabel || prompt(
         "Enter table name",
         "P"
       );
