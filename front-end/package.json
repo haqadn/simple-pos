@@ -1,6 +1,6 @@
 {
   "name": "simple-pos",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "main": "electron/main.js",
   "author": "Adnan Haque <me@haqadn.com>",
   "description": "A simple POS system",
