@@ -1,5 +1,6 @@
 <template>
   <v-container>
+    <v-btn to="/">Home</v-btn>
     <h1>Settings</h1>
     <h2>API Settings</h2>
 
@@ -41,6 +42,31 @@
       ></v-text-field>
     </div>
 
+    <h2>Printer Settings</h2>
+    <div>
+      <v-select
+        v-model="settings.billPrinter"
+        label="Bill"
+        :items="printers"
+        item-title="displayName"
+        item-value="name"
+      ></v-select>
+      <v-select
+        v-model="settings.kitchenPrinter"
+        label="Kitchen"
+        :items="printers"
+        item-title="displayName"
+        item-value="name"
+      ></v-select>
+      <v-select
+        v-model="settings.drawerPrinter"
+        label="Drawer"
+        :items="printers"
+        item-title="displayName"
+        item-value="name"
+      ></v-select>
+    </div>
+
     <v-btn @click="saveSettings">Save</v-btn>
   </v-container>
 </template>
@@ -56,7 +82,11 @@ export default {
         version: "",
         wpAdmin: "",
         tables: [],
+        billPrinter: "",
+        kitchenPrinter: "",
+        drawerPrinter: "",
       },
+      printers: [],
     };
   },
   methods: {
@@ -75,6 +105,11 @@ export default {
     },
   },
   mounted() {
+    setTimeout(() => window.electron.getPrinters(), 100);
+    window.electron.onPrintersList((printers) => {
+      this.printers = printers;
+    });
+
     const savedSettings = localStorage.getItem("simplePosSettings");
     if (savedSettings) {
       this.settings = JSON.parse(savedSettings);

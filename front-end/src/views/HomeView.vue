@@ -17,6 +17,8 @@
           {{ cartReference.label }}
         </v-btn>
         <v-btn @click="createCart()" class="w-100 mb-2"> + </v-btn>
+        <v-spacer></v-spacer>
+        <v-btn to="/settings" class="w-100 mb-2">Settings</v-btn>
       </v-col>
       <v-col cols="7">
         <command-input />
