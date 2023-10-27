@@ -15,7 +15,8 @@ const createWindow = () => {
   });
 
   // and load the index.html of the app.
-  mainWindow.loadFile("../dist/index.html");
+  const indexPath = path.join(__dirname, '../dist/index.html');
+  mainWindow.loadURL(`file://${indexPath}`);
 
   mainWindow.webContents.on("did-finish-load", () => {
     ipcMain.on("get-printers", (event) => {

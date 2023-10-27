@@ -1,6 +1,7 @@
 {
   "name": "simple-pos",
   "version": "0.0.0",
+  "main": "electron/main.js",
   "scripts": {
     "serve": "vite preview",
     "build-dev": "vite build --base=./ -m development --watch",
@@ -9,11 +10,14 @@
     "dev": "vite",
     "preview": "vite preview --port 4173",
     "type-check": "vue-tsc --noEmit",
-    "start": "electron ./electron/main.js"
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
   },
   "dependencies": {
     "@mdi/font": "5.9.55",
     "axios": "^0.27.2",
+    "electron-squirrel-startup": "^1.0.0",
     "pinia": "^2.0.16",
     "roboto-fontface": "*",
     "uuid": "^9.0.1",
@@ -23,6 +27,12 @@
     "webfontloader": "^1.0.0"
   },
   "devDependencies": {
+    "@electron-forge/cli": "^6.4.2",
+    "@electron-forge/maker-deb": "^6.4.2",
+    "@electron-forge/maker-rpm": "^6.4.2",
+    "@electron-forge/maker-squirrel": "^6.4.2",
+    "@electron-forge/maker-zip": "^6.4.2",
+    "@electron-forge/plugin-auto-unpack-natives": "^6.4.2",
     "@rushstack/eslint-patch": "^1.1.0",
     "@types/node": "^16.11.45",
     "@types/uuid": "^9.0.6",
