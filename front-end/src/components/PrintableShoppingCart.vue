@@ -25,10 +25,14 @@
 
       <p class="text-h4 text-bold" v-if="orderId">Order# {{ orderId }}</p>
 
-      <p v-if="customer.name || customer.phone">
-        {{ customer.name }}
-        <span v-if="customer.name && customer.phone"> | </span>
-        {{ customer.phone }}
+      <p>
+        {{ cartName }}
+        <span v-if="customer">
+          <span v-if="customer && (customer.name || customer.phone)"> | </span>
+          {{ customer.name }}
+          <span v-if="customer.name && customer.phone"> | </span>
+          {{ customer.phone }}
+        </span>
       </p>
     </header>
     <main>
@@ -157,6 +161,7 @@ export default {
       "coupons",
       "discountTotal",
       "wifiPassword",
+      "cartName",
     ]),
 
     printTickets() {

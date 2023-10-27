@@ -13,11 +13,11 @@
     </v-toolbar>
 
     <v-container fluid>
-      <v-row>
+      <v-row v-if="customer">
         <v-col>
           <v-text-field
             label="Customer Name"
-            variant="outlined"
+            variant="underlined"
             shaped
             v-model="customer.name"
             hide-details="auto"
@@ -26,12 +26,15 @@
         <v-col>
           <v-text-field
             label="Customer Phone"
-            variant="outlined"
+            variant="underlined"
             shaped
             v-model="customer.phone"
             hide-details="auto"
           ></v-text-field>
         </v-col>
+      </v-row>
+      <v-row v-else>
+        <a class="ma-2" href="#" @click="enableCustomer">Add customer info</a>
       </v-row>
     </v-container>
 
@@ -199,7 +202,12 @@ export default {
       "removeCoupon",
       "addCartPayment",
       "addCoupon",
+      "addCartCustomerInfo",
     ]),
+
+    enableCustomer() {
+      this.addCartCustomerInfo("name", "");
+    },
 
     formatCurrency(amount) {
       return this.currency + (amount || 0).toFixed(2);
