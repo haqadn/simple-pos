@@ -2,6 +2,8 @@
   "name": "simple-pos",
   "version": "0.0.0",
   "main": "electron/main.js",
+  "author": "Adnan Haque <me@haqadn.com>",
+  "description": "A simple POS system",
   "scripts": {
     "serve": "vite preview",
     "build-dev": "vite build --base=./ -m development --watch",
