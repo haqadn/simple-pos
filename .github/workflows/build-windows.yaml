@@ -29,9 +29,13 @@ jobs:
     - name: Build Electron app for Windows
       run: npm run make
       working-directory: ./front-end
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v2
+      
+    - name: Upload artifact to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        name: windows-app
-        path: front-end/out/make/squirrel.windows/x64/  # adjust this path to match the output directory of your Windows build
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: front-end/out/make/squirrel.windows/x64/simple-pos.exe  # Replace 'your-app-name-setup.exe' with your actual setup executable name
+        asset_name: simple-pos.exe  # Replace 'your-app-name-setup.exe' with your actual setup executable name
+        asset_content_type: application/x-msdownload
