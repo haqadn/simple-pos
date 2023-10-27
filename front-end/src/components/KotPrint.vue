@@ -59,8 +59,8 @@ header {
   text-align: center;
 }
 
-tr {
-  border-bottom: 2px solid black;
+tbody tr td {
+  border-bottom: 2px solid black !important;
 }
 
 tr td:last-child {

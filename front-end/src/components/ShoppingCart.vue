@@ -165,7 +165,7 @@
 
 <script>
 import { mapActions, mapState } from "pinia";
-import { useCartManagerStore, useCartStore } from "../stores/cart";
+import { useCartStore } from "../stores/cart";
 import QuantityControl from "./QuantityControl.vue";
 import config from "../utils/config";
 import DoneCommand from "../commands/done";
@@ -222,7 +222,6 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useCartManagerStore, ["setPrintMode"]),
     ...mapActions(useCartStore, [
       "removeCoupon",
       "addCartPayment",
@@ -258,19 +257,16 @@ export default {
     },
 
     printBill() {
-      this.setPrintMode("bill");
       const command = new PrintCommand("bill");
       command.execute();
     },
 
     printKOT() {
-      this.setPrintMode("kot");
       const command = new PrintCommand("kot");
       command.execute();
     },
 
     openDrawer() {
-      this.setPrintMode("drawer");
       const command = new PrintCommand("drawer");
       command.execute();
     },
