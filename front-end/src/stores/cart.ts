@@ -183,11 +183,14 @@ export const useDynamicCartStore = (cartReference: string) =>
       },
       hydrateOrderData(data) {
         if (data.billing) {
-          this.addCartCustomerInfo(
-            "name",
-            `${data.billing.first_name} ${data.billing.last_name}`.trim()
-          );
-          this.addCartCustomerInfo("phone", data.billing.phone);
+          const name = `${data.billing.first_name} ${data.billing.last_name}`.trim();
+          const phone = data.billing.phone;
+          if ( name ) {
+            this.addCartCustomerInfo( "name", name );
+          }
+          if ( phone ) {
+            this.addCartCustomerInfo("phone", phone);
+          }
         }
 
         this.status = data.status;
