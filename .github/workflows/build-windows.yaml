@@ -36,6 +36,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: front-end/out/make/squirrel.windows/x64/simple-pos.exe  # Replace 'your-app-name-setup.exe' with your actual setup executable name
+        asset_path: front-end/out/make/squirrel.windows/x64/simple-pos-Setup-1.0.0.exe  # Replace 'your-app-name-setup.exe' with your actual setup executable name
         asset_name: simple-pos.exe  # Replace 'your-app-name-setup.exe' with your actual setup executable name
         asset_content_type: application/x-msdownload
