@@ -8,6 +8,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("printers-list", (event, printers) => callback(printers));
   },
   print: ({ printer, silent = false }) => {
-    ipcRenderer.send("print", printer, silent);
+    ipcRenderer.send("print", { printer, silent });
   },
 });

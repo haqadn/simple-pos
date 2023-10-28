@@ -25,7 +25,7 @@ const createWindow = () => {
       });
     });
 
-    ipcMain.on("print", (event, printer, silent = false) => {
+    ipcMain.on("print", (event, { printer, silent }) => {
       mainWindow.webContents.print({ silent, deviceName: printer });
     });
   });
