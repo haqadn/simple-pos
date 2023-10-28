@@ -11,6 +11,7 @@ import ManageStock from "../commands/manage-stock";
 import LastOrder from "../commands/last-order";
 import Print from "../commands/print";
 import SelectCart from "../commands/select-cart";
+import MoveTables from "../commands/move-tables";
 
 const commands = [
   Clear,
@@ -26,6 +27,7 @@ const commands = [
   Done,
   AddBySKU,
   ManageStock,
+  MoveTables,
 ];
 
 export function tryToExecuteCommand(line: string) {

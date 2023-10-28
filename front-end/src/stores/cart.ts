@@ -329,6 +329,18 @@ export const useCartManagerStore = defineStore("cartManager", {
     printMode: 'bill',
   }),
   actions: {
+    rotateCarts(indexes: number[]) {
+      const carts = [...this.carts];
+
+      // Set first carts key to second carts key, and so on. The last carts key is set to the first carts key.
+      const firstKey = carts[indexes[0]].key;
+      for( let i = 0; i < indexes.length - 1; i++ ) {
+        carts[indexes[i]].key = carts[indexes[i + 1]].key;
+      }
+      carts[indexes[indexes.length - 1]].key = firstKey;
+
+      this.carts = carts;
+    },
     setPrintMode(mode: string) {
       this.printMode = mode;
     },
