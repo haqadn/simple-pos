@@ -5,7 +5,6 @@ import type { LineItem, Product } from "@/types";
 import config from "@/utils/config";
 import { defineStore } from "pinia";
 import { v4 as uuid4 } from "uuid";
-import { nextTick } from "vue";
 
 type Customer = {
   name: string;
@@ -158,17 +157,22 @@ export const useDynamicCartStore = (cartReference: string) =>
         try {
           let response;
           this.saving = true;
+          const payload = {
+            ...this.cartPayload,
+            line_items: this.adjustLineItems(this.cartPayload.line_items),
+          };
+
           if (this.orderId) {
             response = await OrdersAPI.updateOrder(
               this.orderId,
-              this.cartPayload
+              payload
             );
           } else {
             if (! this.hasItems) {
               this.saving = false;
               return;
             }
-            response = await OrdersAPI.saveOrder(this.cartPayload);
+            response = await OrdersAPI.saveOrder(payload);
           }
           if (withUpdate) {
             this.hydrateOrderData(response.data);
@@ -223,48 +227,49 @@ export const useDynamicCartStore = (cartReference: string) =>
         );
         this.kotSent = data.meta_data.find((meta) => meta.key === "kot_sent")?.value === "yes";
         
-        await nextTick();
         this.referencePayload = this.cartPayload;
       },
       /**
        * WooCommerce doesn't handle line item updates well. So we need to set existing line items quantity to zero
        * and add new line items with the updated quantity.
        */
-      // adjustLineItems() {
-      //   // Create a map of line items by product_id and quantity from referencePayload.
-      //   const referenceLineItemsMap: { [id: number]: number } = {};
-      //   this.referencePayload.line_items.forEach((li) => {
-      //     referenceLineItemsMap[li.product_id] = li.quantity;
-      //   });
+      adjustLineItems(line_items) {
+        const newLineItems = [];
+        const itemsBeingRemoved = [];
+        if( !this.referencePayload.line_items ) {
+          return line_items;
+        }
 
-      //   const newLineItems = [];
-      //   // Loop through each line items
-      //   this.line_items.forEach((li) => {
-      //     // If line item matches the reference payload, insert it into newLineItems.
-      //     if (
-      //       referenceLineItemsMap[li.product_id] &&
-      //       referenceLineItemsMap[li.product_id] === li.quantity
-      //     ) {
-      //       newLineItems.push(li);
-      //     }
+        line_items.forEach((item) => {
+          // if quantity is different from referencePayload
+          const existingLineItem = this.referencePayload.line_items.find(
+            (li) => li.product_id === item.product_id
+          );
+          if (
+            existingLineItem &&
+            existingLineItem.quantity !== item.quantity
+          ) {
+            // Set existing line item quantity to zero.
+            existingLineItem.quantity = 0;
+            itemsBeingRemoved.push(existingLineItem);
 
-      //     // If line item doesn't match the reference payload, insert one with quantity zero, and another with the updated quantity.
-      //     if (
-      //       referenceLineItemsMap[li.product_id] &&
-      //       referenceLineItemsMap[li.product_id] !== li.quantity
-      //     ) {
-      //       newLineItems.push({
-      //         ...li,
-      //         quantity: 0,
-      //       });
-      //       newLineItems.push({
-      //         name: li.name,
-      //         product_id: li.product_id,
-      //         quantity: li.quantity,
-      //       });
-      //     }
-      //   });
-      // },
+            if( item.quantity > 0 ) {
+              newLineItems.push({
+                ...item,
+                id: undefined,
+              });
+            }
+          } else if( item.quantity > 0 ) {
+            newLineItems.push(item);
+          }
+        });
+
+        // The order matters on Woo. For some reason, if we add the new line items first, and then remove the old ones, it doesn't work.
+        return [
+          ...itemsBeingRemoved,
+          ...newLineItems,
+        ];
+      },
       setItemQuantity(product: Product, quantity: number) {
         const actualQuantity = Math.max(0, quantity);
 
@@ -281,8 +286,6 @@ export const useDynamicCartStore = (cartReference: string) =>
            */
           if (line_item.product_id === product.id) {
             if (typeof line_item.line_item_id !== "undefined") {
-              line_item.quantity = 0;
-            } else {
               // The existing line item isn't saved in the database yet. So we can update the quantity directly.
               line_item.quantity = actualQuantity;
               needsNewItem = false;
