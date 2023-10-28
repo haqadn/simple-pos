@@ -5,6 +5,7 @@ import type { LineItem, Product } from "@/types";
 import config from "@/utils/config";
 import { defineStore } from "pinia";
 import { v4 as uuid4 } from "uuid";
+import { nextTick } from "vue";
 
 type Customer = {
   name: string;
@@ -28,8 +29,8 @@ export const useDynamicCartStore = (cartReference: string) =>
       discountTotal: 0,
       wifiPassword: "",
       saving: false,
-      isDirty: false,
       kotSent: false,
+      referencePayload: {},
     }),
     getters: {
       cartName() : string {
@@ -108,6 +109,13 @@ export const useDynamicCartStore = (cartReference: string) =>
       },
       hasItems(state) {
         return state.line_items.some((li) => li.quantity > 0);
+      },
+      isDirty(state) {
+        // Remove line items with zero quantity as we set existing line item quantity to zero when changing quantity.
+        let refPayload = { ...state.referencePayload };
+        refPayload.line_items = refPayload.line_items.filter((li) => li.quantity > 0);
+        
+        return JSON.stringify(state.referencePayload) !== JSON.stringify(this.cartPayload);
       }
     },
     actions: {
@@ -138,7 +146,6 @@ export const useDynamicCartStore = (cartReference: string) =>
             return;
           }
           this.coupons.push(coupon);
-          this.isDirty = true;
         } catch (error) {
           return alert(error.message);
         }
@@ -147,7 +154,6 @@ export const useDynamicCartStore = (cartReference: string) =>
         this.coupons = this.coupons.filter(
           (coupon: { code: string }) => coupon.code !== code
         );
-        this.isDirty = true;
       },
       async saveOrder(withUpdate = true) {
         if (this.saving) {
@@ -191,7 +197,7 @@ export const useDynamicCartStore = (cartReference: string) =>
         this.clearCart(false);
         this.hydrateOrderData(response.data);
       },
-      hydrateOrderData(data) {
+      async hydrateOrderData(data) {
         if (data.billing) {
           const name = `${data.billing.first_name} ${data.billing.last_name}`.trim();
           const phone = data.billing.phone;
@@ -220,8 +226,49 @@ export const useDynamicCartStore = (cartReference: string) =>
           data.meta_data.find((meta) => meta.key === "payment_amount")?.value
         );
         this.kotSent = data.meta_data.find((meta) => meta.key === "kot_sent")?.value === "yes";
-        this.isDirty = false;
+        
+        await nextTick();
+        this.referencePayload = this.cartPayload;
       },
+      /**
+       * WooCommerce doesn't handle line item updates well. So we need to set existing line items quantity to zero
+       * and add new line items with the updated quantity.
+       */
+      // adjustLineItems() {
+      //   // Create a map of line items by product_id and quantity from referencePayload.
+      //   const referenceLineItemsMap: { [id: number]: number } = {};
+      //   this.referencePayload.line_items.forEach((li) => {
+      //     referenceLineItemsMap[li.product_id] = li.quantity;
+      //   });
+
+      //   const newLineItems = [];
+      //   // Loop through each line items
+      //   this.line_items.forEach((li) => {
+      //     // If line item matches the reference payload, insert it into newLineItems.
+      //     if (
+      //       referenceLineItemsMap[li.product_id] &&
+      //       referenceLineItemsMap[li.product_id] === li.quantity
+      //     ) {
+      //       newLineItems.push(li);
+      //     }
+
+      //     // If line item doesn't match the reference payload, insert one with quantity zero, and another with the updated quantity.
+      //     if (
+      //       referenceLineItemsMap[li.product_id] &&
+      //       referenceLineItemsMap[li.product_id] !== li.quantity
+      //     ) {
+      //       newLineItems.push({
+      //         ...li,
+      //         quantity: 0,
+      //       });
+      //       newLineItems.push({
+      //         name: li.name,
+      //         product_id: li.product_id,
+      //         quantity: li.quantity,
+      //       });
+      //     }
+      //   });
+      // },
       setItemQuantity(product: Product, quantity: number) {
         const actualQuantity = Math.max(0, quantity);
 
@@ -240,6 +287,7 @@ export const useDynamicCartStore = (cartReference: string) =>
             if (typeof line_item.line_item_id !== "undefined") {
               line_item.quantity = 0;
             } else {
+              // The existing line item isn't saved in the database yet. So we can update the quantity directly.
               line_item.quantity = actualQuantity;
               needsNewItem = false;
             }
@@ -258,7 +306,6 @@ export const useDynamicCartStore = (cartReference: string) =>
         }
 
         this.line_items = items;
-        this.isDirty = true;
       },
       addToCart(product: Product, quantity = 1) {
         if (quantity < 1) {
@@ -301,7 +348,6 @@ export const useDynamicCartStore = (cartReference: string) =>
           ...this.customer,
           [info]: value,
         };
-        this.isDirty = true;
       },
       addCartPayment(amount: string) {
         let amountNumber = parseFloat(amount);
@@ -312,12 +358,10 @@ export const useDynamicCartStore = (cartReference: string) =>
         if (amountNumber >= this.total) {
           this.setPaid = true;
         }
-        this.isDirty = true;
       },
       markKotPrinted() {
         if( this.kotSent ) return;
         this.kotSent = true;
-        this.isDirty = true;
       },
       clearCart(deleteCart = true) {
         const cartManagerStore = useCartManagerStore();
