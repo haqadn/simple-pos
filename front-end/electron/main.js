@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("node:path");
 
 const createWindow = () => {
@@ -15,7 +15,7 @@ const createWindow = () => {
   });
 
   // and load the index.html of the app.
-  const indexPath = path.join(__dirname, '../dist/index.html');
+  const indexPath = path.join(__dirname, "../dist/index.html");
   mainWindow.loadURL(`file://${indexPath}`);
 
   mainWindow.webContents.on("did-finish-load", () => {

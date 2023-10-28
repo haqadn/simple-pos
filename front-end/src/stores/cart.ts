@@ -338,11 +338,7 @@ export const useCartManagerStore = defineStore("cartManager", {
     selectCart(index: number) {
       this.activeCartReference = this.carts[index].key;
     },
-    createCart(newCartLabel?: string) {
-      const label = newCartLabel || prompt(
-        "Enter table name",
-        "P"
-      );
+    createCart(label: string) {
       if(!label) return;
 
       const key = uuid4();

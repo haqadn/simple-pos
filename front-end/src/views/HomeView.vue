@@ -16,7 +16,7 @@
           </template>
           {{ cartReference.label }}
         </v-btn>
-        <v-btn @click="createCart()" class="w-100 mb-2"> + </v-btn>
+        <new-cart class="w-100" />
         <v-spacer class="mt-10"></v-spacer>
         <v-btn to="/settings" class="w-100 mb-2">Settings</v-btn>
       </v-col>
@@ -48,6 +48,7 @@ import ItemList from "@/components/ItemList.vue";
 import CommandInput from "@/components/CommandInput.vue";
 import { useCartStore, useCartManagerStore } from "@/stores/cart";
 import { mapActions, mapState } from "pinia";
+import NewCart from "../components/NewCart.vue";
 
 export default defineComponent({
   name: "HomeView",
@@ -59,6 +60,7 @@ export default defineComponent({
     BillPrint,
     KotPrint,
     DrawerPrint,
+    NewCart,
   },
 
   computed: {
@@ -70,7 +72,7 @@ export default defineComponent({
   },
 
   methods: {
-    ...mapActions(useCartManagerStore, ["setActiveCart", "createCart"]),
+    ...mapActions(useCartManagerStore, ["setActiveCart"]),
   },
 
   async mounted() {
