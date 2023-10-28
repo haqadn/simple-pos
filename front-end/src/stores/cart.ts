@@ -28,7 +28,7 @@ export const useDynamicCartStore = (cartReference: string) =>
       discountTotal: 0,
       wifiPassword: "",
       saving: false,
-      kotSent: true,
+      kotSentFlag: false,
       referencePayload: {},
     }),
     getters: {
@@ -81,7 +81,7 @@ export const useDynamicCartStore = (cartReference: string) =>
             },
             {
               key: "kot_sent",
-              value: state.kotSent ? "yes" : "no",
+              value: this.kotSent ? "yes" : "no",
             }
           ],
         };
@@ -116,6 +116,9 @@ export const useDynamicCartStore = (cartReference: string) =>
       },
       isDirty(state) {
         return JSON.stringify(state.referencePayload) !== JSON.stringify(this.cartPayload);
+      },
+      kotSent(state) {
+        return !this.hasItems || ( state.kotSentFlag && ! this.isDirty );
       }
     },
     actions: {
@@ -166,7 +169,6 @@ export const useDynamicCartStore = (cartReference: string) =>
             ...this.cartPayload,
             line_items: this.adjustLineItems(this.cartPayload.line_items),
           };
-          this.kotSent = this.isDirty ? true : this.kotSent;
 
           if (this.orderId) {
             response = await OrdersAPI.updateOrder(
@@ -231,7 +233,7 @@ export const useDynamicCartStore = (cartReference: string) =>
         this.payment = parseFloat(
           data.meta_data.find((meta) => meta.key === "payment_amount")?.value
         );
-        this.kotSent = data.meta_data.find((meta) => meta.key === "kot_sent")?.value === "yes";
+        this.kotSentFlag = data.meta_data.find((meta) => meta.key === "kot_sent")?.value === "yes";
         
         this.referencePayload = this.cartPayload;
       },
@@ -365,8 +367,7 @@ export const useDynamicCartStore = (cartReference: string) =>
         }
       },
       markKotPrinted() {
-        if( this.kotSent ) return;
-        this.kotSent = true;
+        this.kotSentFlag = true;
       },
       clearCart(deleteCart = true) {
         const cartManagerStore = useCartManagerStore();
@@ -469,7 +470,7 @@ export const useCartManagerStore = defineStore("cartManager", {
           hasIssue: false,
         };
         const cartStore = useDynamicCartStore(cart.key);
-        if(!cartStore.kotSent || cartStore.isDirty) {
+        if(!cartStore.kotSent) {
           cart.meta.hasIssue = true;
         }
       });
