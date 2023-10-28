@@ -28,7 +28,7 @@ export const useDynamicCartStore = (cartReference: string) =>
       discountTotal: 0,
       wifiPassword: "",
       saving: false,
-      kotSent: false,
+      kotSent: true,
       referencePayload: {},
     }),
     getters: {
@@ -53,6 +53,11 @@ export const useDynamicCartStore = (cartReference: string) =>
         return state.total - state.payment;
       },
       cartPayload(state) {
+        // Match the reference payload if the cart is fresh
+        if(!this.hasItems) {
+          return {};
+        }
+
         const data = {
           status: state.status,
           set_paid: state.setPaid,
@@ -161,6 +166,7 @@ export const useDynamicCartStore = (cartReference: string) =>
             ...this.cartPayload,
             line_items: this.adjustLineItems(this.cartPayload.line_items),
           };
+          this.kotSent = this.isDirty ? true : this.kotSent;
 
           if (this.orderId) {
             response = await OrdersAPI.updateOrder(
@@ -463,7 +469,7 @@ export const useCartManagerStore = defineStore("cartManager", {
           hasIssue: false,
         };
         const cartStore = useDynamicCartStore(cart.key);
-        if(!cartStore.kotSent) {
+        if(!cartStore.kotSent || cartStore.isDirty) {
           cart.meta.hasIssue = true;
         }
       });
