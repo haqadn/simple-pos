@@ -68,6 +68,10 @@ export const useDynamicCartStore = (cartReference: string) =>
               key: "payment_amount",
               value: state.payment,
             },
+            {
+              key: "cart_name",
+              value: this.cartName,
+            }
           ],
         };
         if (state.customer?.name || state.customer?.phone) {
