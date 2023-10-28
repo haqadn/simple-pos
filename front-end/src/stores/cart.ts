@@ -111,10 +111,6 @@ export const useDynamicCartStore = (cartReference: string) =>
         return state.line_items.some((li) => li.quantity > 0);
       },
       isDirty(state) {
-        // Remove line items with zero quantity as we set existing line item quantity to zero when changing quantity.
-        let refPayload = { ...state.referencePayload };
-        refPayload.line_items = refPayload.line_items.filter((li) => li.quantity > 0);
-        
         return JSON.stringify(state.referencePayload) !== JSON.stringify(this.cartPayload);
       }
     },
