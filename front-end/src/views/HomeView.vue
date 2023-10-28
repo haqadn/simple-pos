@@ -3,13 +3,12 @@
     <v-row class="d-print-none">
       <v-col cols="1">
         <v-btn
-          v-for="(cartReference, index) in carts"
+          v-for="(cartReference, index) in cartsWithMeta"
           :key="cartReference.key"
           @click="setActiveCart(cartReference.key)"
-          :color="activeCartReference === cartReference.key ? 'primary' : ''"
+          :color="getCartBtnColor(cartReference)"
           class="mb-2 w-100"
-          :elevated="activeCartReference === cartReference.key"
-          :flat="activeCartReference !== cartReference.key"
+          :variant="getCartBtnVariant(cartReference)"
         >
           <template v-slot:prepend>
             <v-chip size="x-small">{{ index + 1 }}</v-chip>
@@ -46,7 +45,7 @@ import KotPrint from "@/components/KotPrint.vue";
 import DrawerPrint from "@/components/DrawerPrint.vue";
 import ItemList from "@/components/ItemList.vue";
 import CommandInput from "@/components/CommandInput.vue";
-import { useCartStore, useCartManagerStore } from "@/stores/cart";
+import { useCartStore, useCartManagerStore, type CartRef } from "@/stores/cart";
 import { mapActions, mapState } from "pinia";
 import NewCart from "../components/NewCart.vue";
 
@@ -66,13 +65,35 @@ export default defineComponent({
   computed: {
     ...mapState(useCartManagerStore, [
       "activeCartReference",
-      "carts",
+      "cartsWithMeta",
       "printMode",
     ]),
   },
 
   methods: {
     ...mapActions(useCartManagerStore, ["setActiveCart"]),
+    getCartBtnVariant(cartReference: CartRef) {
+      if (this.activeCartReference === cartReference.key) {
+        return "elevated";
+      }
+
+      if (cartReference.meta?.hasIssues) {
+        return "outlined";
+      }
+
+      return "flat";
+    },
+    getCartBtnColor(cartReference: CartRef) {
+      if (this.activeCartReference === cartReference.key) {
+        return "primary";
+      }
+
+      if (cartReference.meta?.hasIssue) {
+        return "warning";
+      }
+
+      return "default";
+    },
   },
 
   async mounted() {

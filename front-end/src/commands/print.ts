@@ -24,7 +24,7 @@ export default class implements Command {
     switch (this.printMode) {
       case "drawer":
         return config.drawerPrinter;
-      case "kitchen":
+      case "kot":
         return config.kitchenPrinter;
       default:
         return config.drawerPrinter;
@@ -60,6 +60,10 @@ export default class implements Command {
     const cartManagerStore = useCartManagerStore();
     cartManagerStore.setPrintMode(this.printMode);
     await nextTick();
+
+    if (this.printMode === "kot") {
+      cartStore.markKotPrinted();
+    }
 
     if (cartStore.isDirty) {
       await cartStore.saveOrder();

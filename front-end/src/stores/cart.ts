@@ -29,6 +29,7 @@ export const useDynamicCartStore = (cartReference: string) =>
       wifiPassword: "",
       saving: false,
       isDirty: false,
+      kotSent: false,
     }),
     getters: {
       cartName() : string {
@@ -72,6 +73,10 @@ export const useDynamicCartStore = (cartReference: string) =>
             {
               key: "cart_name",
               value: this.cartName,
+            },
+            {
+              key: "kot_sent",
+              value: state.kotSent ? "yes" : "no",
             }
           ],
         };
@@ -212,8 +217,9 @@ export const useDynamicCartStore = (cartReference: string) =>
         });
         this.coupons = data.coupon_lines || [];
         this.payment = parseFloat(
-          data.meta_data.find((meta) => meta.key === "payment_amount").value
+          data.meta_data.find((meta) => meta.key === "payment_amount")?.value
         );
+        this.kotSent = data.meta_data.find((meta) => meta.key === "kot_sent")?.value === "yes";
         this.isDirty = false;
       },
       setItemQuantity(product: Product, quantity: number) {
@@ -308,6 +314,11 @@ export const useDynamicCartStore = (cartReference: string) =>
         }
         this.isDirty = true;
       },
+      markKotPrinted() {
+        if( this.kotSent ) return;
+        this.kotSent = true;
+        this.isDirty = true;
+      },
       clearCart(deleteCart = true) {
         const cartManagerStore = useCartManagerStore();
         const activeCart = cartManagerStore.activeCart;
@@ -325,11 +336,21 @@ export const useDynamicCartStore = (cartReference: string) =>
     },
   })();
 
+export type CartRef = { 
+  label: string, 
+  key: string, 
+  originalLabel?: string, 
+  permanent: boolean
+  meta?: {
+    [key: string]: any
+  }
+};
+
 // This manages the store for multiple parallel carts.
 export const useCartManagerStore = defineStore("cartManager", {
   state: () => ({
     activeCartReference: `T/${config.tables[0]}`,
-    carts: <{ label: string, key: string, originalLabel?: string, permanent: boolean}[]> (config.tables.map((table) => ({
+    carts: <CartRef[]> (config.tables.map((table) => ({
       label: `T ${table}`,
       key: `T/${table}`,
       originalLabel: `T ${table}`,
@@ -392,6 +413,19 @@ export const useCartManagerStore = defineStore("cartManager", {
   getters: {
     activeCart: (state) => state.carts.find((cart) => cart.key === state.activeCartReference),
     cartStore: (state) => useDynamicCartStore(state.activeCartReference),
+    cartsWithMeta: (state) => {
+      const carts = [...state.carts];
+      carts.forEach((cart) => {
+        cart.meta = {
+          hasIssue: false,
+        };
+        const cartStore = useDynamicCartStore(cart.key);
+        if(!cartStore.kotSent) {
+          cart.meta.hasIssue = true;
+        }
+      });
+      return carts;
+    }
   },
 });
 
