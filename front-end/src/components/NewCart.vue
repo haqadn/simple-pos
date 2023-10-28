@@ -41,24 +41,6 @@ export default {
       this.newCartName = "P";
       this.dialog = false;
     },
-
-    //   createCart(newCartLabel?: string) {
-    //     const label = newCartLabel || prompt(
-    //       "Enter table name",
-    //       "P"
-    //     );
-    //     if(!label) return;
-
-    //     const key = uuid4();
-
-    //     this.carts.push({
-    //       label,
-    //       key,
-    //       permanent: false,
-    //     });
-
-    //     this.activeCartReference = key;
-    //   },
   },
 };
 </script>
