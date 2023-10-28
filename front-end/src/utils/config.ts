@@ -2,6 +2,13 @@ type settings = {
   wpAdmin: string; // WP-Admin URL
   apiBase: string; // API base URL
   tables: string[]; // List of table numbers
+  billPrinter: string; // Bill printer name
+  kitchenPrinter: string; // Kitchen printer name
+  drawerPrinter: string; // Drawer printer name
+  silentPrinting: boolean;
+  printWidth: number; // Print width in mm
+  printHeight: number; // Print height in mm
+  printerConfig: string; // Printer config
 } & (
   | {
       method: "nonce";
@@ -40,6 +47,7 @@ const config = {
   drawerPrinter: simplePosSettings?.drawerPrinter || "",
   silentPrinting: simplePosSettings?.silentPrinting || false,
   printWidth: simplePosSettings?.printWidth || 80,
-  printerConfig: JSON.parse(simplePosSettings?.printerConfig) || {},
+  printHeight: simplePosSettings?.printHeight || 300,
+  printerConfig: simplePosSettings?.printerConfig || {},
 };
 export default config;

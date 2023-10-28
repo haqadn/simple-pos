@@ -1,5 +1,4 @@
 import type { Command } from "./command";
-import { useItemStore } from "../stores/items";
 import { useCartStore, useCartManagerStore } from "../stores/cart";
 import config from "@/utils/config";
 import { nextTick } from "vue";
@@ -58,7 +57,7 @@ export default class implements Command {
           silent: config.silentPrinting,
           pageSize: {
             width: parseInt(config.printWidth) * 1000,
-            height: Math.round(this.calculatePageHeight() * 1000),
+            height: parseInt(config.printHeight) * 1000,
           },
         });
       } else {

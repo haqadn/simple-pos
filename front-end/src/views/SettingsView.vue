@@ -74,6 +74,11 @@
         label="Print Width"
         outlined
       ></v-text-field>
+      <v-text-field
+        v-model="settings.printHeight"
+        label="Print Height"
+        outlined
+      ></v-text-field>
       <v-textarea
         v-model="settings.printerConfig"
         label="Printer Config"
@@ -101,14 +106,18 @@ export default {
         drawerPrinter: "",
         silentPrinting: false,
         printWidth: 0,
-        printerConfig: {},
+        printHeight: 0,
+        printerConfig: "{}",
       },
       printers: [],
     };
   },
   methods: {
     saveSettings() {
-      localStorage.setItem("simplePosSettings", JSON.stringify(this.settings));
+      const settings = { ...this.settings };
+      settings.printerConfig = JSON.parse(settings.printerConfig);
+      localStorage.setItem("simplePosSettings", JSON.stringify(settings));
+      window.location.reload();
     },
   },
   computed: {
@@ -132,6 +141,11 @@ export default {
 
     const savedSettings = localStorage.getItem("simplePosSettings");
     if (savedSettings) {
+      if (savedSettings?.printerConfig) {
+        savedSettings.printerConfig = JSON.stringify(savedSettings.printerConfig);
+      } else {
+        savedSettings.printerConfig = "{}";
+      }
       this.settings = JSON.parse(savedSettings);
     }
   },
