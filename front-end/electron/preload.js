@@ -11,3 +11,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.send("print", { printer, silent, pageSize });
   },
 });
+
+ipcRenderer.on("log", (event, message) =>
+  console.log("message from main", message)
+);

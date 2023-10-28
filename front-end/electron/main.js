@@ -4,9 +4,15 @@ const path = require("node:path");
 
 if (require("electron-squirrel-startup")) app.quit();
 
+let mainWindow;
+
+function log(message) {
+  mainWindow.webContents.send("log", message);
+}
+
 const createWindow = () => {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
@@ -28,13 +34,19 @@ const createWindow = () => {
     });
 
     ipcMain.on("print", (event, { printer, silent, pageSize }) => {
-      mainWindow.webContents.print({
-        silent,
-        deviceName: printer,
-        pageSize,
-        margins: {
-          marginType: "none",
-      } });
+      mainWindow.webContents.print(
+        {
+          silent,
+          deviceName: printer,
+          pageSize,
+          margins: {
+            marginType: "none",
+          },
+        },
+        (success, failureReason) => {
+          log({ m: "Print result", success, failureReason });
+        }
+      );
     });
   });
 

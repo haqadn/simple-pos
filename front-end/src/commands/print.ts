@@ -43,8 +43,8 @@ export default class implements Command {
           printer: this.getPrinterName(),
           silent: config.silentPrinting,
           pageSize: {
-            width: config.printWidth * 1000, // Convert to micron
-            height: config.printHeight * 1000, // Convert to micron
+            width: parseInt(config.printWidth),
+            height: parseInt(config.printHeight),
           },
         });
       } else {
