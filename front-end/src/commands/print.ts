@@ -27,7 +27,7 @@ export default class implements Command {
       case "kot":
         return config.kitchenPrinter;
       default:
-        return config.drawerPrinter;
+        return config.billPrinter;
     }
   }
 
