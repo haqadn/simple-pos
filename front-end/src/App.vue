@@ -8,6 +8,8 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
+import OrdersAPI from "./api/orders";
+import { useCartManagerStore, useDynamicCartStore } from "./stores/cart";
 
 export default defineComponent({
   name: "App",
@@ -16,6 +18,30 @@ export default defineComponent({
     return {
       //
     };
+  },
+  async mounted() {
+    // Load pending orders from API
+    const orders = await OrdersAPI.listOrders({
+      status: "pending",
+    });
+
+    const cartManagerStore = useCartManagerStore();
+    Object.values(orders.data).forEach((order: object) => {
+      const orderCartNameMeta = order.meta_data.find(
+        (meta: { key: string; }) => meta.key === "cart_name"
+      );
+      const orderCartName = orderCartNameMeta ? orderCartNameMeta.value : "U";
+
+      let cartStore = cartManagerStore.getCartStoreByName(orderCartName);
+      if (cartStore.hasItems) {
+        cartStore = useDynamicCartStore(
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          cartManagerStore.createCart(orderCartName)!.key
+        );
+      }
+
+      cartStore.hydrateOrderData(order);
+    });
   },
 });
 </script>
