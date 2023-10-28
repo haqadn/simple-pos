@@ -21,11 +21,6 @@
         outlined
       ></v-text-field>
       <v-text-field
-        v-model="settings.version"
-        label="Version"
-        outlined
-      ></v-text-field>
-      <v-text-field
         v-model="settings.wpAdmin"
         label="WP Admin"
         outlined
@@ -98,15 +93,14 @@ export default {
         apiBase: "",
         consumerKey: "",
         consumerSecret: "",
-        version: "",
         wpAdmin: "",
-        tables: [],
+        tables: [1, 2, 3, 4, 5, 6],
         billPrinter: "",
         kitchenPrinter: "",
         drawerPrinter: "",
         silentPrinting: false,
-        printWidth: 0,
-        printHeight: 0,
+        printWidth: 80,
+        printHeight: 300,
         printerConfig: "{}",
       },
       printers: [],
@@ -135,18 +129,21 @@ export default {
       setTimeout(() => window.electron.getPrinters(), 100);
       window.electron.onPrintersList((printers) => {
         this.printers = printers;
-        console.log(printers);
       });
     }
 
-    const savedSettings = localStorage.getItem("simplePosSettings");
-    if (savedSettings) {
+    const savedSettingsString = localStorage.getItem("simplePosSettings");
+    if (savedSettingsString) {
+      const savedSettings = JSON.parse(savedSettingsString);
       if (savedSettings?.printerConfig) {
-        savedSettings.printerConfig = JSON.stringify(savedSettings.printerConfig);
+        savedSettings.printerConfig = JSON.stringify(
+          savedSettings.printerConfig
+        );
       } else {
         savedSettings.printerConfig = "{}";
       }
-      this.settings = JSON.parse(savedSettings);
+
+      this.settings = savedSettings;
     }
   },
 };

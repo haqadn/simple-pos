@@ -39,10 +39,18 @@ const createWindow = () => {
 };
 
 ipcMain.on("print", (event, config) => {
-  log({ m: "Print", config });
+  const printConfig = {
+    dpi: { horizontal: 200, vertical: 200 },
+    preferCssPageSize: true,
+    margins: {
+      marginType: "none",
+    },
+    ...config,
+  };
+  log({ m: "Print", printConfig });
   mainWindow.webContents.print(
     {
-      dpi: { horizontal: 600, vertical: 600 },
+      dpi: { horizontal: 200, vertical: 200 },
       preferCssPageSize: true,
       margins: {
         marginType: "none",

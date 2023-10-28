@@ -53,7 +53,7 @@ export default class implements Command {
       if (window.electron) {
         window.electron.print({
           ...config.printerConfig,
-          printer: this.getPrinterName(),
+          deviceName: this.getPrinterName(),
           silent: config.silentPrinting,
           pageSize: {
             width: parseInt(config.printWidth) * 1000,
