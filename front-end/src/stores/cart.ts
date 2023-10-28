@@ -28,6 +28,7 @@ export const useDynamicCartStore = (cartReference: string) =>
       discountTotal: 0,
       wifiPassword: "",
       saving: false,
+      isDirty: false,
     }),
     getters: {
       cartName() : string {
@@ -100,6 +101,9 @@ export const useDynamicCartStore = (cartReference: string) =>
 
         return itemsMap;
       },
+      hasItems(state) {
+        return state.line_items.some((li) => li.quantity > 0);
+      }
     },
     actions: {
       setCartName(name: string) {
@@ -129,6 +133,7 @@ export const useDynamicCartStore = (cartReference: string) =>
             return;
           }
           this.coupons.push(coupon);
+          this.isDirty = true;
         } catch (error) {
           return alert(error.message);
         }
@@ -137,6 +142,7 @@ export const useDynamicCartStore = (cartReference: string) =>
         this.coupons = this.coupons.filter(
           (coupon: { code: string }) => coupon.code !== code
         );
+        this.isDirty = true;
       },
       async saveOrder(withUpdate = true) {
         if (this.saving) {
@@ -151,12 +157,7 @@ export const useDynamicCartStore = (cartReference: string) =>
               this.cartPayload
             );
           } else {
-            if (
-              this.line_items.reduce(
-                (total, item) => total + item.quantity,
-                0
-              ) === 0
-            ) {
+            if (! this.hasItems) {
               this.saving = false;
               return;
             }
@@ -213,6 +214,7 @@ export const useDynamicCartStore = (cartReference: string) =>
         this.payment = parseFloat(
           data.meta_data.find((meta) => meta.key === "payment_amount").value
         );
+        this.isDirty = false;
       },
       setItemQuantity(product: Product, quantity: number) {
         const actualQuantity = Math.max(0, quantity);
@@ -250,6 +252,7 @@ export const useDynamicCartStore = (cartReference: string) =>
         }
 
         this.line_items = items;
+        this.isDirty = true;
       },
       addToCart(product: Product, quantity = 1) {
         if (quantity < 1) {
@@ -292,16 +295,18 @@ export const useDynamicCartStore = (cartReference: string) =>
           ...this.customer,
           [info]: value,
         };
+        this.isDirty = true;
       },
       addCartPayment(amount: string) {
-        const amountNumber = parseFloat(amount);
+        let amountNumber = parseFloat(amount);
         if (isNaN(amountNumber)) {
-          return;
+          amountNumber = 0;
         }
         this.payment = amountNumber;
         if (amountNumber >= this.total) {
           this.setPaid = true;
         }
+        this.isDirty = true;
       },
       clearCart(deleteCart = true) {
         const cartManagerStore = useCartManagerStore();
@@ -359,18 +364,29 @@ export const useCartManagerStore = defineStore("cartManager", {
 
       const key = uuid4();
 
-      this.carts.push({
+      const cart = {
         label,
         key,
         permanent: false,
-      });
+      };
+
+      this.carts.push(cart);
 
       this.activeCartReference = key;
+
+      return cart;
     },
     deleteCart(reference: string) {
       // Delete the currently active cart.
       this.carts = this.carts.filter((cart) => cart.key !== reference);
       this.activeCartReference = this.carts[0].key;
+    },
+    getCartStoreByName(name: string) {
+      let cart = this.carts.find((cart) => cart.label === name);
+      if( !cart ) {
+        cart = this.createCart(name) as { label: string, key: string, originalLabel?: string, permanent: boolean};
+      }
+      return useDynamicCartStore(cart.key);
     }
   },
   getters: {

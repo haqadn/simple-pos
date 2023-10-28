@@ -34,7 +34,7 @@ export default class implements Command {
     const cartStore = useCartStore();
     const itemStore = useItemStore();
 
-    if (cartStore.coupons.length > 0) {
+    if (cartStore.isDirty) {
       // Recalculate cart
       await cartStore.saveOrder();
     }

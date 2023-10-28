@@ -131,28 +131,24 @@
         <v-btn
           variant="flat"
           class="mr-2"
-          :disabled="subtotal === 0"
+          :disabled="!hasItems"
           @click="printBill"
           >Bill</v-btn
         >
         <v-btn
           variant="flat"
           class="mr-2"
-          :disabled="subtotal === 0"
+          :disabled="!hasItems"
           @click="printKOT"
           >KOT</v-btn
         >
-        <v-btn
-          variant="flat"
-          :disabled="subtotal === 0"
-          class="mr-2"
-          @click="save"
+        <v-btn variant="flat" :disabled="!hasItems || !isDirty" class="mr-2" @click="save"
           >Save</v-btn
         >
         <v-btn
           variant="tonal"
           color="success"
-          :disabled="subtotal === 0"
+          :disabled="!hasItems"
           @click="done"
           >Done</v-btn
         >
@@ -164,7 +160,7 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 import { useCartStore } from "../stores/cart";
 import QuantityControl from "./QuantityControl.vue";
 import config from "../utils/config";
@@ -198,6 +194,8 @@ export default {
       "coupons",
       "discountTotal",
       "cartName",
+      "hasItems",
+      "isDirty",
     ]),
 
     currentCartName: {
