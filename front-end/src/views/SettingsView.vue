@@ -43,6 +43,10 @@
     </div>
 
     <h2>Printer Settings</h2>
+    <v-checkbox
+      label="Silent Printing"
+      v-model="settings.silentPrinting"
+    ></v-checkbox>
     <div>
       <v-select
         v-model="settings.billPrinter"
@@ -85,6 +89,7 @@ export default {
         billPrinter: "",
         kitchenPrinter: "",
         drawerPrinter: "",
+        silentPrinting: false,
       },
       printers: [],
     };
@@ -109,6 +114,7 @@ export default {
       setTimeout(() => window.electron.getPrinters(), 100);
       window.electron.onPrintersList((printers) => {
         this.printers = printers;
+        console.log(printers);
       });
     }
 

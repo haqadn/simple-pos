@@ -38,5 +38,6 @@ const config = {
   billPrinter: "",
   kitchenPrinter: "",
   drawerPrinter: "",
+  silentPrinting: false,
 };
 export default config;

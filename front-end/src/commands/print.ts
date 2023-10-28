@@ -39,7 +39,10 @@ export default class implements Command {
       };
 
       if (window.electron) {
-        window.electron.print(this.getPrinterName());
+        window.electron.print({
+          printer: this.getPrinterName(),
+          silent: config.silentPrinting,
+        });
       } else {
         window.print();
       }
