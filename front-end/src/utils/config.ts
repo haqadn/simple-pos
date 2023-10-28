@@ -39,5 +39,7 @@ const config = {
   kitchenPrinter: simplePosSettings?.kitchenPrinter || "",
   drawerPrinter: simplePosSettings?.drawerPrinter || "",
   silentPrinting: simplePosSettings?.silentPrinting || false,
+  printWidth: simplePosSettings?.printWidth || 80,
+  printHeight: simplePosSettings?.printHeight || 100,
 };
 export default config;

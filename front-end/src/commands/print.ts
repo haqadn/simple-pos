@@ -42,6 +42,10 @@ export default class implements Command {
         window.electron.print({
           printer: this.getPrinterName(),
           silent: config.silentPrinting,
+          pageSize: {
+            width: config.printWidth * 1000, // Convert to micron
+            height: config.printHeight * 1000, // Convert to micron
+          },
         });
       } else {
         window.print();

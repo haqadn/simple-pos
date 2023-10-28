@@ -69,6 +69,16 @@
         item-title="displayName"
         item-value="name"
       ></v-select>
+      <v-text-field
+        v-model="settings.printWidth"
+        label="Print Width"
+        outlined
+      ></v-text-field>
+      <v-text-field
+        v-model="settings.printHeight"
+        label="Print Height"
+        outlined
+      ></v-text-field>
     </div>
 
     <v-btn @click="saveSettings">Save</v-btn>
@@ -90,6 +100,8 @@ export default {
         kitchenPrinter: "",
         drawerPrinter: "",
         silentPrinting: false,
+        printWidth: 0,
+        printHeight: 0,
       },
       printers: [],
     };
