@@ -1,7 +1,7 @@
 <template>
   <div>
     <header>
-      <p class="text-h2 text-right">{{ cartName }}</p>
+      <p class="text-h2 font-weight-black text-right">{{ cartName }}</p>
       <p class="text-h5 text-bold" v-if="orderId">Order# {{ orderId }}</p>
     </header>
     <main>

@@ -55,20 +55,17 @@ export default class implements Command {
       return;
     }
 
-    const itemStore = useItemStore();
-
     const cartManagerStore = useCartManagerStore();
     cartManagerStore.setPrintMode(this.printMode);
     await nextTick();
 
     if (this.printMode === "kot") {
-      cartStore.markKotPrinted();
+      cartStore.updatePreviousKot();
     }
 
     if (cartStore.isDirty) {
       await cartStore.saveOrder();
     }
     await this.printReceipt();
-    itemStore.loadItems();
   }
 }

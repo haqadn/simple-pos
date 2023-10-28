@@ -28,7 +28,7 @@ export const useDynamicCartStore = (cartReference: string) =>
       discountTotal: 0,
       wifiPassword: "",
       saving: false,
-      kotSentFlag: false,
+      previousKot: "",
       referencePayload: {},
     }),
     getters: {
@@ -80,8 +80,8 @@ export const useDynamicCartStore = (cartReference: string) =>
               value: this.cartName,
             },
             {
-              key: "kot_sent",
-              value: this.kotSent ? "yes" : "no",
+              key: "previous_kot",
+              value: state.previousKot,
             }
           ],
         };
@@ -117,8 +117,14 @@ export const useDynamicCartStore = (cartReference: string) =>
       isDirty(state) {
         return JSON.stringify(state.referencePayload) !== JSON.stringify(this.cartPayload);
       },
+      currentKot(state) {
+        return JSON.stringify(state.line_items.filter((li) => li.quantity > 0).map((li) => ({
+          product_id: li.product_id,
+          quantity: li.quantity,
+        })));
+      },
       kotSent(state) {
-        return !this.hasItems || ( state.kotSentFlag && ! this.isDirty );
+        return !this.hasItems || state.previousKot === this.currentKot;
       }
     },
     actions: {
@@ -233,13 +239,14 @@ export const useDynamicCartStore = (cartReference: string) =>
         this.payment = parseFloat(
           data.meta_data.find((meta) => meta.key === "payment_amount")?.value
         );
-        this.kotSentFlag = data.meta_data.find((meta) => meta.key === "kot_sent")?.value === "yes";
+        this.previousKot = data.meta_data.find((meta) => meta.key === "previous_kot")?.value;
         
         this.referencePayload = this.cartPayload;
       },
       /**
-       * WooCommerce doesn't handle line item updates well. So we need to set existing line items quantity to zero
-       * and add new line items with the updated quantity.
+       * If there is an existing line item for the same product, we need to set the quantity to zero.
+       * This will make sure the calculation is done again. Woocommerce depends on the API caller to
+       * set the line item subtotal, which isn't reliable.
        */
       adjustLineItems(line_items) {
         const newLineItems = [];
@@ -287,17 +294,9 @@ export const useDynamicCartStore = (cartReference: string) =>
         let needsNewItem = true;
 
         items = items.map((line_item) => {
-          /*
-           * If there is an existing line item for the same product, we need to set the quantity to zero.
-           * This will make sure the calculation is done again. Woocommerce depends on the API caller to
-           * set the line item subtotal, which isn't reliable.
-           */
           if (line_item.product_id === product.id) {
-            if (typeof line_item.line_item_id !== "undefined") {
-              // The existing line item isn't saved in the database yet. So we can update the quantity directly.
               line_item.quantity = actualQuantity;
               needsNewItem = false;
-            }
           }
 
           return line_item;
@@ -366,8 +365,8 @@ export const useDynamicCartStore = (cartReference: string) =>
           this.setPaid = true;
         }
       },
-      markKotPrinted() {
-        this.kotSentFlag = true;
+      updatePreviousKot() {
+        this.previousKot = this.currentKot;
       },
       clearCart(deleteCart = true) {
         const cartManagerStore = useCartManagerStore();
