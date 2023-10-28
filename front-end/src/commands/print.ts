@@ -2,6 +2,7 @@ import type { Command } from "./command";
 import { useItemStore } from "../stores/items";
 import { useCartStore, useCartManagerStore } from "../stores/cart";
 import config from "@/utils/config";
+import { nextTick } from "vue";
 
 export default class implements Command {
   constructor(private printMode = "bill") {}
@@ -29,7 +30,6 @@ export default class implements Command {
         return config.drawerPrinter;
     }
   }
-
 
   private printReceipt() {
     return new Promise<void>((resolve) => {
@@ -59,8 +59,11 @@ export default class implements Command {
 
     const cartManagerStore = useCartManagerStore();
     cartManagerStore.setPrintMode(this.printMode);
+    await nextTick();
 
-    await cartStore.saveOrder();
+    if (cartStore.isDirty) {
+      await cartStore.saveOrder();
+    }
     await this.printReceipt();
     itemStore.loadItems();
   }
