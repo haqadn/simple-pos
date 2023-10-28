@@ -34,6 +34,7 @@ const createWindow = () => {
     });
 
     ipcMain.on("print", (event, { printer, silent, pageSize }) => {
+      log({ m: "Print", printer, silent, pageSize });
       mainWindow.webContents.print(
         {
           silent,
