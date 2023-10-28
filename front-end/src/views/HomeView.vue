@@ -27,7 +27,11 @@
         <shopping-cart />
       </v-col>
     </v-row>
-    <v-row class="d-print-block d-none">
+    <v-row
+      id="print-area"
+      :style="{ width: `${printWidth}mm` }"
+      class="d-print-block d-none"
+    >
       <bill-print v-if="printMode === 'bill'" />
       <kot-print v-if="printMode === 'kot'" />
       <drawer-print v-if="printMode === 'drawer'" />
@@ -48,6 +52,7 @@ import CommandInput from "@/components/CommandInput.vue";
 import { useCartStore, useCartManagerStore, type CartRef } from "@/stores/cart";
 import { mapActions, mapState } from "pinia";
 import NewCart from "../components/NewCart.vue";
+import config from "../utils/config";
 
 export default defineComponent({
   name: "HomeView",
@@ -68,6 +73,10 @@ export default defineComponent({
       "cartsWithMeta",
       "printMode",
     ]),
+
+    printWidth() {
+      return config.printWidth;
+    },
   },
 
   methods: {
@@ -111,3 +120,9 @@ export default defineComponent({
   },
 });
 </script>
+
+<style>
+#print-area > * {
+  width: 100%;
+}
+</style>

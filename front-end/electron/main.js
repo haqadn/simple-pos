@@ -32,28 +32,28 @@ const createWindow = () => {
         event.sender.send("printers-list", printers);
       });
     });
-
-    ipcMain.on("print", (event, { printer, silent, pageSize }) => {
-      log({ m: "Print", printer, silent, pageSize });
-      mainWindow.webContents.print(
-        {
-          silent,
-          deviceName: printer,
-          pageSize,
-          margins: {
-            marginType: "none",
-          },
-        },
-        (success, failureReason) => {
-          log({ m: "Print result", success, failureReason });
-        }
-      );
-    });
   });
 
   // Open the DevTools.
   // mainWindow.webContents.openDevTools();
 };
+
+ipcMain.on("print", (event, config) => {
+  log({ m: "Print", config });
+  mainWindow.webContents.print(
+    {
+      dpi: { horizontal: 600, vertical: 600 },
+      preferCssPageSize: true,
+      margins: {
+        marginType: "none",
+      },
+      ...config,
+    },
+    (success, failureReason) => {
+      log({ m: "Print result", success, failureReason });
+    }
+  );
+});
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

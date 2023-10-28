@@ -40,6 +40,6 @@ const config = {
   drawerPrinter: simplePosSettings?.drawerPrinter || "",
   silentPrinting: simplePosSettings?.silentPrinting || false,
   printWidth: simplePosSettings?.printWidth || 80,
-  printHeight: simplePosSettings?.printHeight || 100,
+  printerConfig: JSON.parse(simplePosSettings?.printerConfig) || {},
 };
 export default config;

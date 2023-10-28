@@ -7,8 +7,8 @@ contextBridge.exposeInMainWorld("electron", {
   onPrintersList: (callback) => {
     ipcRenderer.on("printers-list", (event, printers) => callback(printers));
   },
-  print: ({ printer, silent = false, pageSize }) => {
-    ipcRenderer.send("print", { printer, silent, pageSize });
+  print: (config) => {
+    ipcRenderer.send("print", config);
   },
 });
 

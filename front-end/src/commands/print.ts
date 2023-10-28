@@ -31,6 +31,19 @@ export default class implements Command {
     }
   }
 
+  private calculatePageHeight(): number {
+    const printArea = document.getElementById("print-area");
+    const hideClassName = 'd-none';
+    printArea?.classList.remove(hideClassName);
+    const height = printArea?.clientHeight;
+    const width = printArea?.clientWidth;
+
+    const heightInMM = (config.printWidth * height!) / width!;
+    printArea?.classList.add(hideClassName);
+
+    return heightInMM;
+  }
+
   private printReceipt() {
     return new Promise<void>((resolve) => {
       window.onafterprint = (e) => {
@@ -40,11 +53,12 @@ export default class implements Command {
 
       if (window.electron) {
         window.electron.print({
+          ...config.printerConfig,
           printer: this.getPrinterName(),
           silent: config.silentPrinting,
           pageSize: {
-            width: parseInt(config.printWidth),
-            height: parseInt(config.printHeight),
+            width: parseInt(config.printWidth) * 1000,
+            height: Math.round(this.calculatePageHeight() * 1000),
           },
         });
       } else {

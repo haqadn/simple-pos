@@ -74,11 +74,11 @@
         label="Print Width"
         outlined
       ></v-text-field>
-      <v-text-field
-        v-model="settings.printHeight"
-        label="Print Height"
+      <v-textarea
+        v-model="settings.printerConfig"
+        label="Printer Config"
         outlined
-      ></v-text-field>
+      ></v-textarea>
     </div>
 
     <v-btn @click="saveSettings">Save</v-btn>
@@ -101,7 +101,7 @@ export default {
         drawerPrinter: "",
         silentPrinting: false,
         printWidth: 0,
-        printHeight: 0,
+        printerConfig: {},
       },
       printers: [],
     };
