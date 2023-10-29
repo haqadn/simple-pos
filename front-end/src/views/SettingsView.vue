@@ -36,6 +36,18 @@
         outlined
       ></v-text-field>
     </div>
+    <div>
+      <v-select
+        v-model="settings.skipKotCategories"
+        :items="decodedCategories"
+        label="Skip KOT Categories"
+        multiple
+        hint="The categories that should be skipped when printing KOT"
+        item-title="name"
+        item-value="id"
+        persistent-hint
+      ></v-select>
+    </div>
 
     <h2>Printer Settings</h2>
     <v-checkbox
@@ -86,6 +98,8 @@
 </template>
 
 <script>
+import { mapActions, mapState } from "pinia";
+import { useItemStore } from "../stores/items";
 export default {
   data() {
     return {
@@ -102,19 +116,35 @@ export default {
         printWidth: 80,
         printHeight: 300,
         printerConfig: "{}",
+        skipKotCategories: [],
       },
       printers: [],
     };
   },
   methods: {
+    ...mapActions(useItemStore, ["loadCategories"]),
     saveSettings() {
       const settings = { ...this.settings };
       settings.printerConfig = JSON.parse(settings.printerConfig);
       localStorage.setItem("simplePosSettings", JSON.stringify(settings));
       window.location.reload();
     },
+    decodeHtmlEntity(str) {
+      const textArea = document.createElement("textarea");
+      textArea.innerHTML = str;
+      return textArea.value;
+    },
   },
   computed: {
+    ...mapState(useItemStore, ["categories"]),
+
+    decodedCategories() {
+      return this.categories.map((category) => ({
+        ...category,
+        name: this.decodeHtmlEntity(category.name)
+      }));
+    },
+
     tablesString: {
       get() {
         return this.settings.tables.join(",");
@@ -145,6 +175,8 @@ export default {
 
       this.settings = savedSettings;
     }
+
+    this.loadCategories();
   },
 };
 </script>

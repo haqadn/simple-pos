@@ -6,6 +6,7 @@ import config from "@/utils/config";
 import { defineStore } from "pinia";
 import { v4 as uuid4 } from "uuid";
 import { alertAsync, confirmAsync } from "./alerts";
+import { useItemStore } from "./items";
 
 type Customer = {
   name: string;
@@ -119,7 +120,11 @@ export const useDynamicCartStore = (cartReference: string) =>
         return JSON.stringify(state.referencePayload) !== JSON.stringify(this.cartPayload);
       },
       currentKot(state) {
-        return JSON.stringify(state.line_items.filter((li) => li.quantity > 0).map((li) => ({
+        const itemStore = useItemStore();
+
+        return JSON.stringify(state.line_items.filter((li) => {
+          return li.quantity > 0 && ! itemStore.shouldSkipProductFromKot(li.product_id);
+        }).map((li) => ({
           product_id: li.product_id,
           quantity: li.quantity,
         })));

@@ -2,6 +2,7 @@ type settings = {
   wpAdmin: string; // WP-Admin URL
   apiBase: string; // API base URL
   tables: string[]; // List of table numbers
+  skipKotCategories: number[]; // List of categories to skip in KOT
   billPrinter: string; // Bill printer name
   kitchenPrinter: string; // Kitchen printer name
   drawerPrinter: string; // Drawer printer name
@@ -42,6 +43,7 @@ const config = {
   },
   adminUrl: simplePosSettings?.wpAdmin,
   tables: simplePosSettings?.tables || [1, 2, 3, 4, 5, 6],
+  skipKotCategories: simplePosSettings?.skipKotCategories || [],
   billPrinter: simplePosSettings?.billPrinter || "",
   kitchenPrinter: simplePosSettings?.kitchenPrinter || "",
   drawerPrinter: simplePosSettings?.drawerPrinter || "",

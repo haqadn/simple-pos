@@ -1,4 +1,5 @@
 import ProductsAPI from "@/api/products";
+import config from "@/utils/config";
 import { defineStore } from "pinia";
 
 export const useItemStore = defineStore("items", {
@@ -6,6 +7,19 @@ export const useItemStore = defineStore("items", {
     items: [],
     categories: [],
   }),
+  getters: {
+    productCategoryMap() {
+      const items = this.items;
+      const catMap: { [productId: number]: number[] } = {};
+      items.forEach(
+        (item: { id: number; categories: Array<{ id: number }> }) => {
+          catMap[item.id] = item.categories.map((category) => category.id);
+        }
+      );
+
+      return catMap;
+    },
+  },
   actions: {
     async loadItems() {
       const response = await ProductsAPI.getProducts();
@@ -16,7 +30,7 @@ export const useItemStore = defineStore("items", {
           ...item,
           price: parseFloat(item.price),
           regular_price: parseFloat(item.regular_price),
-        }
+        };
       });
     },
     async loadCategories() {
@@ -24,6 +38,11 @@ export const useItemStore = defineStore("items", {
       const items = response.data;
 
       this.categories = items;
-    }
-  }
+    },
+    shouldSkipProductFromKot(productId: number) {
+      return this.productCategoryMap[productId].some((category) =>
+        config.skipKotCategories.includes(category)
+      );
+    },
+  },
 });

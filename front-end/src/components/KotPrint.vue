@@ -27,9 +27,10 @@
   </div>
 </template>
 
-<script>
-import { mapState } from "pinia";
+<script lang="ts">
+import { mapActions, mapState } from "pinia";
 import { useCartStore } from "../stores/cart";
+import { useItemStore } from "../stores/items";
 
 export default {
   data: () => ({
@@ -44,8 +45,15 @@ export default {
     ...mapState(useCartStore, ["items", "orderId", "customerNote", "cartName"]),
 
     filteredCartItems() {
-      return Object.values(this.items).filter((item) => item.quantity > 0);
+      return Object.values(this.items).filter(
+        (item) =>
+          item.quantity > 0 &&
+          this.shouldSkipProductFromKot(item.product_id) === false
+      );
     },
+  },
+  methods: {
+    ...mapActions(useItemStore, ["shouldSkipProductFromKot"]),
   },
 };
 </script>
