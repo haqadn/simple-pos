@@ -5,6 +5,7 @@ import type { LineItem, Product } from "@/types";
 import config from "@/utils/config";
 import { defineStore } from "pinia";
 import { v4 as uuid4 } from "uuid";
+import { alertAsync, confirmAsync } from "./alerts";
 
 type Customer = {
   name: string;
@@ -156,7 +157,7 @@ export const useDynamicCartStore = (cartReference: string) =>
           }
           this.coupons.push(coupon);
         } catch (error) {
-          return alert(error.message);
+          alertAsync(error.message);
         }
       },
       removeCoupon(code: string) {
@@ -192,7 +193,7 @@ export const useDynamicCartStore = (cartReference: string) =>
             this.hydrateOrderData(response.data);
           }
         } catch (error) {
-          if (confirm(`Error saving order. Logout and login again! ${error}`)) {
+          if (await confirmAsync(`Error saving order. Logout and login again! ${error}`)) {
             const cartInfo = JSON.stringify({
               orderId: this.orderId,
               cartPayload: this.cartPayload,

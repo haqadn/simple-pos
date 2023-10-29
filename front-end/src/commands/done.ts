@@ -1,6 +1,7 @@
 import type { Command } from "./command";
 import { useItemStore } from "../stores/items";
 import { useCartStore } from "../stores/cart";
+import { alertAsync, confirmAsync } from "@/stores/alerts";
 
 export default class implements Command {
   private amount!: number;
@@ -23,7 +24,9 @@ export default class implements Command {
   public setAmount(amount: number) {
     const cartStore = useCartStore();
     if (cartStore.total > amount) {
-      alert("Payment amount must be greater than or equal to the total amount");
+      alertAsync(
+        "Payment amount must be greater than or equal to the total amount"
+      );
       return false;
     }
     this.amount = amount;
@@ -43,7 +46,9 @@ export default class implements Command {
     // Mark order as paid
     await cartStore.saveOrder();
 
-    const confirmation = confirm("Item saved. Clear cart and continue?");
+    const confirmation = await confirmAsync(
+      "Item saved. Clear cart and continue?"
+    );
     if (confirmation) {
       cartStore.clearCart();
       itemStore.loadItems();

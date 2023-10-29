@@ -1,5 +1,7 @@
 <template>
   <v-app>
+    <alert-dialog />
+    <confirm-dialog />
     <v-main>
       <router-view />
     </v-main>
@@ -10,8 +12,11 @@
 import { defineComponent } from "vue";
 import OrdersAPI from "./api/orders";
 import { useCartManagerStore, useDynamicCartStore } from "./stores/cart";
+import AlertDialog from "./components/AlertDialog.vue";
+import ConfirmDialog from "./components/ConfirmDialog.vue";
 
 export default defineComponent({
+  components: { AlertDialog, ConfirmDialog },
   name: "App",
 
   data() {
