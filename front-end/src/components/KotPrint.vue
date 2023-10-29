@@ -18,7 +18,16 @@
               {{ cartItem.name }}
             </td>
             <td>
-              {{ cartItem.quantity }}
+              <span
+                class="quantity"
+                :class="{
+                  changed:
+                    cartItem.quantity !==
+                    previousQuantities[cartItem.product_id],
+                }"
+              >
+                {{ cartItem.quantity }}
+              </span>
             </td>
           </tr>
         </tbody>
@@ -31,7 +40,7 @@
 </template>
 
 <script lang="ts">
-import { mapActions, mapState } from "pinia";
+import { mapState, mapActions } from "pinia";
 import { useCartStore } from "../stores/cart";
 import { useItemStore } from "../stores/items";
 
@@ -45,7 +54,32 @@ export default {
     },
   }),
   computed: {
-    ...mapState(useCartStore, ["items", "orderId", "customerNote", "cartName"]),
+    ...mapState(useCartStore, [
+      "items",
+      "orderId",
+      "customerNote",
+      "cartName",
+      "previousKot",
+    ]),
+
+    previousQuantities() {
+      try {
+        const prevKotObj = JSON.parse(this.previousKot);
+
+        return prevKotObj.reduce(
+          (
+            acc: { [pid: number]: number },
+            item: { product_id: number; quantity: number }
+          ) => {
+            acc[item.product_id] = item.quantity;
+            return acc;
+          },
+          {}
+        );
+      } catch (e) {
+        return {};
+      }
+    },
 
     filteredCartItems() {
       return Object.values(this.items).filter(
@@ -76,5 +110,15 @@ tbody tr td {
 
 tr td:last-child {
   text-align: right;
+}
+
+.quantity {
+  display: inline-block;
+  padding: 4px;
+}
+
+.changed {
+  border: 1px solid black;
+  border-radius: 100%;
 }
 </style>
