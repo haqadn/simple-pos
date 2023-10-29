@@ -1,5 +1,5 @@
 <template>
-  <v-dialog v-model="visible" width="500">
+  <v-dialog v-if="visible" retain-focus v-model="visible" width="500" autofocus>
     <v-card>
       <v-card-text> {{ confirm.message }} </v-card-text>
 
@@ -7,7 +7,7 @@
         <v-spacer></v-spacer>
 
         <v-btn @click="dismissConfirm">Cancel</v-btn>
-        <v-btn @click="callbackConfirm" color="primary">Ok</v-btn>
+        <v-btn @click="callbackConfirm" color="primary" autofocus>Ok</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

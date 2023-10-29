@@ -1,12 +1,12 @@
 <template>
-  <v-dialog v-model="visible" width="500">
+  <v-dialog v-if="visible" v-model="visible" width="500">
     <v-card>
       <v-card-text> {{ alert.message }} </v-card-text>
 
       <v-card-actions>
         <v-spacer></v-spacer>
 
-        <v-btn @click="dismissAlert">Ok</v-btn>
+        <v-btn @click="dismissAlert" autofocus>Ok</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

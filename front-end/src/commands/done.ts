@@ -46,12 +46,7 @@ export default class implements Command {
     // Mark order as paid
     await cartStore.saveOrder();
 
-    const confirmation = await confirmAsync(
-      "Item saved. Clear cart and continue?"
-    );
-    if (confirmation) {
-      cartStore.clearCart();
-      itemStore.loadItems();
-    }
+    cartStore.clearCart();
+    itemStore.loadItems();
   }
 }
