@@ -24,6 +24,9 @@
         </tbody>
       </v-table>
     </main>
+    <div class="ma-4">
+      {{ customerNote }}
+    </div>
   </div>
 </template>
 

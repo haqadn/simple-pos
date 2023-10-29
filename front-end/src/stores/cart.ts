@@ -22,6 +22,7 @@ export const useDynamicCartStore = (cartReference: string) =>
       customer: <Customer | null> null,
       line_items: <LineItem[]>[],
       orderId: null,
+      orderTime: "",
       status: "pending",
       customerNote: "",
       payment: 0,
@@ -231,6 +232,7 @@ export const useDynamicCartStore = (cartReference: string) =>
 
         this.status = data.status;
         this.orderId = data.id;
+        this.orderTime = new Date(data.date_created).toLocaleString('en-GB');
         this.customerNote = data.customer_note;
         this.discountTotal = parseFloat(data.discount_total);
         this.line_items = [];
@@ -248,6 +250,9 @@ export const useDynamicCartStore = (cartReference: string) =>
         this.previousKot = data.meta_data.find((meta) => meta.key === "previous_kot")?.value;
         
         this.referencePayload = this.cartPayload;
+      },
+      setCustomerNote(value: string) {
+        this.customerNote = value;
       },
       /**
        * If there is an existing line item for the same product, we need to set the quantity to zero.

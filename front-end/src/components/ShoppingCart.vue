@@ -119,7 +119,7 @@
       <v-list-item>
         <template v-slot>
           <v-text-field
-            v-model="customerNote"
+            v-model="note"
             outlined
             hide-details="auto"
             label="Note"
@@ -207,6 +207,15 @@ export default {
       },
     },
 
+    note: {
+      get() {
+        return this.customerNote;
+      },
+      set(value) {
+        this.setCustomerNote(value);
+      },
+    },
+
     filteredCartItems() {
       return Object.values(this.items).filter((item) => item.quantity > 0);
     },
@@ -226,6 +235,7 @@ export default {
       "addCoupon",
       "addCartCustomerInfo",
       "setCartName",
+      "setCustomerNote",
     ]),
 
     enableCustomer() {

@@ -30,7 +30,7 @@
     <v-row
       id="print-area"
       :style="{ width: `${printWidth}mm` }"
-      class="d-print-block d-none"
+      class="d-print-block"
     >
       <bill-print v-if="printMode === 'bill'" />
       <kot-print v-if="printMode === 'kot'" />
