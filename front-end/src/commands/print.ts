@@ -30,19 +30,6 @@ export default class implements Command {
     }
   }
 
-  private calculatePageHeight(): number {
-    const printArea = document.getElementById("print-area");
-    const hideClassName = 'd-none';
-    printArea?.classList.remove(hideClassName);
-    const height = printArea?.clientHeight;
-    const width = printArea?.clientWidth;
-
-    const heightInMM = (config.printWidth * height!) / width!;
-    printArea?.classList.add(hideClassName);
-
-    return heightInMM;
-  }
-
   private printReceipt() {
     return new Promise<void>((resolve) => {
       window.onafterprint = (e) => {

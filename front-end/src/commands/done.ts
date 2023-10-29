@@ -1,7 +1,8 @@
 import type { Command } from "./command";
 import { useItemStore } from "../stores/items";
 import { useCartStore } from "../stores/cart";
-import { alertAsync, confirmAsync } from "@/stores/alerts";
+import { alertAsync } from "@/stores/alerts";
+import PrintCommand from "./print";
 
 export default class implements Command {
   private amount!: number;
@@ -43,9 +44,12 @@ export default class implements Command {
     }
 
     cartStore.addCartPayment(this.amount);
+
+    const printCommand = new PrintCommand("drawer");
+    await printCommand.execute();
+
     // Mark order as paid
     await cartStore.saveOrder();
-
     cartStore.clearCart();
     itemStore.loadItems();
   }
