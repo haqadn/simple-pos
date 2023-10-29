@@ -1,8 +1,8 @@
 <template>
-  <v-btn>
+  <v-btn @click="dialog = !dialog">
     +
 
-    <v-dialog v-model="dialog" activator="parent" width="auto">
+    <v-dialog v-if="dialog" v-model="dialog" activator="parent" width="auto">
       <v-card class="pa-4">
         <v-text-field
           v-model="newCartName"
@@ -12,6 +12,7 @@
           autofocus
           tabindex="1"
           :hide-details="true"
+          @keyup.enter="addNewCart"
         ></v-text-field>
         <v-card-actions>
           <v-btn color="default" @click="dialog = false">Cancel</v-btn>
