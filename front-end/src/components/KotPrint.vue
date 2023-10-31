@@ -18,6 +18,14 @@
               {{ cartItem.name }}
             </td>
             <td>
+              <span class="old quantity"
+                v-if="
+                  cartItem.quantity !==
+                    previousQuantities[cartItem.product_id] &&
+                  previousQuantities[cartItem.product_id] !== undefined
+                "
+                >{{ previousQuantities[cartItem.product_id] }}</span
+              >
               <span
                 class="quantity"
                 :class="{
@@ -115,10 +123,18 @@ tr td:last-child {
 .quantity {
   display: inline-block;
   padding: 4px;
+  min-width: 1em;
+  margin-left: 4px;
 }
 
 .changed {
   border: 1px solid black;
   border-radius: 100%;
+  min-width: 1em;
+  margin-left: 4px;
+}
+
+.old {
+  text-decoration: line-through;
 }
 </style>
