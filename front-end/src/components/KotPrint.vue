@@ -53,14 +53,7 @@ import { useCartStore } from "../stores/cart";
 import { useItemStore } from "../stores/items";
 
 export default {
-  data: () => ({
-    currency: "৳",
-    coupon: {
-      name: "",
-      type: "percent",
-      amount: 0,
-    },
-  }),
+  data: () => ({}),
   computed: {
     ...mapState(useCartStore, [
       "items",
