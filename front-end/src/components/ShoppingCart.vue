@@ -254,7 +254,6 @@ export default {
     async done() {
       const command = new DoneCommand();
       if (command.setAmount(this.payment)) {
-        this.openDrawer();
         await command.execute();
       }
     },
