@@ -272,11 +272,6 @@ export default {
       const command = new PrintCommand("kot");
       command.execute();
     },
-
-    openDrawer() {
-      const command = new PrintCommand("drawer");
-      command.execute();
-    },
   },
 };
 </script>
