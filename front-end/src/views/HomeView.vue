@@ -86,19 +86,19 @@ export default defineComponent({
         return "elevated";
       }
 
-      if (cartReference.meta?.hasIssues) {
+      if (cartReference.meta?.hasItems) {
         return "outlined";
       }
 
       return "flat";
     },
     getCartBtnColor(cartReference: CartRef) {
-      if (this.activeCartReference === cartReference.key) {
-        return "primary";
-      }
-
       if (cartReference.meta?.hasIssue) {
         return "warning";
+      }
+
+      if (this.activeCartReference === cartReference.key) {
+        return "primary";
       }
 
       return "default";

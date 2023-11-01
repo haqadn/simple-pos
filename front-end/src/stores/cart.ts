@@ -475,14 +475,14 @@ export const useCartManagerStore = defineStore("cartManager", {
     cartStore: (state) => useDynamicCartStore(state.activeCartReference),
     cartsWithMeta: (state) => {
       const carts = [...state.carts];
+
+
       carts.forEach((cart) => {
-        cart.meta = {
-          hasIssue: false,
-        };
         const cartStore = useDynamicCartStore(cart.key);
-        if(!cartStore.kotSent) {
-          cart.meta.hasIssue = true;
-        }
+        cart.meta = {
+          hasIssue: !cartStore.kotSent,
+          hasItems: cartStore.hasItems,
+        };
       });
       return carts;
     }
