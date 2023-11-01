@@ -52,7 +52,7 @@
         </tbody>
       </v-table>
     </main>
-    <div class="my-4 mx-2 pa-2 customer-note">
+    <div v-if="customerNote" class="my-4 mx-2 pa-2 customer-note">
       {{ customerNote }}
     </div>
   </div>
