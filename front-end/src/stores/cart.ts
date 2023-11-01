@@ -7,6 +7,7 @@ import { defineStore } from "pinia";
 import { v4 as uuid4 } from "uuid";
 import { alertAsync, confirmAsync } from "./alerts";
 import { useItemStore } from "./items";
+import { debounce } from "@/utils/debounce";
 
 type Customer = {
   name: string;
@@ -392,6 +393,19 @@ export const useDynamicCartStore = (cartReference: string) =>
           // Delete the cart from the cart manager.
           cartManagerStore.deleteCart(activeCart.key);
         }
+      },
+      setupAutosave() {
+        const debouncedSave = debounce(() => {
+          this.saveOrder();
+        }, 10000);
+
+        this.$subscribe((mutation, state) => {
+          console.log('mutation', mutation, state);
+          if( this.isDirty ) {
+            console.log('saving');
+            debouncedSave();
+          }
+        });
       },
     },
   })();

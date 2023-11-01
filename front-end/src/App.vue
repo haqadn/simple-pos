@@ -38,7 +38,7 @@ export default defineComponent({
       const orderCartName = orderCartNameMeta ? orderCartNameMeta.value : "U";
 
       let cartStore = cartManagerStore.getCartStoreByName(orderCartName);
-      if (cartStore.hasItems) {
+      if (cartStore.hasItems && cartStore.orderId !== order.id ) {
         cartStore = useDynamicCartStore(
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           cartManagerStore.createCart(orderCartName)!.key
@@ -46,6 +46,7 @@ export default defineComponent({
       }
 
       cartStore.hydrateOrderData(order);
+      cartStore.setupAutosave();
     });
   },
 });
