@@ -52,7 +52,7 @@
         </tbody>
       </v-table>
     </main>
-    <div class="ma-4">
+    <div class="my-4 mx-2 pa-2 customer-note">
       {{ customerNote }}
     </div>
   </div>
@@ -156,5 +156,9 @@ tr td:last-child {
 
 .old {
   text-decoration: line-through;
+}
+
+.customer-note {
+  border: 2px solid black;
 }
 </style>
