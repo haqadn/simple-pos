@@ -38,6 +38,17 @@
               </span>
             </td>
           </tr>
+          <tr v-for="cartItem in removedItems" :key="cartItem.product_id">
+            <td>
+              {{ cartItem.name }}
+            </td>
+            <td>
+              <span class="old quantity">{{
+                previousQuantities[cartItem.product_id]
+              }}</span>
+              <span class="quantity"> x </span>
+            </td>
+          </tr>
         </tbody>
       </v-table>
     </main>
@@ -55,6 +66,9 @@ import { useItemStore } from "../stores/items";
 export default {
   data: () => ({}),
   computed: {
+    ...mapState(useItemStore, {
+      products: "items",
+    }),
     ...mapState(useCartStore, [
       "items",
       "orderId",
@@ -84,10 +98,23 @@ export default {
 
     filteredCartItems() {
       return Object.values(this.items).filter(
-        (item) =>
-          item.quantity > 0 &&
-          this.shouldSkipProductFromKot(item.product_id) === false
+        (item) => this.shouldSkipProductFromKot(item.product_id) === false
       );
+    },
+
+    removedItems() {
+      const previousItems = JSON.parse(this.previousKot).map((item) => item.product_id);
+      const currentItems = Object.values(this.items).map(
+        (item) => item.product_id
+      );
+
+      return previousItems
+        .filter((item) => !currentItems.includes(item))
+        .map((item) => ({
+          product_id: item,
+          quantity: 0,
+          name: this.products.find(p => p.id === item).name,
+        }));
     },
   },
   methods: {

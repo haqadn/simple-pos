@@ -124,7 +124,7 @@ export const useDynamicCartStore = (cartReference: string) =>
         const itemStore = useItemStore();
 
         return JSON.stringify(state.line_items.filter((li) => {
-          return li.quantity > 0 && ! itemStore.shouldSkipProductFromKot(li.product_id);
+          return ! itemStore.shouldSkipProductFromKot(li.product_id);
         }).map((li) => ({
           product_id: li.product_id,
           quantity: li.quantity,
