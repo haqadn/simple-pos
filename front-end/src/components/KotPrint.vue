@@ -103,7 +103,12 @@ export default {
     },
 
     removedItems() {
-      const previousItems = JSON.parse(this.previousKot).map((item) => item.product_id);
+      let previousItems = [];
+      try {
+        previousItems = JSON.parse(this.previousKot).map((item) => item.product_id);
+      } catch {
+        previousItems = [];
+      }
       const currentItems = Object.values(this.items).map(
         (item) => item.product_id
       );

@@ -32,7 +32,7 @@ export const useDynamicCartStore = (cartReference: string) =>
       discountTotal: 0,
       wifiPassword: "",
       saving: false,
-      previousKot: "",
+      previousKot: "[]",
       referencePayload: {},
       autosaveConfigured: false,
     }),
@@ -400,7 +400,6 @@ export const useDynamicCartStore = (cartReference: string) =>
           return;
         }
         this.autosaveConfigured = true;
-        console.log("Setting up autosave", this.cartName);
         const debouncedSave = debounce(() => {
           this.saveOrder();
         }, 5000);
