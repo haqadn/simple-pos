@@ -163,7 +163,6 @@ export const useDynamicCartStore = (cartReference: string) =>
             return;
           }
           this.coupons.push(coupon);
-          this.saveOrder();
         } catch (error) {
           alertAsync(error.message);
         }
@@ -172,7 +171,6 @@ export const useDynamicCartStore = (cartReference: string) =>
         this.coupons = this.coupons.filter(
           (coupon: { code: string }) => coupon.code !== code
         );
-        this.saveOrder();
       },
       async saveOrder(withUpdate = true) {
         if (this.saving) {
@@ -399,12 +397,11 @@ export const useDynamicCartStore = (cartReference: string) =>
       setupAutosave() {
         const debouncedSave = debounce(() => {
           this.saveOrder();
-        }, 10000);
+        }, 5000);
 
-        this.$subscribe((mutation, state) => {
-          console.log('mutation', mutation, state);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.$subscribe((_mutation, _state) => {
           if( this.isDirty ) {
-            console.log('saving');
             debouncedSave();
           }
         });
