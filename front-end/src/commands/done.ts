@@ -41,8 +41,5 @@ export default class implements Command {
     cartManagerStore.showDrawerDialog();
     const printCommand = new PrintCommand("drawer");
     await printCommand.execute();
-
-    // Mark order as paid
-    await cartStore.saveOrder();
   }
 }
