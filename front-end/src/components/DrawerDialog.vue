@@ -1,5 +1,5 @@
 <template>
-  <v-dialog class="d-print-none" v-model="dialog" retain-focus width="500">
+  <v-dialog class="d-print-none" v-model="dialog" width="500">
     <v-card>
       <v-card-text>
         <div>

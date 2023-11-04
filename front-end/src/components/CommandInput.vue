@@ -1,7 +1,7 @@
 <template>
   <v-text-field
     label="Command"
-    tabindex="0"
+    tabindex="1"
     variant="outlined"
     prefix="> "
     autofocus
