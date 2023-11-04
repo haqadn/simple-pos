@@ -34,6 +34,7 @@ export const useDynamicCartStore = (cartReference: string) =>
       saving: false,
       previousKot: "",
       referencePayload: {},
+      autosaveConfigured: false,
     }),
     getters: {
       cartName() : string {
@@ -395,6 +396,11 @@ export const useDynamicCartStore = (cartReference: string) =>
         }
       },
       setupAutosave() {
+        if( this.autosaveConfigured ) {
+          return;
+        }
+        this.autosaveConfigured = true;
+        console.log("Setting up autosave", this.cartName);
         const debouncedSave = debounce(() => {
           this.saveOrder();
         }, 5000);
@@ -456,9 +462,10 @@ export const useCartManagerStore = defineStore("cartManager", {
     },
     setActiveCart(reference: string) {
       this.activeCartReference = reference;
+      this.cartStore.setupAutosave()
     },
     selectCart(index: number) {
-      this.activeCartReference = this.carts[index].key;
+      this.setActiveCart(this.carts[index].key);
     },
     createCart(label: string) {
       if(!label) return;
