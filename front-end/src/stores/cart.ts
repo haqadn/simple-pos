@@ -163,6 +163,7 @@ export const useDynamicCartStore = (cartReference: string) =>
             return;
           }
           this.coupons.push(coupon);
+          this.saveOrder();
         } catch (error) {
           alertAsync(error.message);
         }
@@ -171,6 +172,7 @@ export const useDynamicCartStore = (cartReference: string) =>
         this.coupons = this.coupons.filter(
           (coupon: { code: string }) => coupon.code !== code
         );
+        this.saveOrder();
       },
       async saveOrder(withUpdate = true) {
         if (this.saving) {
