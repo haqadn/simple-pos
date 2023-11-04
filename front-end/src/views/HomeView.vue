@@ -24,6 +24,7 @@
         <item-list />
       </v-col>
       <v-col cols="4">
+        <drawer-dialog />
         <shopping-cart />
       </v-col>
     </v-row>
@@ -34,7 +35,6 @@
     >
       <bill-print v-if="printMode === 'bill'" />
       <kot-print v-if="printMode === 'kot'" />
-      <drawer-print v-if="printMode === 'drawer'" />
     </v-row>
   </v-container>
 </template>
@@ -46,7 +46,7 @@ import { defineComponent } from "vue";
 import ShoppingCart from "@/components/ShoppingCart.vue";
 import BillPrint from "@/components/BillPrint.vue";
 import KotPrint from "@/components/KotPrint.vue";
-import DrawerPrint from "@/components/DrawerPrint.vue";
+import DrawerDialog from "@/components/DrawerDialog.vue";
 import ItemList from "@/components/ItemList.vue";
 import CommandInput from "@/components/CommandInput.vue";
 import { useCartStore, useCartManagerStore, type CartRef } from "@/stores/cart";
@@ -63,7 +63,7 @@ export default defineComponent({
     CommandInput,
     BillPrint,
     KotPrint,
-    DrawerPrint,
+    DrawerDialog,
     NewCart,
   },
 
@@ -72,6 +72,7 @@ export default defineComponent({
       "activeCartReference",
       "cartsWithMeta",
       "printMode",
+      "drawerDialog",
     ]),
 
     printWidth() {
@@ -80,7 +81,9 @@ export default defineComponent({
   },
 
   methods: {
-    ...mapActions(useCartManagerStore, ["setActiveCart"]),
+    ...mapActions(useCartManagerStore, ["setActiveCart", "hideDrawerDialog"]),
+    ...mapActions(useCartStore, ["clearCart"]),
+
     getCartBtnVariant(cartReference: CartRef) {
       if (this.activeCartReference === cartReference.key) {
         return "elevated";

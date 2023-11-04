@@ -1,6 +1,5 @@
 import type { Command } from "./command";
-import { useItemStore } from "../stores/items";
-import { useCartStore } from "../stores/cart";
+import { useCartManagerStore, useCartStore } from "../stores/cart";
 import { alertAsync } from "@/stores/alerts";
 import PrintCommand from "./print";
 
@@ -36,21 +35,14 @@ export default class implements Command {
 
   async execute(): Promise<void> {
     const cartStore = useCartStore();
-    const itemStore = useItemStore();
-
-    if (cartStore.isDirty) {
-      // Recalculate cart
-      await cartStore.saveOrder();
-    }
+    const cartManagerStore = useCartManagerStore();
 
     cartStore.addCartPayment(this.amount);
-
+    cartManagerStore.showDrawerDialog();
     const printCommand = new PrintCommand("drawer");
     await printCommand.execute();
 
     // Mark order as paid
     await cartStore.saveOrder();
-    cartStore.clearCart();
-    itemStore.loadItems();
   }
 }

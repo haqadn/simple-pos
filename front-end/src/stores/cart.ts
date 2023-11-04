@@ -431,8 +431,15 @@ export const useCartManagerStore = defineStore("cartManager", {
       permanent: true,
     }))),
     printMode: 'bill',
+    drawerDialog: false,
   }),
   actions: {
+    hideDrawerDialog() {
+      this.drawerDialog = false;
+    },
+    showDrawerDialog() {
+      this.drawerDialog = true;
+    },
     rotateCarts(indexes: number[]) {
       const carts = [...this.carts];
 
