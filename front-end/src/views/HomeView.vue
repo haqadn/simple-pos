@@ -53,6 +53,7 @@ import { useCartStore, useCartManagerStore, type CartRef } from "@/stores/cart";
 import { mapActions, mapState } from "pinia";
 import NewCart from "../components/NewCart.vue";
 import config from "../utils/config";
+import { useDynamicCartStore } from "../stores/cart";
 
 export default defineComponent({
   name: "HomeView",
@@ -106,20 +107,51 @@ export default defineComponent({
 
       return "default";
     },
+
+    async loadOpenOrders() {
+      // Load pending orders from API
+      const orders = await OrdersAPI.listOrders({
+        status: "pending",
+      });
+      const cartManagerStore = useCartManagerStore();
+      Object.values(orders.data).forEach((order: object) => {
+        const orderCartNameMeta = order.meta_data.find(
+          (meta: { key: string; }) => meta.key === "cart_name"
+        );
+        const orderCartName = orderCartNameMeta ? orderCartNameMeta.value : "U";
+
+        let cartStore = cartManagerStore.getCartStoreByName(orderCartName);
+        if (cartStore.hasItems && cartStore.orderId !== order.id ) {
+          cartStore = useDynamicCartStore(
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            cartManagerStore.createCart(orderCartName)!.key
+          );
+        }
+
+        cartStore.hydrateOrderData(order);
+        cartStore.setupAutosave();
+      });
+    },
+
+    async loadUnsavedOrder() {
+      // Handle a pending order that couldn't be saved previously due to auth issue.
+      const cartInfoString = localStorage.getItem("cartInfo");
+      if (cartInfoString) {
+        const cartInfo = JSON.parse(cartInfoString);
+        const cartStore = useCartStore();
+        cartStore.hydrateOrderData(cartInfo.cartPayload);
+        cartStore.orderId = cartInfo.orderId;
+
+        await cartStore.saveOrder(true);
+
+        window.localStorage.removeItem("cartInfo");
+      }
+    }
   },
 
   async mounted() {
-    const cartInfoString = localStorage.getItem("cartInfo");
-    if (cartInfoString) {
-      const cartInfo = JSON.parse(cartInfoString);
-      const cartStore = useCartStore();
-      cartStore.hydrateOrderData(cartInfo.cartPayload);
-      cartStore.orderId = cartInfo.orderId;
-
-      await cartStore.saveOrder(true);
-
-      window.localStorage.removeItem("cartInfo");
-    }
+    this.loadOpenOrders();
+    this.loadUnsavedOrder();
   },
 });
 </script>
