@@ -461,7 +461,7 @@ export const useCartManagerStore = defineStore("cartManager", {
     },
     setActiveCart(reference: string) {
       this.activeCartReference = reference;
-      this.cartStore.setupAutosave()
+      this.cartStore.setupAutosave();
     },
     selectCart(index: number) {
       this.setActiveCart(this.carts[index].key);
@@ -479,8 +479,6 @@ export const useCartManagerStore = defineStore("cartManager", {
 
       this.carts.push(cart);
 
-      this.activeCartReference = key;
-
       return cart;
     },
     deleteCart(reference: string) {
@@ -494,6 +492,16 @@ export const useCartManagerStore = defineStore("cartManager", {
         cart = this.createCart(name) as { label: string, key: string, originalLabel?: string, permanent: boolean};
       }
       return useDynamicCartStore(cart.key);
+    },
+    getCartStoreById(id: number) {
+      const foundCartRef = this.carts.find( (cartRef: CartRef ) => {
+        const cart = useDynamicCartStore(cartRef.key);
+        return cart.orderId === id;
+      });
+
+      if( foundCartRef ) {
+        return useDynamicCartStore( foundCartRef.key );
+      }
     }
   },
   getters: {

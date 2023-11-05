@@ -25,7 +25,11 @@
 
 <script lang="ts">
 import { mapActions } from "pinia";
-import { useCartManagerStore, useDynamicCartStore } from "../stores/cart";
+import {
+  type CartRef,
+  useCartManagerStore,
+  useDynamicCartStore,
+} from "../stores/cart";
 
 export default {
   data() {
@@ -35,10 +39,11 @@ export default {
     };
   },
   methods: {
-    ...mapActions(useCartManagerStore, ["createCart"]),
+    ...mapActions(useCartManagerStore, ["createCart", "setActiveCart"]),
 
     addNewCart() {
-      const cartRef = this.createCart(this.newCartName);
+      const cartRef = this.createCart(this.newCartName) as CartRef;
+      this.setActiveCart(cartRef.key);
       const cartStore = useDynamicCartStore(cartRef?.key as string);
       cartStore.setupAutosave();
       this.newCartName = "P";

@@ -73,7 +73,7 @@ export default class implements Command {
     }
 
     if (cartStore.isDirty) {
-      await cartStore.saveOrder();
+      cartStore.saveOrder();
     }
   }
 }

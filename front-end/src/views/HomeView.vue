@@ -54,6 +54,7 @@ import { mapActions, mapState } from "pinia";
 import NewCart from "../components/NewCart.vue";
 import config from "../utils/config";
 import { useDynamicCartStore } from "../stores/cart";
+import OrdersAPI from "../api/orders";
 
 export default defineComponent({
   name: "HomeView",
@@ -114,13 +115,17 @@ export default defineComponent({
         status: "pending",
       });
       const cartManagerStore = useCartManagerStore();
-      Object.values(orders.data).forEach((order: object) => {
+      Object.values(orders.data).forEach(async (order: object) => {
         const orderCartNameMeta = order.meta_data.find(
-          (meta: { key: string; }) => meta.key === "cart_name"
+          (meta: { key: string }) => meta.key === "cart_name"
         );
         const orderCartName = orderCartNameMeta ? orderCartNameMeta.value : "U";
 
-        let cartStore = cartManagerStore.getCartStoreByName(orderCartName);
+        let cartStore = cartManagerStore.getCartStoreById(order.id);
+        if (!cartStore) {
+          cartStore = cartManagerStore.getCartStoreByName(orderCartName);
+        }
+        // In case we got the cartStore by name and accidentally got one that belongs to another order
         if (cartStore.hasItems && cartStore.orderId !== order.id ) {
           cartStore = useDynamicCartStore(
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -128,7 +133,11 @@ export default defineComponent({
           );
         }
 
-        cartStore.hydrateOrderData(order);
+        if (cartStore.isDirty) {
+          await cartStore.saveOrder();
+        } else {
+          cartStore.hydrateOrderData(order);
+        }
         cartStore.setupAutosave();
       });
     },
@@ -146,12 +155,13 @@ export default defineComponent({
 
         window.localStorage.removeItem("cartInfo");
       }
-    }
+    },
   },
 
   async mounted() {
-    this.loadOpenOrders();
     this.loadUnsavedOrder();
+    this.loadOpenOrders();
+    setInterval(() => this.loadOpenOrders(), 5000);
   },
 });
 </script>

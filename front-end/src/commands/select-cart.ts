@@ -1,5 +1,5 @@
 import type { Command } from "./command";
-import { useCartManagerStore } from "../stores/cart";
+import { useCartManagerStore, type CartRef } from "../stores/cart";
 
 export default class implements Command {
   private index = 0;
@@ -25,9 +25,10 @@ export default class implements Command {
     const cartManagerStore = useCartManagerStore();
 
     if (this.createNew) {
-      cartManagerStore.createCart(this.newCartLabel);
+      const cart = cartManagerStore.createCart(this.newCartLabel || "U") as CartRef;
+      cartManagerStore.setActiveCart(cart.key);
       return;
     }
-    await cartManagerStore.selectCart(this.index);
+    cartManagerStore.selectCart(this.index);
   }
 }
