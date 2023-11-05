@@ -61,14 +61,13 @@ export default class implements Command {
     ) {
       return;
     }
+    if (!cartStore.orderId) {
+      cartStore.saveOrder();
+    }
 
     const cartManagerStore = useCartManagerStore();
     cartManagerStore.setPrintMode(this.printMode);
     await nextTick();
-
-    if (!cartStore.orderId) {
-      cartStore.saveOrder();
-    }
 
     await this.printReceipt();
 
