@@ -66,6 +66,10 @@ export default class implements Command {
     cartManagerStore.setPrintMode(this.printMode);
     await nextTick();
 
+    if (!cartStore.orderId) {
+      cartStore.saveOrder();
+    }
+
     await this.printReceipt();
 
     if (this.printMode === "kot") {
