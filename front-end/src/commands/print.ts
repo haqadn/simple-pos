@@ -62,7 +62,7 @@ export default class implements Command {
       return;
     }
     if (!cartStore.orderId) {
-      cartStore.saveOrder();
+      await cartStore.saveOrder();
     }
 
     const cartManagerStore = useCartManagerStore();
