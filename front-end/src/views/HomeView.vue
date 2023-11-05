@@ -133,9 +133,7 @@ export default defineComponent({
           );
         }
 
-        if (cartStore.isDirty) {
-          await cartStore.saveOrder();
-        } else {
+        if (!cartStore.isDirty) {
           cartStore.hydrateOrderData(order);
         }
         cartStore.setupAutosave();
