@@ -461,7 +461,7 @@ export const useCartManagerStore = defineStore("cartManager", {
     },
     setActiveCart(reference: string) {
       this.activeCartReference = reference;
-      this.cartStore.setupAutosave();
+      // this.cartStore.setupAutosave();
     },
     selectCart(index: number) {
       this.setActiveCart(this.carts[index].key);
