@@ -42,7 +42,7 @@
 
       <v-divider></v-divider>
 
-      <table class="receipt-summary mt-2">
+      <table class="receipt-summary mt-2 text-body-2">
         <tbody>
           <tr>
             <td class="w-100">Total</td>
