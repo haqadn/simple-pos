@@ -1,7 +1,9 @@
 <template>
   <div>
     <header>
-      <logo-component />
+      <div class="logo">
+        <logo-component />
+      </div>
 
       <p class="text-caption mb-2">
         <strong>Phone: </strong> 01765553555 <br />
@@ -124,8 +126,9 @@ export default {
   color: black !important;
   word-break: keep-all;
 }
-.logo {
-  max-width: 70%;
+.logo svg {
+  width: 50%;
+  height: 60%;
 }
 header {
   text-align: center;
