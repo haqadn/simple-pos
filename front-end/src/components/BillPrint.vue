@@ -24,7 +24,7 @@
       <table class="line-items text-caption mt-2">
         <thead>
           <tr>
-            <td class="pr-1">Item</td>
+            <td class="pr-1 text-left">Item</td>
             <td class="px-1">Qty</td>
             <td class="px-1">Price</td>
             <td class="pl-1 text-right">T.Price</td>
@@ -89,7 +89,6 @@ export default {
       "customerNote",
       "coupons",
       "discountTotal",
-      "wifiPassword",
       "cartName",
     ]),
 
@@ -132,41 +131,16 @@ header {
   text-align: center;
 }
 
+.line-items {
+  width: 100%;
+}
+
+.line-items thead tr:last-child td {
+  border-bottom: 1px solid black;
+}
+
 .receipt-summary td:nth-child(2) {
   text-align: right;
-}
-
-.wifi-details {
-  margin: 1em;
-  border: 1px double black;
-  padding: 10pt;
-  text-align: left;
-}
-
-.wifi-icon {
-  width: 1em;
-  height: 1em;
-  vertical-align: middle;
-  margin-right: 0.5em;
-}
-
-.token {
-  page-break-before: always;
-}
-
-dl {
-  display: grid;
-  grid-template-columns: max-content auto;
-}
-
-dt {
-  grid-column-start: 1;
-}
-
-dd {
-  grid-column-start: 2;
-  font-weight: bold;
-  margin-left: 2em;
 }
 
 .m-0 {
