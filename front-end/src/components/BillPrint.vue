@@ -3,15 +3,12 @@
     <header>
       <logo-component />
 
-      <p class="text-caption mb-3">
+      <p class="text-caption mb-2">
         <strong>Phone: </strong> 01765553555 <br />
         Girls School Road, Chhatak, Sunamganj
       </p>
 
-      <p class="text-h4 text-bold" v-if="orderId">Order# {{ orderId }}</p>
-      <p class="text-body-2">{{ orderTime }}</p>
-
-      <p>
+      <p class="my-2">
         {{ cartName }}
         <span v-if="customer">
           <span v-if="customer && (customer.name || customer.phone)"> | </span>
@@ -20,56 +17,53 @@
           {{ customer.phone }}
         </span>
       </p>
+
+      <p class="text-body-2 my-2">{{ orderTime }}</p>
     </header>
     <main>
-      <v-table>
+      <table class="line-items text-caption mt-2">
         <thead>
           <tr>
-            <td>Item</td>
-            <td class="text-right">Cost</td>
+            <td class="pr-1">Item</td>
+            <td class="px-1">Qty</td>
+            <td class="px-1">Price</td>
+            <td class="pl-1 text-right">T.Price</td>
           </tr>
         </thead>
         <tbody>
           <tr v-for="cartItem in filteredCartItems" :key="cartItem.id">
-            <td>
-              <p class="text-body-1 m-0">
-                {{ cartItem.name }} x{{ cartItem.quantity }}
-              </p>
-              <p class="text-caption m-0">
-                {{ formatCurrency(cartItem.price) }}
-              </p>
-            </td>
-            <td class="text-right total-column">
-              {{ formatCurrency(cartItem.price * cartItem.quantity) }}
-            </td>
+            <td class="pr-1">{{ cartItem.name }}</td>
+            <td class="px-1">{{ cartItem.quantity }}</td>
+            <td class="px-1 text-right">{{ formatCurrency(cartItem.price) }}</td>
+            <td class="pl-1 text-right total-column">{{ formatCurrency(cartItem.price * cartItem.quantity) }}</td>
           </tr>
         </tbody>
-      </v-table>
+      </table>
 
       <v-divider></v-divider>
 
-      <v-table class="receipt-summary mt-5">
+      <table class="receipt-summary mt-2">
         <tbody>
           <tr>
-            <td>Total Payable</td>
+            <td class="w-100">Total</td>
             <td>
               <strong>{{ formatCurrency(subtotal) }}</strong>
             </td>
           </tr>
           <tr v-if="discountTotal > 0">
-            <td>Discount</td>
+            <td class="w-100">Discount</td>
             <td>{{ formatCurrency(discountTotal) }}</td>
           </tr>
           <tr v-if="payment">
-            <td>Payment</td>
+            <td class="w-100">Payment</td>
             <td>{{ formatCurrency(payment) }}</td>
           </tr>
           <tr v-if="payment">
-            <td>Remaining</td>
-            <td>{{ formatCurrency(remainingAmount) }}</td>
+            <td class="w-100">Change</td>
+            <td>{{ formatCurrency(-remainingAmount) }}</td>
           </tr>
         </tbody>
-      </v-table>
+      </table>
     </main>
   </div>
 </template>

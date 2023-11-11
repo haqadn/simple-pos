@@ -30,13 +30,19 @@ const meta: Meta<typeof BillPrint> = {
     cartName: { control: 'text' },
     customerName: { control: 'text' },
     customerPhone: { control: 'text' },
-    lineItems: { control: 'text' }
+    lineItems: { control: 'text' },
+    orderTime: { control: 'date' },
+    payment: { control: 'number' },
+    discountTotal: { control: 'number' },
   },
   args: {
     cartName: 'T 6',
     customerName: 'Nguyen Van A',
     customerPhone: '0123456789',
-    lineItems: `Naga Chicken Wings, 1, 180\nWater, 2, 20\nCrispy Chicken Burger, 2, 165\nBBQ Chicken Pizza 10", 1, 700`
+    lineItems: `Naga Chicken Wings, 1, 180\nWater, 2, 20\nCrispy Chicken Burger, 2, 165\nBBQ Chicken Pizza 10", 1, 700`,
+    orderTime: new Date(),
+    payment: 1500,
+    discountTotal: 0,
   },
 };
 
@@ -89,6 +95,9 @@ export const Primary: Story = (args: ArgTypes) => ({
       cartStore.orderId = '9991';
       const { products, lineItems } = parseLineItems(args.lineItems);
       cartStore.line_items = lineItems;
+      cartStore.orderTime = args.orderTime.toLocaleString();
+      cartStore.payment = args.payment;
+      cartStore.discountTotal = args.discountTotal;
 
       const itemsStore = useItemStore();
       itemsStore.items = products;
