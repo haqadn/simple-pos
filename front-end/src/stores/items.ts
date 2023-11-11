@@ -1,10 +1,11 @@
 import ProductsAPI from "@/api/products";
+import type { Product } from "@/types";
 import config from "@/utils/config";
 import { defineStore } from "pinia";
 
 export const useItemStore = defineStore("items", {
   state: () => ({
-    items: [],
+    items: <Product[]> [],
     categories: [],
   }),
   getters: {
@@ -12,8 +13,10 @@ export const useItemStore = defineStore("items", {
       const items = this.items;
       const catMap: { [productId: number]: number[] } = {};
       items.forEach(
-        (item: { id: number; categories: Array<{ id: number }> }) => {
-          catMap[item.id] = item.categories.map((category) => category.id);
+        (item: { id: number; categories?: Array<{ id: number }> }) => {
+          if (item.categories) {
+            catMap[item.id] = item.categories.map((category) => category.id);
+          }
         }
       );
 

@@ -12,4 +12,5 @@ export type Product = {
   name: string;
   sku: string;
   menu_order?: number;
+  categories?: Array<{ id: number }>;
 };

@@ -22,7 +22,7 @@ export const useDynamicCartStore = (cartReference: string) =>
     state: () => ({
       customer: <Customer | null> null,
       line_items: <LineItem[]>[],
-      orderId: null,
+      orderId: <null | string> null,
       orderTime: "",
       status: "pending",
       customerNote: "",
