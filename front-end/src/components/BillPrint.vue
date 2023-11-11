@@ -11,7 +11,7 @@
       </p>
     </header>
     <header v-if="filteredCartItems.length > 0">
-      <p class="my-2">
+      <p class="my-2 text-body-2">
         {{ cartName }}
         <span v-if="customer">
           <span v-if="customer && (customer.name || customer.phone)"> | </span>
