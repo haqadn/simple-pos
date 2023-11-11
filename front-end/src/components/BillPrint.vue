@@ -10,7 +10,7 @@
         Girls School Road, Chhatak, Sunamganj
       </p>
     </header>
-    <header>
+    <header v-if="filteredCartItems.length > 0">
       <p class="my-2">
         {{ cartName }}
         <span v-if="customer">
@@ -23,7 +23,7 @@
 
       <p class="text-body-2 my-2">{{ orderTime }}</p>
     </header>
-    <main>
+    <main v-if="filteredCartItems.length > 0">
       <table class="line-items text-caption mt-2">
         <thead>
           <tr>
