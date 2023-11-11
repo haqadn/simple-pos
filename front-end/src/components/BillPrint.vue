@@ -83,14 +83,6 @@ export default {
   components: {
     LogoComponent,
   },
-  data: () => ({
-    currency: "৳",
-    coupon: {
-      name: "",
-      type: "percent",
-      amount: 0,
-    },
-  }),
   computed: {
     ...mapState(useCartStore, [
       "items",
@@ -120,14 +112,7 @@ export default {
       if (this.discount.type === "percent") {
         return this.discount.value + "%";
       } else {
-        return this.currency + this.discount.value;
-      }
-    },
-    couponDiscount() {
-      if (this.coupon.type === "percent") {
-        return this.subtotal * (this.coupon.amount / 100);
-      } else {
-        return this.coupon.amount;
+        return this.discount.value;
       }
     },
   },

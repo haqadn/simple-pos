@@ -1,4 +1,15 @@
-import type { Preview } from "@storybook/vue3";
+import { type Preview, setup }  from '@storybook/vue3';
+import type { App } from 'vue';
+import { createPinia } from 'pinia';
+import vuetify from "../src/plugins/vuetify";
+
+const pinia = createPinia();
+
+setup((app: App) => {
+    app.use(pinia);
+    app.use(vuetify)
+});
+
 
 const preview: Preview = {
   parameters: {
