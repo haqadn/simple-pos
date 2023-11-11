@@ -1,6 +1,6 @@
 <template>
   <div>
-    <header>
+    <header class="brand">
       <div class="logo">
         <logo-component />
       </div>
@@ -9,7 +9,8 @@
         <strong>Phone: </strong> 01765553555 <br />
         Girls School Road, Chhatak, Sunamganj
       </p>
-
+    </header>
+    <header>
       <p class="my-2">
         {{ cartName }}
         <span v-if="customer">
@@ -67,6 +68,13 @@
         </tbody>
       </table>
     </main>
+    <footer class="mt-4">
+      <p class="text-caption">
+        Online menu: <strong>www.mycozy.cafe/menu</strong>
+        <br>
+        Call us for home delivery!
+      </p>
+    </footer>
   </div>
 </template>
 
@@ -132,6 +140,10 @@ export default {
 }
 header {
   text-align: center;
+}
+
+.brand {
+  border-bottom: 1px dashed black;
 }
 
 .line-items {
