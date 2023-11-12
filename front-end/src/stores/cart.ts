@@ -35,7 +35,7 @@ export const useDynamicCartStore = (cartReference: string) =>
       previousKot: "[]",
       referencePayload: {},
       autosaveConfigured: false,
-      orderIdSalt: Math.floor(Math.random() * 100),
+      orderIdSalt: Math.floor(Math.random() * 90) + 10,
     }),
     getters: {
       cartName() : string {
