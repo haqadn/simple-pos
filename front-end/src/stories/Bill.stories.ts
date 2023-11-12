@@ -34,6 +34,7 @@ const meta: Meta<typeof BillPrint> = {
     orderTime: { control: 'date' },
     payment: { control: 'number' },
     discountTotal: { control: 'number' },
+    orderId: { control: 'number' },
   },
   args: {
     cartName: 'T 6',
@@ -43,6 +44,7 @@ const meta: Meta<typeof BillPrint> = {
     orderTime: new Date(),
     payment: 1500,
     discountTotal: 0,
+    orderId: 9991,
   },
 };
 
@@ -92,7 +94,7 @@ export const Primary: Story = (args: ArgTypes) => ({
         name: args.customerName,
         phone: args.customerPhone,
       };
-      cartStore.orderId = '9991';
+      cartStore.orderId = args.orderId;
       const { products, lineItems } = parseLineItems(args.lineItems);
       cartStore.line_items = lineItems;
       cartStore.orderTime = args.orderTime.toLocaleString();

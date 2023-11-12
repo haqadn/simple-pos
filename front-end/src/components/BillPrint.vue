@@ -11,17 +11,22 @@
       </p>
     </header>
     <header v-if="filteredCartItems.length > 0">
-      <p class="my-2 text-body-2">
-        {{ cartName }}
-        <span v-if="customer">
-          <span v-if="customer && (customer.name || customer.phone)"> | </span>
+      <p class="my-1 text-body-2">
+        {{ humanizedCartName }}
+        <br v-if="customer && (customer.name || customer.phone)">
+        <span>
           {{ customer.name }}
           <span v-if="customer.name && customer.phone"> | </span>
           {{ customer.phone }}
         </span>
       </p>
-
-      <p class="text-body-2 my-2">{{ orderTime }}</p>
+      <p class="text-body-2 my-1">
+        Invoice#: {{ orderReference }}
+      </p>
+      <p class="text-body-2 my-1">
+        Date: <strong>{{ orderVisibleDate }}</strong>
+        Time: <strong>{{ orderVisibleTime }}</strong>
+      </p>
     </header>
     <main v-if="filteredCartItems.length > 0">
       <table class="line-items text-caption mt-2">
@@ -117,6 +122,33 @@ export default {
       } else {
         return this.discount.value;
       }
+    },
+
+    humanizedCartName() {
+      if (this.cartName.startsWith("T")) {
+        return "Table " + this.cartName.slice(2);
+      } else if (this.cartName === "D") {
+        return "Delivery";
+      } else if (this.cartName === "P") {
+        return "Take away";
+      }
+
+      return this.cartName;
+    },
+
+    orderVisibleDate() {
+      return new Date(this.orderTime).toLocaleDateString();
+    },
+
+    orderVisibleTime() {
+      return new Date(this.orderTime).toLocaleTimeString();
+    },
+
+    orderReference() {
+      // Salt is a number between 0-9
+      const salt = Math.floor(Math.random() * 100);
+      const changed = this.orderId - salt;
+      return `${changed}${salt}`;
     },
   },
   methods: {
