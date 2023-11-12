@@ -95,6 +95,7 @@ export const Primary: Story = (args: ArgTypes) => ({
         phone: args.customerPhone,
       };
       cartStore.orderId = args.orderId;
+      cartStore.orderIdSalt = Math.floor(Math.random() * 100);
       const { products, lineItems } = parseLineItems(args.lineItems);
       cartStore.line_items = lineItems;
       cartStore.orderTime = args.orderTime.toLocaleString();

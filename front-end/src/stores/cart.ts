@@ -35,6 +35,7 @@ export const useDynamicCartStore = (cartReference: string) =>
       previousKot: "[]",
       referencePayload: {},
       autosaveConfigured: false,
+      orderIdSalt: Math.floor(Math.random() * 100),
     }),
     getters: {
       cartName() : string {
@@ -87,6 +88,10 @@ export const useDynamicCartStore = (cartReference: string) =>
             {
               key: "previous_kot",
               value: state.previousKot,
+            },
+            {
+              key: "order_id_salt",
+              value: state.orderIdSalt,
             }
           ],
         };
@@ -250,6 +255,7 @@ export const useDynamicCartStore = (cartReference: string) =>
           data.meta_data.find((meta) => meta.key === "payment_amount")?.value
         );
         this.previousKot = data.meta_data.find((meta) => meta.key === "previous_kot")?.value;
+        this.orderIdSalt = parseInt(data.meta_data.find((meta) => meta.key === "order_id_salt")?.value) || this.orderIdSalt;
         
         this.referencePayload = this.cartPayload;
       },

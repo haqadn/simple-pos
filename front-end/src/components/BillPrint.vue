@@ -97,6 +97,7 @@ export default {
       "items",
       "customer",
       "orderId",
+      "orderIdSalt",
       "orderTime",
       "payment",
       "subtotal",
@@ -150,9 +151,9 @@ export default {
 
     orderReference() {
       // Salt is a number between 0-9
-      const salt = Math.floor(Math.random() * 100);
-      const changed = this.orderId - salt;
-      return `${changed}${salt}`;
+      const salt = this.orderIdSalt;
+      const changed = this.orderId - this.orderIdSalt;
+      return `${changed}${this.orderIdSalt}`;
     },
   },
   methods: {
