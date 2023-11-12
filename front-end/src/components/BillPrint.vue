@@ -13,8 +13,8 @@
     <header v-if="filteredCartItems.length > 0">
       <p class="my-1 text-body-2">
         {{ humanizedCartName }}
-        <br v-if="customer && (customer.name || customer.phone)">
-        <span>
+        <br v-if="hasCustomerInfo">
+        <span v-if="hasCustomerInfo">
           {{ customer.name }}
           <span v-if="customer.name && customer.phone"> | </span>
           {{ customer.phone }}
@@ -122,6 +122,10 @@ export default {
       } else {
         return this.discount.value;
       }
+    },
+
+    hasCustomerInfo() {
+      return this.customer && (this.customer.name || this.customer.phone);
     },
 
     humanizedCartName() {
