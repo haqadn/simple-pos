@@ -133,7 +133,7 @@ export default {
       if (this.cartName.startsWith("T")) {
         return "Table " + this.cartName.slice(2);
       } else if (this.cartName === "D") {
-        return "Delivery";
+        return "Home Delivery";
       } else if (this.cartName === "P") {
         return "Take away";
       }
