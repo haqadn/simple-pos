@@ -239,7 +239,7 @@ export const useDynamicCartStore = (cartReference: string) =>
 
         this.status = data.status;
         this.orderId = data.id;
-        this.orderTime = new Date(data.date_created).toLocaleString('en-GB');
+        this.orderTime = data.date_created;
         this.customerNote = data.customer_note;
         this.discountTotal = parseFloat(data.discount_total);
         this.line_items = [];
