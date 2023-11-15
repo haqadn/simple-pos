@@ -10,6 +10,7 @@ import AddBySKU from "../commands/add-by-sku";
 import ManageStock from "../commands/manage-stock";
 import LastOrder from "../commands/last-order";
 import Print from "../commands/print";
+import Drawer from "../commands/drawer";
 import SelectCart from "../commands/select-cart";
 import MoveTables from "../commands/move-tables";
 
@@ -19,6 +20,7 @@ const commands = [
   SelectCart,
   Pay,
   Print,
+  Drawer,
   Save,
   LastOrder,
   OpenOrder,
