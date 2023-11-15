@@ -88,6 +88,7 @@
               hide-details="auto"
               variant="underlined"
               :value="payment"
+              @keyup.enter="done"
               @input="(event) => addCartPayment(event.target.value)"
             />
           </th>
@@ -142,7 +143,11 @@
           @click="printKOT"
           >KOT</v-btn
         >
-        <v-btn variant="flat" :disabled="!hasItems || !isDirty" class="mr-2" @click="save"
+        <v-btn
+          variant="flat"
+          :disabled="!hasItems || !isDirty"
+          class="mr-2"
+          @click="save"
           >Save</v-btn
         >
         <v-btn
