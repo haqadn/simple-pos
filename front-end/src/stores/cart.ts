@@ -455,6 +455,14 @@ export const useCartManagerStore = defineStore("cartManager", {
       this.drawerDialog = true;
     },
     rotateCarts(indexes: number[]) {
+      // If only one index is provided, switch current cart with that index.
+      if (indexes.length === 1) {
+        const activeCartIndex = this.carts.findIndex(
+          (cart) => cart.key === this.activeCartReference
+        );
+        indexes.push(activeCartIndex);
+      }
+
       const carts = [...this.carts];
 
       // Set first carts key to second carts key, and so on. The last carts key is set to the first carts key.
