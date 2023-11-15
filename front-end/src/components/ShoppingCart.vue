@@ -5,8 +5,10 @@
         Order
         <a
           target="_blank"
+          class="text-decoration-none text-white"
           :href="`${adminUrl}post.php?post=${orderId}&action=edit`"
-          >#{{ orderId }}</a
+          :title="orderId"
+          >#{{ invoiceNumber }}</a
         >
       </v-toolbar-title>
       <v-toolbar-title v-else> Cart </v-toolbar-title>
@@ -193,6 +195,7 @@ export default {
       "items",
       "customer",
       "orderId",
+      "invoiceNumber",
       "subtotal",
       "remainingAmount",
       "customerNote",

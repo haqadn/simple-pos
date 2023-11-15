@@ -13,19 +13,17 @@
     <header v-if="filteredCartItems.length > 0">
       <p class="my-1 text-body-2">
         {{ humanizedCartName }}
-        <br v-if="hasCustomerInfo">
+        <br v-if="hasCustomerInfo" />
         <span v-if="hasCustomerInfo">
           {{ customer.name }}
           <span v-if="customer.name && customer.phone"> | </span>
           {{ customer.phone }}
         </span>
       </p>
+      <p class="text-body-2 my-1">Invoice#: {{ invoiceNumber }}</p>
       <p class="text-body-2 my-1">
-        Invoice#: {{ orderReference }}
-      </p>
-      <p class="text-body-2 my-1">
-        Date: <strong>{{ orderVisibleDate }}</strong>
-        Time: <strong>{{ orderVisibleTime }}</strong>
+        Date: <strong>{{ orderVisibleDate }}</strong> Time:
+        <strong>{{ orderVisibleTime }}</strong>
       </p>
     </header>
     <main v-if="filteredCartItems.length > 0">
@@ -42,8 +40,12 @@
           <tr v-for="cartItem in filteredCartItems" :key="cartItem.id">
             <td class="pr-1">{{ cartItem.name }}</td>
             <td class="px-1">{{ cartItem.quantity }}</td>
-            <td class="px-1 text-right">{{ formatCurrency(cartItem.price) }}</td>
-            <td class="pl-1 text-right total-column">{{ formatCurrency(cartItem.price * cartItem.quantity) }}</td>
+            <td class="px-1 text-right">
+              {{ formatCurrency(cartItem.price) }}
+            </td>
+            <td class="pl-1 text-right total-column">
+              {{ formatCurrency(cartItem.price * cartItem.quantity) }}
+            </td>
           </tr>
         </tbody>
       </table>
@@ -76,7 +78,7 @@
     <footer class="mt-4">
       <p class="text-caption">
         Online menu: <strong>www.mycozy.cafe/menu</strong>
-        <br>
+        <br />
         Call us for home delivery!
       </p>
     </footer>
@@ -97,7 +99,7 @@ export default {
       "items",
       "customer",
       "orderId",
-      "orderIdSalt",
+      "invoiceNumber",
       "orderTime",
       "payment",
       "subtotal",
@@ -147,13 +149,6 @@ export default {
 
     orderVisibleTime() {
       return new Date(this.orderTime).toLocaleTimeString();
-    },
-
-    orderReference() {
-      // Salt is a number between 0-9
-      const salt = this.orderIdSalt;
-      const changed = this.orderId - this.orderIdSalt;
-      return `${changed}${this.orderIdSalt}`;
     },
   },
   methods: {
