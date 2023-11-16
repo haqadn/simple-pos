@@ -38,7 +38,15 @@
         </thead>
         <tbody>
           <tr v-for="cartItem in filteredCartItems" :key="cartItem.id">
-            <td class="pr-1">{{ cartItem.name }}</td>
+            <td class="pr-1">
+              {{ complexItemName(cartItem).name }}
+              <ul
+                v-for="subItem in complexItemName(cartItem).subItems"
+                :key="subItem"
+              >
+                <li>{{ subItem }}</li>
+              </ul>
+            </td>
             <td class="px-1">{{ cartItem.quantity }}</td>
             <td class="px-1 text-right">
               {{ formatCurrency(cartItem.price) }}
@@ -154,6 +162,18 @@ export default {
   methods: {
     ...mapActions(useCartStore, ["removeCoupon"]),
 
+    complexItemName(item) {
+      const parts = item.name.split(":").map((part) => part.trim());
+      let subItems = [];
+      if (parts.length > 1) {
+        subItems = parts[1].split(",").map((part) => part.trim());
+      }
+      return {
+        name: parts[0],
+        subItems,
+      };
+    },
+
     formatCurrency(amount) {
       return amount.toFixed(0);
     },
@@ -192,5 +212,9 @@ header {
 
 .m-0 {
   margin: 0;
+}
+
+ul {
+  margin-left: 1em;
 }
 </style>

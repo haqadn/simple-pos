@@ -58,7 +58,9 @@
       <tbody>
         <tr v-for="cartItem in filteredCartItems" :key="cartItem.product_id">
           <td>
-            <p class="text-body-1">{{ cartItem.name }}</p>
+            <p class="text-body-1">
+              {{ complexItemName(cartItem).name }}
+            </p>
             <p class="text-subtitle-2 text-disabled">
               {{ formatCurrency(cartItem.price) }}
             </p>
@@ -245,6 +247,18 @@ export default {
       "setCartName",
       "setCustomerNote",
     ]),
+
+    complexItemName(item) {
+      const parts = item.name.split(":").map((part) => part.trim());
+      let subItems = [];
+      if (parts.length > 1) {
+        subItems = parts[1].split(",").map((part) => part.trim());
+      }
+      return {
+        name: parts[0],
+        subItems,
+      };
+    },
 
     enableCustomer() {
       this.addCartCustomerInfo("name", "");

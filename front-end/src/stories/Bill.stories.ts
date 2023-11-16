@@ -40,7 +40,7 @@ const meta: Meta<typeof BillPrint> = {
     cartName: 'T 6',
     customerName: 'Nguyen Van A',
     customerPhone: '0123456789',
-    lineItems: `Naga Chicken Wings, 1, 180\nWater, 2, 20\nCrispy Chicken Burger, 2, 165\nBBQ Chicken Pizza 10", 1, 700`,
+    lineItems: `Naga Chicken Wings| 1| 180\nWater| 2| 20\nCrispy Chicken Burger| 2| 165\nBBQ Chicken Pizza 10"| 1| 700`,
     orderTime: new Date(),
     payment: 1500,
     discountTotal: 0,
@@ -51,7 +51,7 @@ const meta: Meta<typeof BillPrint> = {
 const parseLineItems = (lineItemsText: string): {products: Product[], lineItems: LineItem[]} => {
   let id = 1;
   const productsAndLineItems = lineItemsText.split('\n').map((lineItem) => {
-    const [name, quantity, price] = lineItem.split(',').map((item) => item.trim());
+    const [name, quantity, price] = lineItem.split('|').map((item) => item.trim());
     return {
       product: {
         id: ++id,
