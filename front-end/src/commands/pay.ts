@@ -16,7 +16,6 @@ export default class implements Command {
 
   async execute(): Promise<void> {
     const cartStore = useCartStore();
-
     cartStore.addCartPayment(this.amount);
   }
 }

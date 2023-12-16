@@ -119,7 +119,9 @@ export default defineComponent({
         const orderCartNameMeta = order.meta_data.find(
           (meta: { key: string }) => meta.key === "cart_name"
         );
-        const orderCartName = orderCartNameMeta ? orderCartNameMeta.value : "U";
+        const orderCartName = orderCartNameMeta.value
+          ? orderCartNameMeta.value
+          : "U";
 
         let cartStore = cartManagerStore.getCartStoreById(order.id);
         if (!cartStore) {

@@ -12,7 +12,6 @@
 import { defineComponent } from "vue";
 import AlertDialog from "./components/AlertDialog.vue";
 import ConfirmDialog from "./components/ConfirmDialog.vue";
-
 export default defineComponent({
   components: { AlertDialog, ConfirmDialog },
   name: "App",
