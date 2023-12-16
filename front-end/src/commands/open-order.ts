@@ -3,28 +3,40 @@ import { useCartManagerStore, useDynamicCartStore } from "../stores/cart";
 import OrdersAPI from "@/api/orders";
 
 export default class implements Command {
-  private orderId!: string;
+  private orderRef!: string;
+  private isInvoice = false;
+
+  constructor(orderId: string, isInvoice: boolean) {
+    this.orderRef = orderId;
+    this.isInvoice = isInvoice;
+  }
 
   parse(command: string): boolean {
     const parts = command.split(" ");
     if (parts[0] == "open" && parts[1] === "i" && parts.length === 3) {
-      const orderRef = command.split(" ")[2];
-      const orderId =
-        parseInt(orderRef.slice(0, -2)) + parseInt(orderRef.slice(-2));
-      this.orderId = orderId.toString();
+      const orderId = command.split(" ")[2];
+      this.orderRef = orderId.toString();
+      this.isInvoice = true;
       return true;
     }
     if (parts[0] === "open" && parts.length === 2) {
-      this.orderId = command.split(" ")[1];
+      this.orderRef = command.split(" ")[1];
       return true;
     }
 
     return false;
   }
 
+  invoiceToId(invoiceNumber: string) {
+    return (
+      parseInt(invoiceNumber.slice(0, -2)) + parseInt(invoiceNumber.slice(-2))
+    );
+  }
+
   async execute(): Promise<void> {
     const cartManagerStore = useCartManagerStore();
-    const { data: order } = await OrdersAPI.getOrder(this.orderId);
+    const id = this.isInvoice ? this.invoiceToId(this.orderRef) : this.orderRef;
+    const { data: order } = await OrdersAPI.getOrder(id);
 
     const orderCartNameMeta = order.meta_data.find(
       (meta: { key: string }) => meta.key === "cart_name"

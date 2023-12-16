@@ -25,6 +25,7 @@
           :key="recentOrder"
           variant="flat"
           class="mt-2"
+          @click="() => openOrder(recentOrder.toString())"
         >
           {{ recentOrder }}
         </v-btn>
@@ -61,10 +62,11 @@ import ItemList from "@/components/ItemList.vue";
 import CommandInput from "@/components/CommandInput.vue";
 import { useCartStore, useCartManagerStore, type CartRef } from "@/stores/cart";
 import { mapActions, mapState } from "pinia";
-import NewCart from "../components/NewCart.vue";
+import NewCart from "@/components/NewCart.vue";
 import config from "../utils/config";
-import { useDynamicCartStore } from "../stores/cart";
+import { useDynamicCartStore } from "@/stores/cart";
 import OrdersAPI from "../api/orders";
+import OpenOrder from '@/commands/open-order'
 
 export default defineComponent({
   name: "HomeView",
@@ -96,6 +98,10 @@ export default defineComponent({
   methods: {
     ...mapActions(useCartManagerStore, ["setActiveCart", "hideDrawerDialog"]),
     ...mapActions(useCartStore, ["clearCart"]),
+
+    openOrder(orderId: string) {
+      new OpenOrder(orderId, true).execute();
+    },
 
     getCartBtnVariant(cartReference: CartRef) {
       if (this.activeCartReference === cartReference.key) {
