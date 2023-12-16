@@ -38,6 +38,9 @@ export const useDynamicCartStore = (cartReference: string) =>
       orderIdSalt: Math.floor(Math.random() * 90) + 10,
     }),
     getters: {
+      reference() {
+        return cartReference;
+      },
       cartName() : string {
         // Find the cart name from cartManagerStore.
         const cartManagerStore = useCartManagerStore();
@@ -511,7 +514,6 @@ export const useCartManagerStore = defineStore("cartManager", {
       this.activeCartReference = this.carts[0].key;
     },
     getCartStoreByName(name: string) {
-      if( name === '' ) { return null; };
       let cart = this.carts.find((cart) => cart.label === name);
       if( !cart ) {
         cart = this.createCart(name) as { label: string, key: string, originalLabel?: string, permanent: boolean};

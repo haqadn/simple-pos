@@ -149,7 +149,6 @@ export default defineComponent({
         if (!cartStore.isDirty) {
           cartStore.hydrateOrderData(order);
         }
-        cartStore.setupAutosave();
       });
     },
 
