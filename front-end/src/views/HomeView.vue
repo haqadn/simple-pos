@@ -18,6 +18,16 @@
         <new-cart class="w-100" />
         <v-spacer class="mt-10"></v-spacer>
         <v-btn to="/settings" class="w-100 mb-2">Settings</v-btn>
+        <v-spacer class="mt-10"></v-spacer>
+        <h6 v-if="recentlyClosed.length > 0">Closed:</h6>
+        <v-btn
+          v-for="recentOrder in recentlyClosed"
+          :key="recentOrder"
+          variant="flat"
+          class="mt-2"
+        >
+          {{ recentOrder }}
+        </v-btn>
       </v-col>
       <v-col cols="7">
         <command-input />
@@ -75,6 +85,7 @@ export default defineComponent({
       "cartsWithMeta",
       "printMode",
       "drawerDialog",
+      "recentlyClosed",
     ]),
 
     printWidth() {

@@ -2,6 +2,7 @@ import type { Command } from "./command";
 import { useCartManagerStore, useCartStore } from "../stores/cart";
 import { alertAsync } from "@/stores/alerts";
 import PrintCommand from "./print";
+import { nextTick } from "vue";
 
 export default class implements Command {
   private amount!: number;
@@ -38,7 +39,12 @@ export default class implements Command {
     const cartManagerStore = useCartManagerStore();
 
     cartStore.addCartPayment(this.amount);
-    cartManagerStore.showDrawerDialog();
+    cartManagerStore.showDrawerDialog().then(async () => {
+      await nextTick();
+      if (cartStore.orderId) {
+        cartManagerStore.addRecentOrder(cartStore.invoiceNumber);
+      }
+    });
     const printCommand = new PrintCommand("drawer");
     await printCommand.execute();
   }

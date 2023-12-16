@@ -444,17 +444,21 @@ export const useCartManagerStore = defineStore("cartManager", {
       originalLabel: `T ${table}`,
       permanent: true,
     }))),
+    recentlyClosed: <number[]> [],
     printMode: 'bill',
     drawerDialog: false,
   }),
   actions: {
+    addRecentOrder( id: number ) {
+      this.recentlyClosed = [ id, ...this.recentlyClosed.slice(0, 4) ]
+    },
     hideDrawerDialog() {
       this.drawerDialog = false;
     },
-    showDrawerDialog() {
+    async showDrawerDialog() {
       this.drawerDialog = true;
       this.cartStore.status = 'completed';
-      this.cartStore.saveOrder();
+      await this.cartStore.saveOrder();
     },
     rotateCarts(indexes: number[]) {
       // If only one index is provided, switch current cart with that index.
