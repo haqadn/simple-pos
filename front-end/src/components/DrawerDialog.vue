@@ -70,13 +70,10 @@ export default {
   },
   methods: {
     ...mapActions(useCartManagerStore, ["hideDrawerDialog"]),
-    ...mapActions(useCartStore, ["saveCart", "clearCart"]),
+    ...mapActions(useCartStore, ["clearCart"]),
 
     async handleClose() {
       this.hideDrawerDialog();
-      if (this.isDirty) {
-        await this.saveCart();
-      }
       this.clearCart();
     },
 

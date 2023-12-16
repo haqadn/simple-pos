@@ -453,6 +453,8 @@ export const useCartManagerStore = defineStore("cartManager", {
     },
     showDrawerDialog() {
       this.drawerDialog = true;
+      this.cartStore.status = 'completed';
+      this.cartStore.saveOrder();
     },
     rotateCarts(indexes: number[]) {
       // If only one index is provided, switch current cart with that index.
