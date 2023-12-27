@@ -175,7 +175,7 @@ export default defineComponent({
   },
 
   async mounted() {
-    this.setActiveCart("T 1");
+    this.setActiveCart("T/1");
     this.loadUnsavedOrder();
     this.loadOpenOrders();
   },
