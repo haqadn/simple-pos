@@ -140,7 +140,7 @@ export const useDynamicCartStore = (cartReference: string) =>
         })));
       },
       kotSent(state) {
-        return !this.hasItems || state.previousKot === this.currentKot;
+        return !state.hasItems || state.previousKot === state.currentKot;
       },
       invoiceNumber() : string {
         const changed = (this.orderId as unknown as number) - this.orderIdSalt;
