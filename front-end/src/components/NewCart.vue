@@ -45,7 +45,7 @@ export default {
       const cartRef = this.createCart(this.newCartName) as CartRef;
       this.setActiveCart(cartRef.key);
       const cartStore = useDynamicCartStore(cartRef?.key as string);
-      cartStore.setupAutosave();
+      // cartStore.setupAutosave();
       this.newCartName = "P";
       this.dialog = false;
     },
