@@ -119,6 +119,11 @@ export default defineComponent({
         return "warning";
       }
 
+      const cartStore = useDynamicCartStore(cartReference.key);
+      if (cartStore.status === "completed") {
+        return "success";
+      }
+
       if (this.activeCartReference === cartReference.key) {
         return "primary";
       }
