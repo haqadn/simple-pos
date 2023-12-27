@@ -257,9 +257,8 @@ export const useDynamicCartStore = (cartReference: string) =>
           });
         });
         this.coupons = data.coupon_lines || [];
-        this.payment = parseFloat(
-          data.meta_data.find((meta) => meta.key === "payment_amount")?.value
-        );
+        const payment = parseFloat( data.meta_data.find((meta) => meta.key === "payment_amount")?.value );
+        this.payment = isNaN(payment) ? 0 : payment;
         this.previousKot = data.meta_data.find((meta) => meta.key === "previous_kot")?.value;
         this.orderIdSalt = parseInt(data.meta_data.find((meta) => meta.key === "order_id_salt")?.value) || this.orderIdSalt;
         
