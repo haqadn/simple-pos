@@ -127,7 +127,7 @@ export const useDynamicCartStore = (cartReference: string) =>
         return state.line_items.some((li) => li.quantity > 0);
       },
       isDirty(state) {
-        return JSON.stringify(state.referencePayload) !== JSON.stringify(this.cartPayload);
+        return JSON.stringify(state.referencePayload) !== JSON.stringify(state.cartPayload);
       },
       currentKot(state) {
         const itemStore = useItemStore();

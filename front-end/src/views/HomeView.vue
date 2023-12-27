@@ -129,7 +129,7 @@ export default defineComponent({
     async loadOpenOrders() {
       // Load pending orders from API
       const orders = await OrdersAPI.listOrders({
-        status: "pending",
+        status: "pending,processing",
       });
       const cartManagerStore = useCartManagerStore();
       Object.values(orders.data).forEach(async (order: object) => {
@@ -177,7 +177,13 @@ export default defineComponent({
   async mounted() {
     this.setActiveCart("T/1");
     this.loadUnsavedOrder();
+
     this.loadOpenOrders();
+
+    // Load open orders every 30 seconds
+    setInterval(() => {
+      this.loadOpenOrders();
+    }, 30000);
   },
 });
 </script>
