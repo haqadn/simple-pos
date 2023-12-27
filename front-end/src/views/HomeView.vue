@@ -66,7 +66,7 @@ import NewCart from "@/components/NewCart.vue";
 import config from "../utils/config";
 import { useDynamicCartStore } from "@/stores/cart";
 import OrdersAPI from "../api/orders";
-import OpenOrder from '@/commands/open-order'
+import OpenOrder from "@/commands/open-order";
 
 export default defineComponent({
   name: "HomeView",
@@ -136,16 +136,17 @@ export default defineComponent({
         const orderCartNameMeta = order.meta_data.find(
           (meta: { key: string }) => meta.key === "cart_name"
         );
-        const orderCartName = orderCartNameMeta.value
-          ? orderCartNameMeta.value
-          : "U";
+        const orderCartName =
+          orderCartNameMeta && orderCartNameMeta.value
+            ? orderCartNameMeta.value
+            : "U";
 
         let cartStore = cartManagerStore.getCartStoreById(order.id);
         if (!cartStore) {
           cartStore = cartManagerStore.getCartStoreByName(orderCartName);
         }
         // In case we got the cartStore by name and accidentally got one that belongs to another order
-        if (cartStore.hasItems && cartStore.orderId !== order.id ) {
+        if (cartStore.hasItems && cartStore.orderId !== order.id) {
           cartStore = useDynamicCartStore(
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             cartManagerStore.createCart(orderCartName)!.key
