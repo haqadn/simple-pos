@@ -30,7 +30,6 @@ export const useDynamicCartStore = (cartReference: string) =>
       setPaid: false,
       coupons: [],
       discountTotal: 0,
-      wifiPassword: "",
       saving: false,
       previousKot: "[]",
       referencePayload: {},
