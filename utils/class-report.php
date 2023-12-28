@@ -72,6 +72,10 @@ class Report {
         } while ( count( $orders ) > 0 && $page++ );
 
         foreach ( $report as $product_id => $product ) {
+            if( $report[ $product_id ]['count'] == 0 ) {
+                unset( $report[ $product_id ] );
+                continue;
+            }
             $effective_price = $report[ $product_id ]['total'] / $report[ $product_id ]['count'];
             $report[ $product_id ]['count'] = round( $report[ $product_id ]['count'] * 0.35 );
             $report[ $product_id ]['total'] = round( $report[ $product_id ]['count'] * $effective_price );
@@ -85,10 +89,6 @@ class Report {
 
         $total = 0;
         foreach ( $report as $product_id => $product ) {
-            if( $report[ $product_id ]['count'] == 0 ) {
-                unset( $report[ $product_id ] );
-                continue;
-            }
             $product = wc_get_product( $product_id );
             $report[ $product_id ]['id'] = $product_id;
             $report[ $product_id ]['sku'] = $product->get_sku();
