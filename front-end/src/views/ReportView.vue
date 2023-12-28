@@ -55,6 +55,11 @@
             <td>{{ item.count * item.price }}</td>
             <td>{{ item.total }}</td>
           </tr>
+          <tr>
+            <td colspan="4"></td>
+            <th>Total</th>
+            <th>{{ total }}</th>
+          </tr>
         </tbody>
       </v-table>
     </v-container>
@@ -76,13 +81,15 @@ export default defineComponent({
         .toISOString()
         .slice(0, 10),
       items: null,
+      total: 0,
     };
   },
   methods: {
     loadReport(from, to) {
       this.items = null;
       ReportAPI.get(from, to).then((response) => {
-        this.items = response.data;
+        this.items = response.data.items;
+        this.total = response.data.total;
       });
     },
     onSubmit() {

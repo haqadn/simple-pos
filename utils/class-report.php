@@ -83,14 +83,20 @@ class Report {
             $report[ $product_id ]['total'] += $product['total'];
         }
 
+        $total = 0;
         foreach ( $report as $product_id => $product ) {
             $product = wc_get_product( $product_id );
             $report[ $product_id ]['id'] = $product_id;
             $report[ $product_id ]['sku'] = $product->get_sku();
             $report[ $product_id ]['name'] = $product->get_name();
             $report[ $product_id ]['price'] = $product->get_price();
+
+            $total += $report[ $product_id ]['total'];
         }
     
-        return new WP_REST_Response( array_values($report), 200 );
+        return new WP_REST_Response( [
+            'items' => array_values( $report ),
+            'total'  => $total,
+        ], 200 );
     }
 }
