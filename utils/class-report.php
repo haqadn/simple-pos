@@ -35,36 +35,41 @@ class Report {
         $from_date = date('Y-m-d H:i:s', strtotime($data['from']));
         $to_date = date('Y-m-d H:i:s', strtotime($data['to']));
     
-        // Query to get orders between the specified dates
-        $args = array(
-            'status' => 'completed',
-            'date_created' => $from_date . '...' . $to_date,
-        );
     
-        $orders = wc_get_orders( $args );
         $report = array();
         $uareport = array();
-    
-        foreach ( $orders as $order ) {
-            foreach( $order->get_items() as $item ) {
-                $product_id = $item->get_product_id();
-                if ( !isset( $report[ $product_id ] ) ) {
-                    $report[ $product_id ] = array( 'count' => 0, 'total' => 0 );
-                }
-
-                // If the order was within last 3 hours than add it to a separate array
-                if ( strtotime( $order->get_date_created() ) > strtotime( '-3 hours' ) ) {
-                    if ( !isset( $uareport[ $product_id ] ) ) {
-                        $uareport[ $product_id ] = array( 'count' => 0, 'total' => 0 );
+        
+        $page = 1;
+        $per_page = 100;
+        do {
+            $args = array(
+                'status' => 'completed',
+                'date_created' => $from_date . '...' . $to_date,
+                'page' => $page,
+                'per_page' => $per_page,
+            );
+            $orders = wc_get_orders( $args );
+            foreach ( $orders as $order ) {
+                foreach( $order->get_items() as $item ) {
+                    $product_id = $item->get_product_id();
+                    if ( !isset( $report[ $product_id ] ) ) {
+                        $report[ $product_id ] = array( 'count' => 0, 'total' => 0 );
                     }
-                    $uareport[ $product_id ]['count'] += $item->get_quantity();
-                    $uareport[ $product_id ]['total'] += $item->get_total();
-                } else {
-                    $report[ $product_id ]['count'] += $item->get_quantity();
-                    $report[ $product_id ]['total'] += $item->get_total();
+
+                    // If the order was within last 3 hours than add it to a separate array
+                    if ( strtotime( $order->get_date_created() ) > strtotime( '-3 hours' ) ) {
+                        if ( !isset( $uareport[ $product_id ] ) ) {
+                            $uareport[ $product_id ] = array( 'count' => 0, 'total' => 0 );
+                        }
+                        $uareport[ $product_id ]['count'] += $item->get_quantity();
+                        $uareport[ $product_id ]['total'] += $item->get_total();
+                    } else {
+                        $report[ $product_id ]['count'] += $item->get_quantity();
+                        $report[ $product_id ]['total'] += $item->get_total();
+                    }
                 }
             }
-        }
+        } while ( count( $orders ) === $per_page && $page++ );
 
         foreach ( $report as $product_id => $product ) {
             $effective_price = $report[ $product_id ]['total'] / $report[ $product_id ]['count'];
