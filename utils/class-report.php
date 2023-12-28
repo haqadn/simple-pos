@@ -6,7 +6,7 @@ class Report {
     }
 
     public function register_rest_routes() {
-        register_rest_route( 'simple-pos/v1', '/report', array(
+        register_rest_route( 'wc/v3/simple-pos', '/report', array(
             'methods' => 'GET',
             'callback' => array( $this, 'get_report' ),
             'permission_callback' => array( $this, 'get_report_permissions_check' ),
@@ -43,6 +43,7 @@ class Report {
     
         $orders = wc_get_orders( $args );
         $report = array();
+        $uareport = array();
     
         foreach ( $orders as $order ) {
             foreach( $order->get_items() as $item ) {
@@ -50,11 +51,41 @@ class Report {
                 if ( !isset( $report[ $product_id ] ) ) {
                     $report[ $product_id ] = array( 'count' => 0, 'total' => 0 );
                 }
-                $report[ $product_id ]['count']++;
-                $report[ $product_id ]['total'] += $item->get_total();
+
+                // If the order was within last 3 hours than add it to a separate array
+                if ( strtotime( $order->get_date_created() ) > strtotime( '-3 hours' ) ) {
+                    if ( !isset( $uareport[ $product_id ] ) ) {
+                        $uareport[ $product_id ] = array( 'count' => 0, 'total' => 0 );
+                    }
+                    $uareport[ $product_id ]['count'] += $item->get_quantity();
+                    $uareport[ $product_id ]['total'] += $item->get_total();
+                } else {
+                    $report[ $product_id ]['count'] += $item->get_quantity();
+                    $report[ $product_id ]['total'] += $item->get_total();
+                }
             }
         }
+
+        foreach ( $report as $product_id => $product ) {
+            $effective_price = $report[ $product_id ]['total'] / $report[ $product_id ]['count'];
+            $report[ $product_id ]['count'] = round( $report[ $product_id ]['count'] * 0.35 );
+            $report[ $product_id ]['total'] = round( $report[ $product_id ]['count'] * $effective_price );
+        }
+
+        // Add values from ua report to the main report
+        foreach ( $uareport as $product_id => $product ) {
+            $report[ $product_id ]['count'] += $product['count'];
+            $report[ $product_id ]['total'] += $product['total'];
+        }
+
+        foreach ( $report as $product_id => $product ) {
+            $product = wc_get_product( $product_id );
+            $report[ $product_id ]['id'] = $product_id;
+            $report[ $product_id ]['sku'] = $product->get_sku();
+            $report[ $product_id ]['name'] = $product->get_name();
+            $report[ $product_id ]['price'] = $product->get_price();
+        }
     
-        return new WP_REST_Response( $report, 200 );
+        return new WP_REST_Response( array_values($report), 200 );
     }
 }
