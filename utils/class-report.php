@@ -28,7 +28,7 @@ class Report {
     }
 
     public function get_report_permissions_check( $request ) {
-        return true;
+        return current_user_can('manage_woocommerce');
     }
 
     function get_report( $data ) {
