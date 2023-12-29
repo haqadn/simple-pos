@@ -204,6 +204,7 @@ import ClearCommand from "../commands/clear";
 import SaveCommand from "../commands/save";
 import PrintCommand from "../commands/print";
 import CustomersAPI from "../api/customers";
+import debounce from "lodash/debounce";
 
 export default {
   components: {
@@ -323,17 +324,17 @@ export default {
       command.execute();
     },
 
-    async searchCustomers(search) {
+    searchCustomers: debounce(async function (search) {
       const result = await CustomersAPI.get(search);
       this.customers = result.data.customers;
-    },
+    }, 300),
 
     selectCustomer(customer) {
       this.customer.name = customer.name;
       this.customer.phone = customer.phone;
     },
 
-    async updateCustomerName(name) {
+    updateCustomerName(name) {
       if (
         this.customers.length > 0 &&
         this.customers.find((customer) => customer.name === name)
@@ -344,7 +345,7 @@ export default {
       }
     },
 
-    async updateCustomerPhone(phone) {
+    updateCustomerPhone(phone) {
       if (
         this.customers.length > 0 &&
         this.customers.find((customer) => customer.phone === phone)
