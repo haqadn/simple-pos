@@ -24,22 +24,48 @@
     <v-container fluid>
       <v-row v-if="customer">
         <v-col>
-          <v-text-field
+          <v-combobox
             label="Customer Name"
             variant="underlined"
             shaped
             v-model="customer.name"
             hide-details="auto"
-          ></v-text-field>
+            :items="customers"
+            item-value="name"
+            item-title="name"
+            @input="(input) => searchCustomers(input.target.value)"
+            @update:modelValue="updateCustomerName"
+          >
+            <template v-slot:item="{ props, item }">
+              <v-list-item
+                v-bind="props"
+                :title="item.raw.name"
+                :subtitle="item.raw.phone"
+              ></v-list-item>
+            </template>
+          </v-combobox>
         </v-col>
         <v-col>
-          <v-text-field
+          <v-combobox
             label="Customer Phone"
             variant="underlined"
             shaped
             v-model="customer.phone"
             hide-details="auto"
-          ></v-text-field>
+            :items="customers"
+            item-value="phone"
+            item-title="phone"
+            @input="(input) => searchCustomers(input.target.value)"
+            @update:modelValue="updateCustomerPhone"
+          >
+            <template v-slot:item="{ props, item }">
+              <v-list-item
+                v-bind="props"
+                :title="item.raw.name"
+                :subtitle="item.raw.phone"
+              ></v-list-item>
+            </template>
+          </v-combobox>
         </v-col>
       </v-row>
       <v-row v-else>
@@ -177,6 +203,7 @@ import DoneCommand from "../commands/done";
 import ClearCommand from "../commands/clear";
 import SaveCommand from "../commands/save";
 import PrintCommand from "../commands/print";
+import CustomersAPI from "../api/customers";
 
 export default {
   components: {
@@ -190,6 +217,7 @@ export default {
       amount: 0,
     },
     adminUrl: config.adminUrl,
+    customers: [],
   }),
   computed: {
     ...mapState(useCartStore, [
@@ -293,6 +321,38 @@ export default {
     printKOT() {
       const command = new PrintCommand("kot");
       command.execute();
+    },
+
+    async searchCustomers(search) {
+      const result = await CustomersAPI.get(search);
+      this.customers = result.data.customers;
+    },
+
+    selectCustomer(customer) {
+      this.customer.name = customer.name;
+      this.customer.phone = customer.phone;
+    },
+
+    async updateCustomerName(name) {
+      if (
+        this.customers.length > 0 &&
+        this.customers.find((customer) => customer.name === name)
+      ) {
+        this.selectCustomer(
+          this.customers.find((customer) => customer.name === name)
+        );
+      }
+    },
+
+    async updateCustomerPhone(phone) {
+      if (
+        this.customers.length > 0 &&
+        this.customers.find((customer) => customer.phone === phone)
+      ) {
+        this.selectCustomer(
+          this.customers.find((customer) => customer.phone === phone)
+        );
+      }
     },
   },
 };

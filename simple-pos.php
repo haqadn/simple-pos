@@ -11,10 +11,16 @@ require plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 require_once plugin_dir_path( __FILE__ ) . 'utils/class-hotspot.php';
 require_once plugin_dir_path( __FILE__ ) . 'utils/class-authentication.php';
 require_once plugin_dir_path( __FILE__ ) . 'utils/class-report.php';
+require_once plugin_dir_path( __FILE__ ) . 'utils/class-customers.php';
 
 // Init report endpoint
 $report = new Report();
 $report->init();
+
+
+// Instantiate and initialize the Customers endpoint
+$customers = new Customers();
+$customers->init();
 
 
 function spos_register_scripts() {
