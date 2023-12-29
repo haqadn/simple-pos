@@ -37,12 +37,12 @@ class Customers {
         $search = $request->get_param('search');
     
         // Start building the SQL query
-        $query = "SELECT CONCAT(first_name, ' ', last_name) as name, phone FROM {$wpdb->prefix}wc_order_addresses";
+        $query = "SELECT DISTINCT CONCAT(first_name, ' ', last_name) as name, phone FROM {$wpdb->prefix}wc_order_addresses";
     
         // Using OR conditions to search across first_name, last_name, and phone
         $search_like = '%' . $wpdb->esc_like($search) . '%';
         // Modify the query to search for full name (concatenated first and last names) or phone
-        $query .= $wpdb->prepare(" WHERE (CONCAT(first_name, ' ', last_name) LIKE %s OR phone LIKE %s)", 
+        $query .= $wpdb->prepare(" WHERE (CONCAT(first_name, ' ', last_name) LIKE %s OR phone LIKE %s) AND phone IS NOT NULL", 
                                 $search_like, $search_like);
 
         // Order by ID in descending order and limit to the 5 latest entries
