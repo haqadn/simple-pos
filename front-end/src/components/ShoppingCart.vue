@@ -32,6 +32,7 @@
             :items="customers"
             item-value="name"
             item-title="name"
+            :model-value="customer.name"
             @update:search="(text) => searchCustomers(text, 'name')"
             @update:modelValue="(customer) => selectCustomer(customer, 'name')"
           >
@@ -53,6 +54,7 @@
             :items="customers"
             item-value="phone"
             item-title="phone"
+            :model-value="customer.phone"
             @update:search="(text) => searchCustomers(text, 'phone')"
             @update:modelValue="(customer) => selectCustomer(customer, 'phone')"
           >
@@ -334,8 +336,11 @@ export default {
     }, 300),
 
     selectCustomer(customer, property) {
+      if (typeof customer === "string") {
+        this.customer[property] = customer;
+        return;
+      }
       if (!customer) {
-        this.customer[property] = customer[property];
         return;
       }
       this.customer.name = customer.name;
