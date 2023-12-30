@@ -1,6 +1,5 @@
 type settings = {
-  wpAdmin: string; // WP-Admin URL
-  apiBase: string; // API base URL
+  url: string; // Site URL
   tables: string[]; // List of table numbers
   skipKotCategories: number[]; // List of categories to skip in KOT
   billPrinter: string; // Bill printer name
@@ -35,13 +34,12 @@ export const hasConfig = !!simplePosSettings;
 const config = {
   method: simplePosSettings?.method || "key",
   api: {
-    url: simplePosSettings?.apiBase,
+    url: simplePosSettings?.url + "/wp-json/wc/v3",
     nonce: simplePosSettings?.nonce,
     consumerKey: simplePosSettings?.consumerKey,
     consumerSecret: simplePosSettings?.consumerSecret,
-    version: "wc/v3",
   },
-  adminUrl: simplePosSettings?.wpAdmin,
+  adminUrl: simplePosSettings?.url + "/wp-admin",
   tables: simplePosSettings?.tables || [1, 2, 3, 4, 5, 6],
   skipKotCategories: simplePosSettings?.skipKotCategories || [],
   billPrinter: simplePosSettings?.billPrinter || "",
@@ -52,4 +50,5 @@ const config = {
   printHeight: simplePosSettings?.printHeight || 300,
   printerConfig: simplePosSettings?.printerConfig || {},
 };
+console.log(config);
 export default config;

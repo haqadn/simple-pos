@@ -6,8 +6,9 @@
 
     <div>
       <v-text-field
-        v-model="settings.apiBase"
-        label="API Base"
+        v-model="settings.url"
+        label="Website URL"
+        type="url"
         outlined
       ></v-text-field>
       <v-text-field
@@ -18,11 +19,6 @@
       <v-text-field
         v-model="settings.consumerSecret"
         label="Consumer Secret"
-        outlined
-      ></v-text-field>
-      <v-text-field
-        v-model="settings.wpAdmin"
-        label="WP Admin"
         outlined
       ></v-text-field>
     </div>
@@ -104,10 +100,9 @@ export default {
   data() {
     return {
       settings: {
-        apiBase: "",
+        url: "",
         consumerKey: "",
         consumerSecret: "",
-        wpAdmin: "",
         tables: [1, 2, 3, 4, 5, 6],
         billPrinter: "",
         kitchenPrinter: "",
