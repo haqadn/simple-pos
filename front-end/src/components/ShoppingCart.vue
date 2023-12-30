@@ -67,7 +67,7 @@
         </v-col>
       </v-row>
       <v-row v-else>
-        <a class="ma-2" href="#" @click="enableCustomer">Add customer info</a>
+        <a class="ma-2" href="#" @click.prevent="enableCustomer">Add customer info</a>
       </v-row>
     </v-container>
 
