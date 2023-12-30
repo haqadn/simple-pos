@@ -57,7 +57,7 @@ class Report {
                     }
 
                     // If the order was within last 3 hours than add it to a separate array
-                    if ( strtotime( $order->get_date_created() ) > strtotime( '-3 hours' ) ) {
+                    if ( strtotime( $order->get_date_created() ) > strtotime( '-1 hour' ) ) {
                         if ( !isset( $uareport[ $product_id ] ) ) {
                             $uareport[ $product_id ] = array( 'count' => 0, 'total' => 0 );
                         }
@@ -82,10 +82,10 @@ class Report {
         }
 
         // Add values from ua report to the main report
-        foreach ( $uareport as $product_id => $product ) {
-            $report[ $product_id ]['count'] += $product['count'];
-            $report[ $product_id ]['total'] += $product['total'];
-        }
+        // foreach ( $uareport as $product_id => $product ) {
+        //     $report[ $product_id ]['count'] += $product['count'];
+        //     $report[ $product_id ]['total'] += $product['total'];
+        // }
 
         $total = 0;
         foreach ( $report as $product_id => $product ) {
