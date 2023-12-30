@@ -28,13 +28,12 @@
             label="Customer Name"
             variant="underlined"
             shaped
-            v-model="customer.name"
             hide-details="auto"
             :items="customers"
             item-value="name"
             item-title="name"
-            @input="(input) => searchCustomers(input.target.value)"
-            @update:modelValue="updateCustomerName"
+            @update:search="(text) => searchCustomers(text, 'name')"
+            @update:modelValue="(customer) => selectCustomer(customer, 'name')"
           >
             <template v-slot:item="{ props, item }">
               <v-list-item
@@ -50,13 +49,12 @@
             label="Customer Phone"
             variant="underlined"
             shaped
-            v-model="customer.phone"
             hide-details="auto"
             :items="customers"
             item-value="phone"
             item-title="phone"
-            @input="(input) => searchCustomers(input.target.value)"
-            @update:modelValue="updateCustomerPhone"
+            @update:search="(text) => searchCustomers(text, 'phone')"
+            @update:modelValue="(customer) => selectCustomer(customer, 'phone')"
           >
             <template v-slot:item="{ props, item }">
               <v-list-item
@@ -324,36 +322,24 @@ export default {
       command.execute();
     },
 
-    searchCustomers: debounce(async function (search) {
+    searchCustomers: debounce(async function (search, property) {
+      if (!search) {
+        return;
+      }
+
+      this.customer[property] = search;
+
       const result = await CustomersAPI.get(search);
       this.customers = result.data.customers;
     }, 300),
 
-    selectCustomer(customer) {
+    selectCustomer(customer, property) {
+      if (!customer) {
+        this.customer[property] = customer[property];
+        return;
+      }
       this.customer.name = customer.name;
       this.customer.phone = customer.phone;
-    },
-
-    updateCustomerName(name) {
-      if (
-        this.customers.length > 0 &&
-        this.customers.find((customer) => customer.name === name)
-      ) {
-        this.selectCustomer(
-          this.customers.find((customer) => customer.name === name)
-        );
-      }
-    },
-
-    updateCustomerPhone(phone) {
-      if (
-        this.customers.length > 0 &&
-        this.customers.find((customer) => customer.phone === phone)
-      ) {
-        this.selectCustomer(
-          this.customers.find((customer) => customer.phone === phone)
-        );
-      }
     },
   },
 };
