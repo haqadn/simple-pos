@@ -1,20 +1,35 @@
 <template>
-  <v-text-field
+  <v-combobox
     label="Command"
     tabindex="1"
     variant="outlined"
     prefix="> "
     autofocus
-    v-model="command"
+    :model-value="command"
     :error="error"
+    @update:search="(text) => (command = text)"
     @keyup.enter="executeCommand"
-    @keyup.up="historyUp"
-    @keyup.down="historyDown"
-  ></v-text-field>
+    @keyup.ctrl.up="historyUp"
+    @keyup.ctrl.down="historyDown"
+    :custom-filter="itemFiler"
+    :items="items"
+    item-value="sku"
+    item-title="sku"
+  >
+    <template v-slot:item="{ props, item }">
+      <v-list-item
+        v-bind="props"
+        :title="item.raw.name"
+        :subtitle="item.raw.sku"
+      ></v-list-item>
+    </template>
+  </v-combobox>
 </template>
 
 <script>
 import { tryToExecuteCommand } from "../utils/command";
+import { useItemStore } from "@/stores/items";
+import { mapState } from "pinia";
 
 export default {
   data() {
@@ -25,7 +40,17 @@ export default {
       commandHistoryPointer: 0,
     };
   },
+  computed: {
+    ...mapState(useItemStore, ["items"]),
+  },
   methods: {
+    itemFiler(name, search, item) {
+      return !!(
+        item.raw.name.toLowerCase().includes(search.toLowerCase()) ||
+        item.raw.sku.toLowerCase().includes(search.toLowerCase()) ||
+        item.raw.menu_order == search
+      );
+    },
     async executeCommand() {
       if (tryToExecuteCommand(this.command)) {
         this.onCommandSuccess(this.command);
