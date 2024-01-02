@@ -62,15 +62,15 @@
 
       <table class="receipt-summary mt-2 text-body-2">
         <tbody>
+          <tr v-if="discountTotal > 0">
+            <td class="w-100">Discount</td>
+            <td>{{ formatCurrency(-discountTotal) }}</td>
+          </tr>
           <tr>
             <td class="w-100">Total</td>
             <td>
               <strong>{{ formatCurrency(subtotal) }}</strong>
             </td>
-          </tr>
-          <tr v-if="discountTotal > 0">
-            <td class="w-100">Discount</td>
-            <td>{{ formatCurrency(discountTotal) }}</td>
           </tr>
           <tr v-if="payment">
             <td class="w-100">Payment</td>
