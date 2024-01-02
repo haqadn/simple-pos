@@ -438,10 +438,10 @@ export type CartRef = {
 // This manages the store for multiple parallel carts.
 export const useCartManagerStore = defineStore("cartManager", {
   state: () => ({
-    activeCartReference: `T/${config.tables[0]}`,
+    activeCartReference: `T-${config.tables[0]}`,
     carts: <CartRef[]> (config.tables.map((table) => ({
       label: `T ${table}`,
-      key: `T/${table}`,
+      key: `T-${table}`,
       originalLabel: `T ${table}`,
       permanent: true,
     }))),

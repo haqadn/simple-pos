@@ -43,11 +43,10 @@ export default {
 
     addNewCart() {
       const cartRef = this.createCart(this.newCartName) as CartRef;
-      this.setActiveCart(cartRef.key);
-      const cartStore = useDynamicCartStore(cartRef?.key as string);
-      // cartStore.setupAutosave();
       this.newCartName = "P";
       this.dialog = false;
+
+      this.$router.push(`/${cartRef.key}`);
     },
   },
 };

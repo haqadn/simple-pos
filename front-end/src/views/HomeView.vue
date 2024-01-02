@@ -1,20 +1,8 @@
 <template>
   <v-container fluid>
-    <v-row class="d-print-none">
-      <v-col cols="1">
-        <v-btn
-          v-for="(cartReference, index) in cartsWithMeta"
-          :key="cartReference.key"
-          @click="setActiveCart(cartReference.key)"
-          :color="getCartBtnColor(cartReference)"
-          class="mb-2 w-100"
-          :variant="getCartBtnVariant(cartReference)"
-        >
-          <template v-slot:prepend>
-            <v-chip size="x-small">{{ index + 1 }}</v-chip>
-          </template>
-          {{ cartReference.label }}
-        </v-btn>
+    <v-row>
+      <v-col class="d-print-none" cols="1">
+        <cart-list />
         <new-cart class="w-100" />
         <v-spacer class="mt-10"></v-spacer>
         <v-btn variant="flat" to="/settings" class="w-100 mb-2">Settings</v-btn>
@@ -32,22 +20,9 @@
           {{ recentOrder }}
         </v-btn>
       </v-col>
-      <v-col cols="7">
-        <command-input />
-        <item-list />
+      <v-col cols="11">
+        <router-view></router-view>
       </v-col>
-      <v-col cols="4">
-        <drawer-dialog />
-        <shopping-cart />
-      </v-col>
-    </v-row>
-    <v-row
-      id="print-area"
-      :style="{ width: `${printWidth}mm` }"
-      class="d-print-block d-none"
-    >
-      <bill-print v-if="printMode === 'bill'" />
-      <kot-print v-if="printMode === 'kot'" />
     </v-row>
   </v-container>
 </template>
@@ -56,15 +31,10 @@
 import { defineComponent } from "vue";
 
 // Components
-import ShoppingCart from "@/components/ShoppingCart.vue";
-import BillPrint from "@/components/BillPrint.vue";
-import KotPrint from "@/components/KotPrint.vue";
-import DrawerDialog from "@/components/DrawerDialog.vue";
-import ItemList from "@/components/ItemList.vue";
-import CommandInput from "@/components/CommandInput.vue";
-import { useCartStore, useCartManagerStore, type CartRef } from "@/stores/cart";
+import { useCartManagerStore, type CartRef } from "@/stores/cart";
 import { mapActions, mapState } from "pinia";
 import NewCart from "@/components/NewCart.vue";
+import CartList from "@/components/CartList.vue";
 import config from "../utils/config";
 import { useDynamicCartStore } from "@/stores/cart";
 import OrdersAPI from "../api/orders";
@@ -74,13 +44,8 @@ export default defineComponent({
   name: "HomeView",
 
   components: {
-    ShoppingCart,
-    ItemList,
-    CommandInput,
-    BillPrint,
-    KotPrint,
-    DrawerDialog,
     NewCart,
+    CartList,
   },
 
   computed: {
@@ -98,39 +63,10 @@ export default defineComponent({
   },
 
   methods: {
-    ...mapActions(useCartManagerStore, ["setActiveCart", "hideDrawerDialog"]),
-    ...mapActions(useCartStore, ["clearCart"]),
+    ...mapActions(useCartManagerStore, ["setActiveCart"]),
 
     openOrder(orderId: string) {
       new OpenOrder(orderId, true).execute();
-    },
-
-    getCartBtnVariant(cartReference: CartRef) {
-      if (this.activeCartReference === cartReference.key) {
-        return "elevated";
-      }
-
-      if (cartReference.meta?.hasItems) {
-        return "outlined";
-      }
-
-      return "flat";
-    },
-    getCartBtnColor(cartReference: CartRef) {
-      if (cartReference.meta?.hasIssue) {
-        return "warning";
-      }
-
-      const cartStore = useDynamicCartStore(cartReference.key);
-      if (cartStore.status === "completed") {
-        return "success";
-      }
-
-      if (this.activeCartReference === cartReference.key) {
-        return "primary";
-      }
-
-      return "default";
     },
 
     async loadOpenOrders() {
@@ -165,27 +101,9 @@ export default defineComponent({
         }
       });
     },
-
-    async loadUnsavedOrder() {
-      // Handle a pending order that couldn't be saved previously due to auth issue.
-      const cartInfoString = localStorage.getItem("cartInfo");
-      if (cartInfoString) {
-        const cartInfo = JSON.parse(cartInfoString);
-        const cartStore = useCartStore();
-        cartStore.hydrateOrderData(cartInfo.cartPayload);
-        cartStore.orderId = cartInfo.orderId;
-
-        await cartStore.saveOrder(true);
-
-        window.localStorage.removeItem("cartInfo");
-      }
-    },
   },
 
   async mounted() {
-    this.setActiveCart("T/1");
-    this.loadUnsavedOrder();
-
     this.loadOpenOrders();
 
     // Load open orders every 30 seconds
