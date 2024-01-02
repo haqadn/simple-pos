@@ -78,7 +78,7 @@
         <tr>
           <td>Item</td>
           <td>Quantity</td>
-          <td>Total</td>
+          <td class="hidden-md-and-down">Total</td>
         </tr>
       </thead>
       <tbody>
@@ -92,7 +92,7 @@
             </p>
           </td>
           <td><quantity-control :item="cartItem"></quantity-control></td>
-          <td class="text-right total-column">
+          <td class="text-right total-column hidden-md-and-down">
             {{ formatCurrency(cartItem.price * cartItem.quantity) }}
           </td>
         </tr>
@@ -160,14 +160,14 @@
       <v-list-item>
         <v-btn
           variant="flat"
-          class="mr-2"
+          class="mr-2 d-none d-lg-block"
           :disabled="!hasItems"
           @click="printBill"
           >Bill</v-btn
         >
         <v-btn
           variant="flat"
-          class="mr-2"
+          class="mr-2 d-none d-lg-block"
           :disabled="!hasItems"
           @click="printKOT"
           >KOT</v-btn
@@ -181,6 +181,7 @@
         >
         <v-btn
           variant="tonal"
+          class="d-none d-lg-block"
           color="success"
           :disabled="!hasItems"
           @click="done"

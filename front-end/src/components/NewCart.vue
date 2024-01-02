@@ -1,5 +1,5 @@
 <template>
-  <v-btn @click="dialog = !dialog">
+  <v-btn variant="outlined" @click="dialog = !dialog">
     +
 
     <v-dialog v-if="dialog" v-model="dialog" activator="parent" width="auto">

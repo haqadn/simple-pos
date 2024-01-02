@@ -1,9 +1,8 @@
 <template>
   <v-container fluid>
     <v-row>
-      <v-col class="d-print-none" cols="1">
+      <v-col class="d-print-none d-none d-lg-block" lg="1">
         <cart-list />
-        <new-cart class="w-100" />
         <v-spacer class="mt-10"></v-spacer>
         <v-btn variant="flat" to="/settings" class="w-100 mb-2">Settings</v-btn>
         <v-btn variant="flat" to="/report" class="w-100 mb-2">Report</v-btn>
@@ -20,8 +19,11 @@
           {{ recentOrder }}
         </v-btn>
       </v-col>
-      <v-col cols="11">
-        <router-view></router-view>
+      <v-col lg="11">
+        <cart-list class="d-print-none d-lg-none mb-5" />
+        <v-row>
+          <router-view></router-view>
+        </v-row>
       </v-col>
     </v-row>
   </v-container>
@@ -31,9 +33,8 @@
 import { defineComponent } from "vue";
 
 // Components
-import { useCartManagerStore, type CartRef } from "@/stores/cart";
+import { useCartManagerStore } from "@/stores/cart";
 import { mapActions, mapState } from "pinia";
-import NewCart from "@/components/NewCart.vue";
 import CartList from "@/components/CartList.vue";
 import config from "../utils/config";
 import { useDynamicCartStore } from "@/stores/cart";
@@ -44,7 +45,6 @@ export default defineComponent({
   name: "HomeView",
 
   components: {
-    NewCart,
     CartList,
   },
 

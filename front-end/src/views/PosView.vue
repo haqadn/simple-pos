@@ -1,11 +1,11 @@
 <template>
   <v-container fluid>
     <v-row class="d-print-none">
-      <v-col cols="8">
+      <v-col cols="12" lg="8">
         <command-input />
-        <item-list />
+        <item-list class="d-none d-lg-block" />
       </v-col>
-      <v-col cols="4">
+      <v-col cols="12" lg="4">
         <drawer-dialog />
         <shopping-cart />
       </v-col>

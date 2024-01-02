@@ -5,7 +5,7 @@
       :key="cartReference.key"
       :to="`/${cartReference.key}`"
       :color="getCartBtnColor(cartReference)"
-      class="mb-2 w-100"
+      class="mb-2"
       :variant="getCartBtnVariant(cartReference)"
     >
       <template v-slot:prepend>
@@ -13,6 +13,7 @@
       </template>
       {{ cartReference.label }}
     </v-btn>
+    <new-cart class="w-100" />
   </div>
 </template>
 
@@ -24,9 +25,14 @@ import {
 } from "@/stores/cart";
 import { mapState } from "pinia";
 import { defineComponent } from "vue";
+import NewCart from "./NewCart.vue";
 
 export default defineComponent({
   name: "CartList",
+
+  components: {
+    NewCart,
+  },
 
   computed: {
     ...mapState(useCartManagerStore, ["cartsWithMeta", "activeCartReference"]),

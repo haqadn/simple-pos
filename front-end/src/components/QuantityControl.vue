@@ -1,17 +1,15 @@
 <template>
   <div>
     <v-text-field
-      outlined
-      dense
-      :value="item.quantity"
+      v-model="quantity"
       max-width="100"
       prepend-icon="mdi-minus"
       append-icon="mdi-plus"
       @click:prepend="() => reduceFromCart(product)"
       @click:append="() => addToCart(product)"
-      @input="event => setItemQuantity(product, event.target.value)"
       class="text-center"
       hide-details="auto"
+      variant="outlined"
     ></v-text-field>
   </div>
 </template>
@@ -36,12 +34,21 @@ export default {
     product() {
       return this.items.find((product) => product.id === this.item.product_id);
     },
+
+    quantity: {
+      get() {
+        return this.item.quantity;
+      },
+      set(value) {
+        this.setItemQuantity(this.product, value);
+      },
+    },
   },
 };
 </script>
 
 <style scoped>
 div {
-  max-width: 150px;
+  min-width: 130px;
 }
 </style>
