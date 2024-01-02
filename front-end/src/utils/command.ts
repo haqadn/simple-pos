@@ -36,7 +36,7 @@ export function tryToExecuteCommand(line: string) {
   for (let i = 0; i < commands.length; i++) {
     const Command = commands[i];
     const command = new Command();
-    if (command.parse(line.trim())) {
+    if (command.parse(line.trim().toLowerCase())) {
       command.execute();
       return true;
     }
