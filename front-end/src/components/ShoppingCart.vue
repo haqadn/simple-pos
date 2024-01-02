@@ -160,14 +160,14 @@
       <v-list-item>
         <v-btn
           variant="flat"
-          class="mr-2 d-none d-lg-block"
+          class="mr-2 hidden-md-and-down"
           :disabled="!hasItems"
           @click="printBill"
           >Bill</v-btn
         >
         <v-btn
           variant="flat"
-          class="mr-2 d-none d-lg-block"
+          class="mr-2 hidden-md-and-down"
           :disabled="!hasItems"
           @click="printKOT"
           >KOT</v-btn
@@ -181,7 +181,7 @@
         >
         <v-btn
           variant="tonal"
-          class="d-none d-lg-block"
+          class="hidden-md-and-down"
           color="success"
           :disabled="!hasItems"
           @click="done"
