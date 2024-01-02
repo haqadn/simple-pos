@@ -117,9 +117,8 @@
               dense
               hide-details="auto"
               variant="underlined"
-              :value="payment"
+              v-model="cartPayment"
               @keyup.enter="done"
-              @input="(event) => addCartPayment(event.target.value)"
             />
           </th>
         </tr>
@@ -236,6 +235,15 @@ export default {
       "hasItems",
       "isDirty",
     ]),
+
+    cartPayment: {
+      get() {
+        return this.payment;
+      },
+      set(value) {
+        this.addCartPayment(value);
+      },
+    },
 
     currentCartName: {
       get() {
