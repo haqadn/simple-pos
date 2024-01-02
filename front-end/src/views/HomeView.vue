@@ -17,8 +17,9 @@
         </v-btn>
         <new-cart class="w-100" />
         <v-spacer class="mt-10"></v-spacer>
-        <v-btn to="/settings" class="w-100 mb-2">Settings</v-btn>
-        <v-btn to="/report" class="w-100 mb-2">Report</v-btn>
+        <v-btn variant="flat" to="/settings" class="w-100 mb-2">Settings</v-btn>
+        <v-btn variant="flat" to="/report" class="w-100 mb-2">Report</v-btn>
+        <v-btn variant="flat" to="/coupon" class="w-100 mb-2">Coupon</v-btn>
         <v-spacer class="mt-10"></v-spacer>
         <h6 v-if="recentlyClosed.length > 0">Closed:</h6>
         <v-btn

@@ -1,14 +1,12 @@
 <template>
   <div>
     <v-container fluid>
+      <v-btn to="/">Home</v-btn>
       <h1>POS Sale Report</h1>
     </v-container>
     <v-form @submit.prevent="onSubmit">
       <v-container fluid>
         <v-row>
-          <v-col cols="1" class="d-print-none">
-            <v-btn to="/" type="button" variant="text">POS</v-btn>
-          </v-col>
           <v-col cols="5">
             <v-text-field
               v-model="from"
@@ -27,7 +25,7 @@
               density="compact"
             ></v-text-field>
           </v-col>
-          <v-col cols="1" class="d-print-none">
+          <v-col cols="2" class="d-print-none">
             <v-btn type="submit" color="primary">Submit</v-btn>
           </v-col>
         </v-row>
