@@ -18,5 +18,6 @@ export default class implements Command {
     const cartStore = useCartStore();
 
     await cartStore.addCoupon(this.code);
+    await cartStore.saveOrder(true);
   }
 }
