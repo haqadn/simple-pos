@@ -2,7 +2,7 @@
   <v-card class="mx-auto" max-width="600">
     <v-toolbar color="success">
       <v-toolbar-title v-if="orderId">
-        Order
+        <span class="hidden-md-and-down">Order</span>
         <a
           target="_blank"
           class="text-decoration-none text-white"
@@ -11,7 +11,7 @@
           >#{{ invoiceNumber }}</a
         >
       </v-toolbar-title>
-      <v-toolbar-title v-else> Cart </v-toolbar-title>
+      <v-toolbar-title v-else>New Order</v-toolbar-title>
       <v-spacer></v-spacer>
       <v-text-field
         v-model="currentCartName"
@@ -69,7 +69,9 @@
         </v-col>
       </v-row>
       <v-row v-else>
-        <a class="ma-2" href="#" @click.prevent="enableCustomer">Add customer info</a>
+        <a class="ma-2" href="#" @click.prevent="enableCustomer"
+          >Add customer info</a
+        >
       </v-row>
     </v-container>
 
