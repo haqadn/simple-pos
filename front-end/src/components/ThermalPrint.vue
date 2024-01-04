@@ -54,3 +54,9 @@ export default defineComponent({
   },
 });
 </script>
+
+<style>
+#print-area > * {
+  width: 100%;
+}
+</style>

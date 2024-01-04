@@ -61,12 +61,5 @@ export default defineComponent({
       cartManagerStore.setActiveCart(to.params.cart as string);
     }
   },
-
 });
 </script>
-
-<style>
-#print-area > * {
-  width: 100%;
-}
-</style>
