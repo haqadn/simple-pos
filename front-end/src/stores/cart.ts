@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 import CouponsAPI from "@/api/coupons";
 import OrdersAPI from "@/api/orders";
-import type { LineItem, Product } from "@/types";
+import type { KotLineItem, LineItem, Product } from "@/types";
 import config from "@/utils/config";
 import { defineStore } from "pinia";
 import { v4 as uuid4 } from "uuid";
@@ -31,7 +31,7 @@ export const useDynamicCartStore = (cartReference: string) =>
       coupons: [],
       discountTotal: 0,
       saving: false,
-      previousKot: "[]",
+      kotItems: [] as KotLineItem[],
       referencePayload: {},
       autosaveConfigured: false,
       orderIdSalt: Math.floor(Math.random() * 90) + 10,
@@ -89,7 +89,7 @@ export const useDynamicCartStore = (cartReference: string) =>
             },
             {
               key: "previous_kot",
-              value: state.previousKot,
+              value: JSON.stringify(state.kotItems),
             },
             {
               key: "order_id_salt",
@@ -129,18 +129,74 @@ export const useDynamicCartStore = (cartReference: string) =>
       isDirty(state) {
         return JSON.stringify(state.referencePayload) !== JSON.stringify(state.cartPayload);
       },
-      currentKot(state) {
-        const itemStore = useItemStore();
 
-        return JSON.stringify(state.line_items.filter((li) => {
+      // The kitchen order that needs to be sent to the kitchen.
+      currentOrderQuantities(state) {
+        const itemStore = useItemStore();
+        const productQuantityMap = new Map<number, number>();
+
+        state.line_items.filter((li) => {
           return ! itemStore.shouldSkipProductFromKot(li.product_id);
-        }).map((li) => ({
-          product_id: li.product_id,
-          quantity: li.quantity,
-        })));
+        }).forEach((li) => {
+          if (li.quantity > 0) {
+            productQuantityMap.set(li.product_id, li.quantity);
+          }
+        });
+
+        return productQuantityMap;
+      },
+      updatedKot(state) {
+        // Check if KOT values has changed. this.currentOrderQuantities vs this.kotItems
+        const newQuantities = state.currentOrderQuantities;
+        // Get all non-zero items from this.kotItems
+        const oldQuantities = state.kotItems;
+
+        let changed = false;
+        const newKot = oldQuantities.map((item) => {
+          const newQuantity = newQuantities.get(item.product_id) || 0;
+          if (newQuantity !== item.quantity) {
+            changed = true;
+
+            return {
+              ...item,
+              previousQuantity: item.quantity,
+              quantity: newQuantity,
+            };
+          } else {
+            return {
+              ...item,
+              previousQuantity: item.quantity,
+            };
+          }
+        });
+
+        const oldKotProductIds = oldQuantities.map((item) => item.product_id);
+        // Find newQuantities that are not in the oldKotProductIds
+        newQuantities.forEach((quantity, productId) => {
+          if (!oldKotProductIds.includes(productId)) {
+            const itemStore = useItemStore();
+            const product = itemStore.items.find((item) => item.id === productId);
+            if (!product) {
+              return;
+            }
+            newKot.push({
+              product_id: productId,
+              quantity,
+              previousQuantity: 0,
+              name: product.name,
+            });
+            changed = true;
+          }
+        });
+
+        if (changed) {
+          return newKot;
+        }
+
+        return false;
       },
       kotSent(state) {
-        return !state.hasItems || state.previousKot === state.currentKot;
+        return !state.hasItems || state.updatedKot === false;
       },
       invoiceNumber() : string {
         const changed = (this.orderId as unknown as number) - this.orderIdSalt;
@@ -259,7 +315,7 @@ export const useDynamicCartStore = (cartReference: string) =>
         this.coupons = data.coupon_lines || [];
         const payment = parseFloat( data.meta_data.find((meta) => meta.key === "payment_amount")?.value );
         this.payment = isNaN(payment) ? 0 : payment;
-        this.previousKot = data.meta_data.find((meta) => meta.key === "previous_kot")?.value;
+        this.kotItems = JSON.parse(data.meta_data.find((meta) => meta.key === "previous_kot")?.value || "[]");
         this.orderIdSalt = parseInt(data.meta_data.find((meta) => meta.key === "order_id_salt")?.value) || this.orderIdSalt;
         
         this.referencePayload = this.cartPayload;
@@ -389,8 +445,13 @@ export const useDynamicCartStore = (cartReference: string) =>
           this.setPaid = true;
         }
       },
-      updatePreviousKot() {
-        this.previousKot = this.currentKot;
+      updateKot() {
+        if( this.updatedKot ) {
+          console.log( "Updating KOT");
+          this.kotItems = JSON.parse(JSON.stringify(this.updatedKot));
+        } else {
+          console.log( "Not updating KOT");
+        }
       },
       clearCart(deleteCart = true) {
         const cartManagerStore = useCartManagerStore();

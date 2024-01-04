@@ -8,13 +8,18 @@
       v-if="printMode === 'bill'"
       :items="items"
       :customer="customer"
-      :invoice-number="invoiceNumber"
-      :orderTime="orderTime"
+      :order-reference="invoiceNumber"
+      :order-time="orderTime"
       :payment="payment"
-      :discountTotal="discountTotal"
-      :cartName="cartName"
+      :discount-total="discountTotal"
+      :cart-name="cartName"
     />
-    <kot-print v-if="printMode === 'kot'" />
+    <kot-print 
+      v-if="printMode === 'kot'"
+      :items="kotItems"
+      :order-reference="invoiceNumber"
+      :cart-name="cartName"
+    />
   </div>
 </template>
 
@@ -39,6 +44,7 @@ export default defineComponent({
     ...mapState(useCartManagerStore, ["printMode"]),
     ...mapState(useCartStore, [
       "items",
+      "kotItems",
       "customer",
       "invoiceNumber",
       "orderTime",

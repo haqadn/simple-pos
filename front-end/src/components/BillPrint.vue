@@ -20,7 +20,7 @@
           {{ customer.phone }}
         </span>
       </p>
-      <p class="text-body-2 my-1">Invoice#: {{ invoiceNumber }}</p>
+      <p class="text-body-2 my-1">Invoice#: {{ orderReference }}</p>
       <p class="text-body-2 my-1">
         Date: <strong>{{ orderVisibleDate }}</strong> Time:
         <strong>{{ orderVisibleTime }}</strong>
@@ -103,7 +103,7 @@ export default {
   props: [
     "items",
     "customer",
-    "invoiceNumber",
+    "orderReference",
     "orderTime",
     "payment",
     "discountTotal",

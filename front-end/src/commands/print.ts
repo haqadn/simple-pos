@@ -55,25 +55,27 @@ export default class implements Command {
 
   async execute(): Promise<void> {
     const cartStore = useCartStore();
+    // Don't print if there are no items in the cart
     if (
       cartStore.line_items.reduce((total, item) => total + item.quantity, 0) ===
       0
     ) {
       return;
     }
+
+    // Save the order if it hasn't been saved yet. Make sure we have an order id
     if (!cartStore.orderId) {
       await cartStore.saveOrder();
     }
 
     const cartManagerStore = useCartManagerStore();
     cartManagerStore.setPrintMode(this.printMode);
+    if (this.printMode === "kot") {
+      cartStore.updateKot();
+    }
     await nextTick();
 
     await this.printReceipt();
-
-    if (this.printMode === "kot") {
-      cartStore.updatePreviousKot();
-    }
 
     if (cartStore.isDirty) {
       cartStore.saveOrder();

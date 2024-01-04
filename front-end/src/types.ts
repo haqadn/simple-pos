@@ -1,9 +1,16 @@
-export type LineItem = {
+export type BaseLineItem = {
   product_id: number;
   line_item_id?: number;
   quantity: number;
-  price: number;
   name: string;
+};
+
+export type LineItem = BaseLineItem & {
+  price: number;
+};
+
+export type KotLineItem = BaseLineItem & {
+  previousQuantity: number;
 };
 
 export type Product = {

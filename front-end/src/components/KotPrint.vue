@@ -2,7 +2,9 @@
   <div>
     <header>
       <p class="text-h2 font-weight-black text-right">{{ cartName }}</p>
-      <p class="text-h5 text-bold" v-if="orderId">Order# {{ orderId }}</p>
+      <p class="text-h5 text-bold" v-if="orderReference">
+        Order# {{ orderReference }}
+      </p>
     </header>
     <main>
       <v-table>
@@ -13,40 +15,27 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="cartItem in filteredCartItems" :key="cartItem.id">
+          <tr v-for="item in items" :key="item.id">
             <td>
-              {{ cartItem.name }}
+              {{ item.name }}
             </td>
             <td>
-              <span class="old quantity"
+              <span
+                class="old quantity"
                 v-if="
-                  cartItem.quantity !==
-                    previousQuantities[cartItem.product_id] &&
-                  previousQuantities[cartItem.product_id] !== undefined
+                  item.quantity !== item.previousQuantity &&
+                  item.previousQuantity !== undefined
                 "
-                >{{ previousQuantities[cartItem.product_id] }}</span
+                >{{ item.previousQuantity }}</span
               >
               <span
                 class="quantity"
                 :class="{
-                  changed:
-                    cartItem.quantity !==
-                    previousQuantities[cartItem.product_id],
+                  changed: item.quantity !== item.previousQuantity,
                 }"
               >
-                {{ cartItem.quantity }}
+                {{ item.quantity }}
               </span>
-            </td>
-          </tr>
-          <tr v-for="cartItem in removedItems" :key="cartItem.product_id">
-            <td>
-              {{ cartItem.name }}
-            </td>
-            <td>
-              <span class="old quantity">{{
-                previousQuantities[cartItem.product_id]
-              }}</span>
-              <span class="quantity"> x </span>
             </td>
           </tr>
         </tbody>
@@ -59,71 +48,30 @@
 </template>
 
 <script lang="ts">
-import { mapState, mapActions } from "pinia";
-import { useCartStore } from "../stores/cart";
-import { useItemStore } from "../stores/items";
-
 export default {
   data: () => ({}),
-  computed: {
-    ...mapState(useItemStore, {
-      products: "items",
-    }),
-    ...mapState(useCartStore, [
-      "items",
-      "orderId",
-      "customerNote",
-      "cartName",
-      "previousKot",
-    ]),
-
-    previousQuantities() {
-      try {
-        const prevKotObj = JSON.parse(this.previousKot);
-
-        return prevKotObj.reduce(
-          (
-            acc: { [pid: number]: number },
-            item: { product_id: number; quantity: number }
-          ) => {
-            acc[item.product_id] = item.quantity;
-            return acc;
-          },
-          {}
-        );
-      } catch (e) {
-        return {};
-      }
+  props: {
+    cartName: {
+      type: String,
+      required: true,
     },
-
-    filteredCartItems() {
-      return Object.values(this.items).filter(
-        (item) => this.shouldSkipProductFromKot(item.product_id) === false
-      );
+    orderReference: {
+      type: String,
+      required: true,
     },
-
-    removedItems() {
-      let previousItems = [];
-      try {
-        previousItems = JSON.parse(this.previousKot).map((item) => item.product_id);
-      } catch {
-        previousItems = [];
-      }
-      const currentItems = Object.values(this.items).map(
-        (item) => item.product_id
-      );
-
-      return previousItems
-        .filter((item) => !currentItems.includes(item))
-        .map((item) => ({
-          product_id: item,
-          quantity: 0,
-          name: this.products.find(p => p.id === item).name,
-        }));
+    customerNote: {
+      type: String,
+      required: false,
     },
-  },
-  methods: {
-    ...mapActions(useItemStore, ["shouldSkipProductFromKot"]),
+    items: {
+      type: Array<{
+        id: number;
+        name: string;
+        quantity: number;
+        previousQuantity?: number;
+      }>,
+      required: true,
+    },
   },
 };
 </script>
