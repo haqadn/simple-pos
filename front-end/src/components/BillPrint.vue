@@ -94,33 +94,31 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
-import { useCartStore } from "../stores/cart";
 import LogoComponent from "./LogoComponent.vue";
 
 export default {
   components: {
     LogoComponent,
   },
+  props: [
+    "items",
+    "customer",
+    "invoiceNumber",
+    "orderTime",
+    "payment",
+    "discountTotal",
+    "cartName",
+  ],
   computed: {
-    ...mapState(useCartStore, [
-      "items",
-      "customer",
-      "orderId",
-      "invoiceNumber",
-      "orderTime",
-      "payment",
-      "subtotal",
-      "remainingAmount",
-      "customerNote",
-      "coupons",
-      "discountTotal",
-      "cartName",
-    ]),
+    subtotal() {
+      return Object.values(this.items).reduce(
+        (total, item) => total + item.price * item.quantity,
+        0
+      );
+    },
 
-    printTickets() {
-      // return !!this.orderId;
-      return false;
+    remainingAmount() {
+      return this.payment - this.subtotal;
     },
 
     filteredCartItems() {
@@ -140,11 +138,11 @@ export default {
     },
 
     humanizedCartName() {
-      if (this.cartName.startsWith("T")) {
+      if (/T[^a-zA-Z]/g.test(this.cartName)) {
         return "Table " + this.cartName.slice(2);
-      } else if (this.cartName === "D") {
+      } else if (/D[^a-zA-Z]/g.test(this.cartName)) {
         return "Home Delivery";
-      } else if (this.cartName === "P") {
+      } else if (/P[^a-zA-Z]/g.test(this.cartName)) {
         return "Take away";
       }
 
@@ -152,7 +150,7 @@ export default {
     },
 
     orderVisibleDate() {
-      return new Date(this.orderTime).toLocaleDateString();
+      return new Date(this.orderTime).toLocaleDateString("en-GB");
     },
 
     orderVisibleTime() {
@@ -160,8 +158,6 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useCartStore, ["removeCoupon"]),
-
     complexItemName(item) {
       const parts = item.name.split(":").map((part) => part.trim());
       let subItems = [];

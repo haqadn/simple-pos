@@ -10,13 +10,8 @@
         <shopping-cart />
       </v-col>
     </v-row>
-    <v-row
-      id="print-area"
-      :style="{ width: `${printWidth}mm` }"
-      class="d-print-block d-none"
-    >
-      <bill-print v-if="printMode === 'bill'" />
-      <kot-print v-if="printMode === 'kot'" />
+    <v-row>
+      <thermal-print />
     </v-row>
   </v-container>
 </template>
@@ -26,15 +21,13 @@ import { defineComponent } from "vue";
 
 // Components
 import ShoppingCart from "@/components/ShoppingCart.vue";
-import BillPrint from "@/components/BillPrint.vue";
-import KotPrint from "@/components/KotPrint.vue";
 import DrawerDialog from "@/components/DrawerDialog.vue";
 import ItemList from "@/components/ItemList.vue";
 import CommandInput from "@/components/CommandInput.vue";
 import { useCartManagerStore } from "@/stores/cart";
-import { mapActions, mapState } from "pinia";
+import { mapActions } from "pinia";
 import OpenOrder from "@/commands/open-order";
-import config from "../utils/config";
+import ThermalPrint from "../components/ThermalPrint.vue";
 
 export default defineComponent({
   name: "PosView",
@@ -43,23 +36,8 @@ export default defineComponent({
     ShoppingCart,
     ItemList,
     CommandInput,
-    BillPrint,
-    KotPrint,
     DrawerDialog,
-  },
-
-  computed: {
-    ...mapState(useCartManagerStore, [
-      "activeCartReference",
-      "cartsWithMeta",
-      "printMode",
-      "drawerDialog",
-      "recentlyClosed",
-    ]),
-
-    printWidth() {
-      return config.printWidth;
-    },
+    ThermalPrint,
   },
 
   methods: {
