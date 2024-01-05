@@ -1,5 +1,5 @@
 import type { Command } from "./command";
-import { useCartStore, useCartManagerStore } from "../stores/cart";
+import { useCartStore } from "@/stores/cart";
 import { usePrintStore } from "@/stores/print";
 
 export default class implements Command {
