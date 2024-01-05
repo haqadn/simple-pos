@@ -47,10 +47,15 @@
 
     <h2>Printer Settings</h2>
     <v-checkbox
+      label="Print using this device"
+      v-model="settings.enablePrinting"
+    ></v-checkbox>
+    <v-checkbox
+      v-if="settings.enablePrinting"
       label="Silent Printing"
       v-model="settings.silentPrinting"
     ></v-checkbox>
-    <div>
+    <div v-if="settings.enablePrinting">
       <v-select
         v-model="settings.billPrinter"
         label="Bill"
@@ -107,6 +112,7 @@ export default {
         billPrinter: "",
         kitchenPrinter: "",
         drawerPrinter: "",
+        enablePrinting: false,
         silentPrinting: false,
         printWidth: 80,
         printHeight: 300,

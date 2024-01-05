@@ -35,6 +35,8 @@ export const useDynamicCartStore = (cartReference: string) =>
       referencePayload: {},
       autosaveConfigured: false,
       orderIdSalt: Math.floor(Math.random() * 90) + 10,
+      pending_kot_print: false,
+      pending_bill_print: false,
     }),
     getters: {
       reference() {
@@ -88,13 +90,23 @@ export const useDynamicCartStore = (cartReference: string) =>
               value: this.cartName,
             },
             {
-              key: "previous_kot",
-              value: JSON.stringify(state.kotItems),
-            },
-            {
               key: "order_id_salt",
               value: state.orderIdSalt,
-            }
+            },
+            {
+              key: "pending_kot_print",
+              value: state.pending_kot_print ? "true" : "false",
+            },
+            {
+              key: "pending_bill_print",
+              value: state.pending_bill_print ? "true" : "false",
+            },
+            ...(state.kotItems.length > 0 ? [ 
+              {
+                key: "previous_kot",
+                value: JSON.stringify(state.kotItems),
+              }
+            ]: [])
           ],
         };
         if (state.customer?.name || state.customer?.phone) {
@@ -317,6 +329,8 @@ export const useDynamicCartStore = (cartReference: string) =>
         this.payment = isNaN(payment) ? 0 : payment;
         this.kotItems = JSON.parse(data.meta_data.find((meta) => meta.key === "previous_kot")?.value || "[]");
         this.orderIdSalt = parseInt(data.meta_data.find((meta) => meta.key === "order_id_salt")?.value) || this.orderIdSalt;
+        this.pending_kot_print = data.meta_data.find((meta) => meta.key === "pending_kot_print")?.value === "true";
+        this.pending_bill_print = data.meta_data.find((meta) => meta.key === "pending_bill_print")?.value === "true";
         
         this.referencePayload = this.cartPayload;
       },
@@ -480,6 +494,13 @@ export const useDynamicCartStore = (cartReference: string) =>
             debouncedSave();
           }
         });
+      },
+      queuePrint(type: string, status = true) {
+        if (type === "kot") {
+          this.pending_kot_print = status;
+        } else if (type === "bill") {
+          this.pending_bill_print = status;
+        }
       },
     },
   })();

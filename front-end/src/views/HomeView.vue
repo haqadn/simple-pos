@@ -39,6 +39,7 @@ import config from "../utils/config";
 import { useDynamicCartStore } from "@/stores/cart";
 import OrdersAPI from "../api/orders";
 import OpenOrder from "@/commands/open-order";
+import PrintCommand from "@/commands/print";
 
 export default defineComponent({
   name: "HomeView",
@@ -51,7 +52,6 @@ export default defineComponent({
     ...mapState(useCartManagerStore, [
       "activeCartReference",
       "cartsWithMeta",
-      "printMode",
       "drawerDialog",
       "recentlyClosed",
     ]),
@@ -97,6 +97,16 @@ export default defineComponent({
 
         if (!cartStore.isDirty) {
           cartStore.hydrateOrderData(order);
+
+          if (cartStore.pending_bill_print) {
+            cartStore.queuePrint("bill", false);
+            new PrintCommand("bill", cartStore).execute();
+          }
+
+          if (cartStore.pending_kot_print) {
+            cartStore.queuePrint("kot", false);
+            new PrintCommand("kot", cartStore).execute();
+          }
         }
       });
     },

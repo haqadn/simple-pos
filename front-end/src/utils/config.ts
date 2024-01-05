@@ -6,6 +6,7 @@ type settings = {
   kitchenPrinter: string; // Kitchen printer name
   drawerPrinter: string; // Drawer printer name
   silentPrinting: boolean;
+  enablePrinting: boolean;
   printWidth: number; // Print width in mm
   printHeight: number; // Print height in mm
   printerConfig: string; // Printer config
@@ -26,7 +27,10 @@ const lsConfig = localStorage.getItem("simplePosSettings");
 let simplePosSettings = window.simplePosSettings as settings;
 
 if (lsConfig) {
-  simplePosSettings = JSON.parse(lsConfig as string);
+  simplePosSettings = {
+    ...JSON.parse(lsConfig as string),
+    ...simplePosSettings,
+  };
 }
 
 export const hasConfig = !!simplePosSettings;
@@ -46,6 +50,7 @@ const config = {
   kitchenPrinter: simplePosSettings?.kitchenPrinter || "",
   drawerPrinter: simplePosSettings?.drawerPrinter || "",
   silentPrinting: simplePosSettings?.silentPrinting || false,
+  enablePrinting: simplePosSettings?.enablePrinting || false,
   printWidth: simplePosSettings?.printWidth || 80,
   printHeight: simplePosSettings?.printHeight || 300,
   printerConfig: simplePosSettings?.printerConfig || {},

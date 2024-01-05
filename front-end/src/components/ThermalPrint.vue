@@ -77,7 +77,7 @@ export default defineComponent({
     },
 
     getPrinterName(): string {
-      switch (this.printMode) {
+      switch (this.printType) {
         case "drawer":
           return config.drawerPrinter;
         case "kot":
@@ -88,26 +88,19 @@ export default defineComponent({
     },
 
     printReceipt() {
-      return new Promise<void>((resolve) => {
-        window.onafterprint = (e) => {
-          window.onafterprint = null;
-          resolve();
-        };
-
-        if (window.electron) {
-          window.electron.print({
-            ...config.printerConfig,
-            deviceName: this.getPrinterName(),
-            silent: config.silentPrinting,
-            pageSize: {
-              width: parseInt(config.printWidth) * 1000,
-              height: parseInt(config.printHeight) * 1000,
-            },
-          });
-        } else {
-          window.print();
-        }
-      });
+      if (window.electron) {
+        window.electron.print({
+          ...config.printerConfig,
+          deviceName: this.getPrinterName(),
+          silent: config.silentPrinting,
+          pageSize: {
+            width: parseInt(config.printWidth) * 1000,
+            height: parseInt(config.printHeight) * 1000,
+          },
+        });
+      } else {
+        window.print();
+      }
     },
   },
 });
