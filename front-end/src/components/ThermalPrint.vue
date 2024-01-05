@@ -5,20 +5,20 @@
     class="d-print-block d-none"
   >
     <bill-print
-      v-if="printMode === 'bill'"
-      :items="items"
-      :customer="customer"
-      :order-reference="invoiceNumber"
-      :order-time="orderTime"
-      :payment="payment"
-      :discount-total="discountTotal"
-      :cart-name="cartName"
+      v-if="printType === 'bill'"
+      :items="printData.items"
+      :customer="printData.customer"
+      :order-reference="printData.invoiceNumber"
+      :order-time="printData.orderTime"
+      :payment="printData.payment"
+      :discount-total="printData.discountTotal"
+      :cart-name="printData.cartName"
     />
-    <kot-print 
-      v-if="printMode === 'kot'"
-      :items="kotItems"
-      :order-reference="invoiceNumber"
-      :cart-name="cartName"
+    <kot-print
+      v-if="printType === 'kot'"
+      :items="printData.kotItems"
+      :order-reference="printData.invoiceNumber"
+      :cart-name="printData.cartName"
     />
   </div>
 </template>
@@ -28,9 +28,8 @@ import BillPrint from "@/components/BillPrint.vue";
 import KotPrint from "@/components/KotPrint.vue";
 import config from "@/utils/config";
 import { defineComponent } from "vue";
-import { useCartManagerStore } from "@/stores/cart";
-import { mapState } from "pinia";
-import { useCartStore } from "../stores/cart";
+import { mapActions, mapState } from "pinia";
+import { usePrintStore } from "@/stores/print";
 
 export default defineComponent({
   name: "ThermalPrint",
@@ -39,23 +38,76 @@ export default defineComponent({
     BillPrint,
     KotPrint,
   },
+  data() {
+    return {
+      printType: undefined as "bill" | "kot" | "drawer" | undefined,
+      printData: null as any,
+    };
+  },
+
+  watch: {
+    nextJob: {
+      handler() {
+        this.handleJob();
+      },
+      immediate: true,
+    },
+  },
 
   computed: {
-    ...mapState(useCartManagerStore, ["printMode"]),
-    ...mapState(useCartStore, [
-      "items",
-      "kotItems",
-      "customer",
-      "invoiceNumber",
-      "orderTime",
-      "payment",
-      "customerNote",
-      "discountTotal",
-      "cartName",
-    ]),
+    ...mapState(usePrintStore, ["nextJob"]),
 
     printWidth() {
       return config.printWidth;
+    },
+  },
+
+  methods: {
+    ...mapActions(usePrintStore, ["pop", "push"]),
+    async handleJob() {
+      if (this.nextJob === undefined) {
+        this.printType = undefined;
+        return;
+      }
+      this.printType = this.nextJob?.type;
+      this.printData = this.nextJob?.data;
+      await this.$nextTick();
+      await this.printReceipt();
+      this.pop();
+    },
+
+    getPrinterName(): string {
+      switch (this.printMode) {
+        case "drawer":
+          return config.drawerPrinter;
+        case "kot":
+          return config.kitchenPrinter;
+        default:
+          return config.billPrinter;
+      }
+    },
+
+    printReceipt() {
+      return new Promise<void>((resolve) => {
+        window.onafterprint = (e) => {
+          window.onafterprint = null;
+          resolve();
+        };
+
+        if (window.electron) {
+          window.electron.print({
+            ...config.printerConfig,
+            deviceName: this.getPrinterName(),
+            silent: config.silentPrinting,
+            pageSize: {
+              width: parseInt(config.printWidth) * 1000,
+              height: parseInt(config.printHeight) * 1000,
+            },
+          });
+        } else {
+          window.print();
+        }
+      });
     },
   },
 });

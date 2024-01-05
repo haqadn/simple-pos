@@ -24,7 +24,8 @@
                 class="old quantity"
                 v-if="
                   item.quantity !== item.previousQuantity &&
-                  item.previousQuantity !== undefined
+                  item.previousQuantity !== undefined &&
+                  item.previousQuantity !== 0
                 "
                 >{{ item.previousQuantity }}</span
               >

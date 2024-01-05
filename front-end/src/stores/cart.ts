@@ -447,10 +447,8 @@ export const useDynamicCartStore = (cartReference: string) =>
       },
       updateKot() {
         if( this.updatedKot ) {
-          console.log( "Updating KOT");
+          // Copy the updatedKot to kotItems without reference.
           this.kotItems = JSON.parse(JSON.stringify(this.updatedKot));
-        } else {
-          console.log( "Not updating KOT");
         }
       },
       clearCart(deleteCart = true) {
