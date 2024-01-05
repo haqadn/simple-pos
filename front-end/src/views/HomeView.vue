@@ -108,7 +108,7 @@ export default defineComponent({
     // Load open orders every 30 seconds
     setInterval(() => {
       this.loadOpenOrders();
-    }, 30000);
+    }, 10000);
   },
 });
 </script>
