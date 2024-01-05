@@ -26,9 +26,6 @@ export default class implements Command {
       await cartStore.saveOrder();
     }
 
-    const cartManagerStore = useCartManagerStore();
-    cartManagerStore.setPrintMode(this.printMode);
-
     if (this.printMode === "kot") {
       cartStore.updateKot();
     }

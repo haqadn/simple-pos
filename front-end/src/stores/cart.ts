@@ -505,7 +505,6 @@ export const useCartManagerStore = defineStore("cartManager", {
       permanent: true,
     }))),
     recentlyClosed: <number[]> [],
-    printMode: 'bill',
     drawerDialog: false,
   }),
   actions: {
@@ -539,9 +538,6 @@ export const useCartManagerStore = defineStore("cartManager", {
       carts[indexes[indexes.length - 1]].key = firstKey;
 
       this.carts = carts;
-    },
-    setPrintMode(mode: string) {
-      this.printMode = mode;
     },
     setActiveCart(reference: string) {
       this.activeCartReference = reference;

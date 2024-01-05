@@ -114,6 +114,11 @@ export default defineComponent({
 </script>
 
 <style>
+@media print {
+  .v-overlay {
+    display: none !important;
+  }
+}
 #print-area > * {
   width: 100%;
 }

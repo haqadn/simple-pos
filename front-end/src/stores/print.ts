@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 
-type PrintType = "bill" | "kot";
+type PrintType = "bill" | "kot" | "drawer";
 type PrintData = any;
 export type Job = {
   type: PrintType;
