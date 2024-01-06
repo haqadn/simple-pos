@@ -17,6 +17,15 @@ export default class ProductsAPI extends API {
     });
   }
 
+  static async getVariations(productId: number) {
+    return await this.client.get(`/products/${productId}/variations`, {
+      params: {
+        per_page: "100",
+        status: "publish",
+      },
+    });
+  }
+
   static async updateProduct(productId: number, data: any) {
     return await this.client.put(`/products/${productId}`, data);
   }

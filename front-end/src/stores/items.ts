@@ -5,7 +5,7 @@ import { defineStore } from "pinia";
 
 export const useItemStore = defineStore("items", {
   state: () => ({
-    items: <Product[]> [],
+    items: <Product[]>[],
     categories: [],
   }),
   getters: {
@@ -26,21 +26,48 @@ export const useItemStore = defineStore("items", {
   actions: {
     async loadItems() {
       const response = await ProductsAPI.getProducts();
-      const items = response.data;
+      // const products = (response.data as Array<any>).map((item) => {
+      //   return {
+      //     ...item,
+      //     price: parseFloat(item.price),
+      //     regular_price: parseFloat(item.regular_price),
+      //   };
+      // });
 
-      this.items = items.map((item) => {
-        return {
-          ...item,
-          price: parseFloat(item.price),
-          regular_price: parseFloat(item.regular_price),
-        };
-      });
+      const products = <Array<Product>>[];
+
+      console.log('Before', products.length);
+
+      for (const product of response.data as Array<any>) {
+        if (product.variations.length === 0) {
+          products.push({
+            ...product,
+            price: parseFloat(product.price),
+            categories: product.categories,
+          });
+        } else {
+          const variations = await ProductsAPI.getVariations(product.id);
+          (variations.data as Array<any>).forEach((variation) => {
+            console.log('Pushing variation', variation);
+            products.push({
+              ...variation,
+              name: `${product.name} - ${variation.name}`,
+              price: parseFloat(variation.price),
+              categories: product.categories,
+            });
+          });
+        }
+      }
+
+      console.log('After', products.length);
+
+      this.items = products;
     },
     async loadCategories() {
       const response = await ProductsAPI.getCategories();
-      const items = response.data;
+      const categories = response.data;
 
-      this.categories = items;
+      this.categories = categories;
     },
     shouldSkipProductFromKot(productId: number) {
       // Do not skip if we cannot determine the product category

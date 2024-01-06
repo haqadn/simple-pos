@@ -51,13 +51,16 @@ class Report {
             $orders = wc_get_orders( $args );
             foreach ( $orders as $order ) {
                 foreach( $order->get_items() as $item ) {
-                    $product_id = $item->get_product_id();
+                    $product_id = $item->get_variation_id();
+                    if( !$product_id ) {
+                        $product_id = $item->get_product_id();
+                    }
                     if ( !isset( $report[ $product_id ] ) ) {
                         $report[ $product_id ] = array( 'count' => 0, 'total' => 0 );
                     }
 
                     // If the order was within last hour than add it to a separate array
-                    if ( strtotime( $order->get_date_created() ) > strtotime( '-1 hour' ) ) {
+                    if ( false && strtotime( $order->get_date_created() ) > strtotime( '-1 hour' ) ) {
                         if ( !isset( $uareport[ $product_id ] ) ) {
                             $uareport[ $product_id ] = array( 'count' => 0, 'total' => 0 );
                         }

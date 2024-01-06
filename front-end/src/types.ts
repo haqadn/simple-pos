@@ -7,6 +7,7 @@ export type BaseLineItem = {
 
 export type LineItem = BaseLineItem & {
   price: number;
+  variation_id?: number;
 };
 
 export type KotLineItem = BaseLineItem & {
@@ -20,4 +21,5 @@ export type Product = {
   sku: string;
   menu_order?: number;
   categories?: Array<{ id: number }>;
+  parent_id?: number;
 };

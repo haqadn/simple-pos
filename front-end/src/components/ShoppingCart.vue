@@ -84,7 +84,10 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="cartItem in filteredCartItems" :key="cartItem.product_id">
+        <tr
+          v-for="cartItem in filteredCartItems"
+          :key="`${cartItem.line_item_id}-${cartItem.product_id}-${cartItem.variation_id}`"
+        >
           <td>
             <p class="text-body-1">
               {{ complexItemName(cartItem).name }}
@@ -225,7 +228,7 @@ export default {
   computed: {
     ...mapState(useCartStore, [
       "payment",
-      "items",
+      "line_items",
       "customer",
       "orderId",
       "invoiceNumber",
@@ -267,7 +270,7 @@ export default {
     },
 
     filteredCartItems() {
-      return Object.values(this.items).filter((item) => item.quantity > 0);
+      return Object.values(this.line_items).filter((item) => item.quantity > 0);
     },
 
     formattedDiscount() {

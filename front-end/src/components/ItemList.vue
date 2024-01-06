@@ -15,8 +15,7 @@
     </v-row>
     <v-row v-if="tab === 'popular'">
       <v-col v-for="item in popularProducts" :key="item.id">
-        <controllable-item v-if="type === 'controllable'" :item="item" />
-        <list-item v-else :item="item" />
+        <list-item :item="item" />
       </v-col>
     </v-row>
     <v-row v-for="category in visibleCategories" :key="category.id">
@@ -36,8 +35,7 @@
           })"
         :key="item.id"
       >
-        <controllable-item v-if="type === 'controllable'" :item="item" />
-        <list-item v-else :item="item" />
+        <list-item :item="item" />
       </v-col>
     </v-row>
   </div>
@@ -48,7 +46,6 @@ import { mapState, mapActions } from "pinia";
 import { useItemStore } from "../stores/items";
 import { useCartStore } from "../stores/cart";
 import ListItem from "./ListItem.vue";
-import ControllableItem from "./ControllableItem.vue";
 
 export default {
   data: () => ({
@@ -60,9 +57,6 @@ export default {
     ...mapActions(useItemStore, ["loadItems", "loadCategories"]),
   },
   computed: {
-    ...mapState(useCartStore, {
-      cartItems: "items",
-    }),
     ...mapState(useItemStore, ["items", "categories"]),
 
     visibleCategories() {
@@ -87,13 +81,6 @@ export default {
   },
   components: {
     ListItem,
-    ControllableItem,
-  },
-  props: {
-    type: {
-      type: String,
-      default: "clickable",
-    },
   },
 };
 </script>

@@ -43,7 +43,7 @@ const config = {
     consumerKey: simplePosSettings?.consumerKey,
     consumerSecret: simplePosSettings?.consumerSecret,
   },
-  adminUrl: simplePosSettings?.url + "/wp-admin",
+  adminUrl: simplePosSettings?.url + "/wp-admin/",
   tables: simplePosSettings?.tables || [1, 2, 3, 4, 5, 6],
   skipKotCategories: simplePosSettings?.skipKotCategories || [],
   billPrinter: simplePosSettings?.billPrinter || "",

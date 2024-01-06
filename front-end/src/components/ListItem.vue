@@ -1,7 +1,7 @@
 <template>
   <v-card
     :color="color"
-    :theme="cartItems[item.id] ? 'dark' : 'lite'"
+    :theme="cartItem ? 'dark' : 'lite'"
     min-width="200"
     @click="() => addToCart(item)"
   >
@@ -29,14 +29,15 @@ export default {
     },
   },
   computed: {
-    ...mapState(useCartStore, {
-      cartItems: "items",
-    }),
+    ...mapState(useCartStore, ["line_items"]),
+    cartItem() {
+      return this.line_items.find(
+        (item) =>
+          item.variation_id === this.item.id || item.product_id === this.item.id
+      );
+    },
     color() {
-      if (
-        this.cartItems[this.item.id] &&
-        this.cartItems[this.item.id].quantity > 0
-      ) {
+      if (this.cartItem && this.cartItem.quantity > 0) {
         return "success";
       }
 

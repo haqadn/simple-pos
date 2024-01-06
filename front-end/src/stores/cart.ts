@@ -77,6 +77,7 @@ export const useDynamicCartStore = (cartReference: string) =>
           })),
           line_items: state.line_items.map((item) => ({
             product_id: item.product_id,
+            variation_id: item.variation_id,
             id: item.line_item_id,
             quantity: item.quantity,
           })),
@@ -129,7 +130,11 @@ export const useDynamicCartStore = (cartReference: string) =>
         const itemsMap: { [id: number]: LineItem } = {};
         state.line_items.forEach((li) => {
           if (li.quantity > 0) {
-            itemsMap[li.product_id] = li;
+            if( li.variation_id !== 0 && li.variation_id !== undefined ) {
+              itemsMap[li.variation_id] = li;
+            } else {
+              itemsMap[li.product_id] = li;
+            }
           }
         });
 
@@ -252,6 +257,13 @@ export const useDynamicCartStore = (cartReference: string) =>
           (coupon: { code: string }) => coupon.code !== code
         );
       },
+      isProductLineItem(li: LineItem, product: Product) {
+        if(li.variation_id !== 0 && li.variation_id !== undefined) {
+          return li.variation_id === product.id;
+        } else {
+          return li.product_id === product.id;
+        }
+      },
       async saveOrder(withUpdate = true) {
         if (this.saving) {
           return;
@@ -342,9 +354,9 @@ export const useDynamicCartStore = (cartReference: string) =>
        * This will make sure the calculation is done again. Woocommerce depends on the API caller to
        * set the line item subtotal, which isn't reliable.
        */
-      adjustLineItems(line_items) {
-        const newLineItems = [];
-        const itemsBeingRemoved = [];
+      adjustLineItems(line_items: LineItem[]) {
+        const newLineItems = <LineItem[]> [];
+        const itemsBeingRemoved = <LineItem[]> [];
         if( !this.referencePayload.line_items ) {
           return line_items;
         }
@@ -352,7 +364,7 @@ export const useDynamicCartStore = (cartReference: string) =>
         line_items.forEach((item) => {
           // if quantity is different from referencePayload
           const existingLineItem = this.referencePayload.line_items.find(
-            (li) => li.product_id === item.product_id
+            (li) => li.product_id === item.product_id && li.variation_id === item.variation_id
           );
           if (
             existingLineItem &&
@@ -388,7 +400,7 @@ export const useDynamicCartStore = (cartReference: string) =>
         let needsNewItem = true;
 
         items = items.map((line_item) => {
-          if (line_item.product_id === product.id) {
+          if (this.isProductLineItem(line_item, product)) {
               line_item.quantity = actualQuantity;
               needsNewItem = false;
           }
@@ -400,7 +412,8 @@ export const useDynamicCartStore = (cartReference: string) =>
           items.push({
             name: product.name,
             price: product.price,
-            product_id: product.id,
+            variation_id: product.parent_id ? product.id : undefined,
+            product_id: product.parent_id || product.id,
             quantity: actualQuantity,
           });
         }
@@ -414,11 +427,13 @@ export const useDynamicCartStore = (cartReference: string) =>
 
         let existingQuantity = 0;
         const existingLineItem = this.line_items.find(
-          (li) => li.product_id === product.id && li.quantity > 0
+          (li) => this.isProductLineItem(li, product) && li.quantity > 0
         );
         if (typeof existingLineItem !== "undefined") {
           existingQuantity = existingLineItem.quantity;
         }
+
+        console.log("product", JSON.stringify(product));
 
         this.setItemQuantity(product, existingQuantity + quantity);
       },
@@ -429,7 +444,7 @@ export const useDynamicCartStore = (cartReference: string) =>
 
         let existingQuantity = 0;
         const existingLineItem = this.line_items.find(
-          (li) => li.product_id === product.id && li.quantity > 0
+          (li) => this.isProductLineItem(li, product) && li.quantity > 0
         );
         if (typeof existingLineItem !== "undefined") {
           existingQuantity = existingLineItem.quantity;

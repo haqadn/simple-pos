@@ -32,7 +32,11 @@ export default {
     ...mapState(useItemStore, ["items"]),
 
     product() {
-      return this.items.find((product) => product.id === this.item.product_id);
+      return this.items.find(
+        (product) =>
+          product.id === this.item.variation_id ||
+          product.id === this.item.product_id
+      );
     },
 
     quantity: {
