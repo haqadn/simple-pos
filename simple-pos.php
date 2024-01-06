@@ -24,9 +24,15 @@ $customers->init();
 
 
 function spos_register_scripts() {
+
+	$manifest = json_decode( file_get_contents( plugin_dir_path( __FILE__ ) . 'front-end/dist/manifest.json' ), true );
+
+	$js = $manifest['index.html']['file'];
+	$css = $manifest['style.css']['file'];
+
 	wp_register_style( 'simple-pos-iconfont', 'https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css', array(), '1.0.0', 'all' );
-	wp_register_style( 'simple-pos', plugins_url( 'front-end/dist/assets/style.css', __FILE__ ), array('simple-pos-iconfont'), '1.0.0', 'all' );
-	wp_register_script( 'simple-pos', plugins_url( 'front-end/dist/index.js', __FILE__ ), array(), '1.0.0', true );
+	wp_register_style( 'simple-pos', plugins_url( "front-end/dist/$css", __FILE__ ), array('simple-pos-iconfont'), '1.0.0', 'all' );
+	wp_register_script( 'simple-pos', plugins_url( "front-end/dist/$js", __FILE__ ), array(), '1.0.0', true );
 	wp_localize_script( 'simple-pos', 'simplePosSettings', array(
 		'nonce' => wp_create_nonce( 'wp_rest' ),
 		'url' => get_bloginfo( 'url' ),

@@ -1,5 +1,4 @@
 import { fileURLToPath, URL } from "node:url";
-import path from 'path'
 
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
@@ -17,15 +16,16 @@ export default defineConfig({
     },
   },
   build: {
+    manifest: true,
     rollupOptions: {
       output: {
         // Prevent vendor.js being created
         manualChunks: undefined,
         // chunkFileNames: "zzz-[name].js",
         // this got rid of the hash on style.css
-        assetFileNames: "assets/[name].[ext]",
+        // assetFileNames: "assets/[name].[ext]",
 
-        entryFileNames: "[name].js",
+        // entryFileNames: "[name].js",
       },
     },
     // Prevent vendor.css being created
