@@ -200,7 +200,10 @@ export default {
       });
     }
 
-    this.settings = this.getSavedSettings();
+    this.settings = {
+      ...this.settings,
+      ...this.getSavedSettings(),
+    };
     // Don't load the credentials into the form from storage
     if (this.settings.consumerKey) {
       this.settings.consumerKey = "dummystring";
