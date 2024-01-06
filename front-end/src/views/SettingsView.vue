@@ -103,7 +103,6 @@
 <script>
 import { mapActions, mapState } from "pinia";
 import { useItemStore } from "../stores/items";
-import save from '../commands/save';
 export default {
   data() {
     return {
@@ -133,11 +132,15 @@ export default {
       };
       const savedSettings = this.getSavedSettings();
 
-      if (newSettings.consumerKey === "") {
+      if (newSettings.consumerKey === "dummystring") {
         newSettings.consumerKey = savedSettings.consumerKey;
+      } else if (newSettings.consumerKey === "") {
+        newSettings.consumerKey = undefined;
       }
-      if (newSettings.consumerSecret === "") {
+      if (newSettings.consumerSecret === "dummystring") {
         newSettings.consumerSecret = savedSettings.consumerSecret;
+      } else if (newSettings.consumerSecret === "") {
+        newSettings.consumerSecret = undefined;
       }
       newSettings.printerConfig = JSON.parse(newSettings.printerConfig);
       localStorage.setItem("simplePosSettings", JSON.stringify(newSettings));
@@ -170,7 +173,7 @@ export default {
     decodedCategories() {
       return this.categories.map((category) => ({
         ...category,
-        name: this.decodeHtmlEntity(category.name)
+        name: this.decodeHtmlEntity(category.name),
       }));
     },
 
@@ -193,8 +196,12 @@ export default {
 
     this.settings = this.getSavedSettings();
     // Don't load the credentials into the form from storage
-    this.settings.consumerKey = "";
-    this.settings.consumerSecret = "";
+    if (this.settings.consumerKey) {
+      this.settings.consumerKey = "dummystring";
+    }
+    if (this.settings.consumerSecret) {
+      this.settings.consumerSecret = "dummystring";
+    }
 
     this.loadCategories();
   },
