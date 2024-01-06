@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Simple POS
  * Description:       A simple POS front-end for WooCommerce.
- * Version: 3.5
+ * Version: 3.6
  * Author:            Adnan Haque
  * Author URI:        https://eadnan.com
  * Domain Path:       /languages
