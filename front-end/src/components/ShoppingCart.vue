@@ -162,14 +162,14 @@
       <v-list-item>
         <v-btn
           variant="flat"
-          class="mr-2 hidden-md-and-down"
+          class="mr-2"
           :disabled="!hasItems"
           @click="printBill"
           >Bill</v-btn
         >
         <v-btn
           variant="flat"
-          class="mr-2 hidden-md-and-down"
+          class="mr-2"
           :disabled="!hasItems"
           @click="printKOT"
           >KOT</v-btn
