@@ -13,11 +13,13 @@
       ></v-text-field>
       <v-text-field
         v-model="settings.consumerKey"
+        type="password"
         label="Consumer Key"
         outlined
       ></v-text-field>
       <v-text-field
         v-model="settings.consumerSecret"
+        type="password"
         label="Consumer Secret"
         outlined
       ></v-text-field>
@@ -101,6 +103,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 import { useItemStore } from "../stores/items";
+import save from '../commands/save';
 export default {
   data() {
     return {
@@ -125,15 +128,40 @@ export default {
   methods: {
     ...mapActions(useItemStore, ["loadCategories"]),
     saveSettings() {
-      const settings = { ...this.settings };
-      settings.printerConfig = JSON.parse(settings.printerConfig);
-      localStorage.setItem("simplePosSettings", JSON.stringify(settings));
+      const newSettings = {
+        ...this.settings,
+      };
+      const savedSettings = this.getSavedSettings();
+
+      if (newSettings.consumerKey === "") {
+        newSettings.consumerKey = savedSettings.consumerKey;
+      }
+      if (newSettings.consumerSecret === "") {
+        newSettings.consumerSecret = savedSettings.consumerSecret;
+      }
+      newSettings.printerConfig = JSON.parse(newSettings.printerConfig);
+      localStorage.setItem("simplePosSettings", JSON.stringify(newSettings));
       window.location.reload();
     },
     decodeHtmlEntity(str) {
       const textArea = document.createElement("textarea");
       textArea.innerHTML = str;
       return textArea.value;
+    },
+    getSavedSettings() {
+      const savedSettingsString = localStorage.getItem("simplePosSettings");
+      if (savedSettingsString) {
+        const savedSettings = JSON.parse(savedSettingsString);
+        if (savedSettings?.printerConfig) {
+          savedSettings.printerConfig = JSON.stringify(
+            savedSettings.printerConfig
+          );
+        } else {
+          savedSettings.printerConfig = "{}";
+        }
+
+        return savedSettings;
+      }
     },
   },
   computed: {
@@ -163,19 +191,10 @@ export default {
       });
     }
 
-    const savedSettingsString = localStorage.getItem("simplePosSettings");
-    if (savedSettingsString) {
-      const savedSettings = JSON.parse(savedSettingsString);
-      if (savedSettings?.printerConfig) {
-        savedSettings.printerConfig = JSON.stringify(
-          savedSettings.printerConfig
-        );
-      } else {
-        savedSettings.printerConfig = "{}";
-      }
-
-      this.settings = savedSettings;
-    }
+    this.settings = this.getSavedSettings();
+    // Don't load the credentials into the form from storage
+    this.settings.consumerKey = "";
+    this.settings.consumerSecret = "";
 
     this.loadCategories();
   },
