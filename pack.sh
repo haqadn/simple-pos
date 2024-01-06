@@ -23,6 +23,7 @@ cp -r utils $DIR
 cp simple-pos.php $DIR
 mkdir $DIR/front-end
 cp -pr front-end/dist $DIR/front-end/dist
+cp -pr front-end/pwa $DIR/front-end/pwa
 
 zip -r simple-pos.zip $DIR
 
