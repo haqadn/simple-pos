@@ -165,6 +165,9 @@ export default {
 
         return savedSettings;
       }
+
+      // Return empty object if no settings are saved
+      return {};
     },
   },
   computed: {
@@ -179,6 +182,9 @@ export default {
 
     tablesString: {
       get() {
+        if (!this.settings.tables) {
+          return "";
+        }
         return this.settings.tables.join(",");
       },
       set(value) {
