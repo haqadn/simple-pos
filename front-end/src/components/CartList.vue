@@ -5,7 +5,7 @@
       :key="cartReference.key"
       :to="`/${cartReference.key}`"
       :color="getCartBtnColor(cartReference)"
-      class="mb-2"
+      class="ma-2"
       :variant="getCartBtnVariant(cartReference)"
     >
       <template v-slot:prepend>
@@ -13,7 +13,14 @@
       </template>
       {{ cartReference.label }}
     </v-btn>
-    <new-cart class="w-100" />
+    <new-cart class="ma-2 d-lg-none" />
+    <new-cart class="ma-2 d-none d-lg-block w-100" />
+    <v-btn class="ma-2 d-lg-none" @click="refresh">
+      <v-icon>mdi-refresh</v-icon>
+    </v-btn>
+    <v-btn class="ma-2 d-none d-lg-block w-100" @click="refresh">
+      <v-icon>mdi-refresh</v-icon>
+    </v-btn>
   </div>
 </template>
 
@@ -39,6 +46,9 @@ export default defineComponent({
   },
 
   methods: {
+    refresh() {
+      window.location.reload();
+    },
     getCartBtnVariant(cartReference: CartRef) {
       if (this.activeCartReference === cartReference.key) {
         return "elevated";

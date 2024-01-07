@@ -1,7 +1,6 @@
 <template>
-  <v-btn variant="outlined" @click="dialog = !dialog">
-    +
-
+  <v-btn @click="dialog = !dialog">
+    <v-icon>mdi-plus</v-icon>
     <v-dialog v-if="dialog" v-model="dialog" activator="parent" width="auto">
       <v-card class="pa-4">
         <v-text-field
@@ -25,11 +24,7 @@
 
 <script lang="ts">
 import { mapActions } from "pinia";
-import {
-  type CartRef,
-  useCartManagerStore,
-  useDynamicCartStore,
-} from "../stores/cart";
+import { type CartRef, useCartManagerStore } from "../stores/cart";
 
 export default {
   data() {
