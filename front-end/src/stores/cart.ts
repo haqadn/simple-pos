@@ -570,7 +570,7 @@ export const useCartManagerStore = defineStore("cartManager", {
       this.cartStore.status = 'completed';
       await this.cartStore.saveOrder();
     },
-    rotateCarts(indexes: number[]) {
+    async rotateCarts(indexes: number[]) {
       // If only one index is provided, switch current cart with that index.
       if (indexes.length === 1) {
         const activeCartIndex = this.carts.findIndex(
@@ -587,6 +587,11 @@ export const useCartManagerStore = defineStore("cartManager", {
         carts[indexes[i]].key = carts[indexes[i + 1]].key;
       }
       carts[indexes[indexes.length - 1]].key = firstKey;
+      
+      carts.forEach((cart) => {
+        const cartStore = useDynamicCartStore(cart.key);
+        cartStore.saveOrder();
+      });
 
       this.carts = carts;
     },
