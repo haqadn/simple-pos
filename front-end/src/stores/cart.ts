@@ -144,7 +144,10 @@ export const useDynamicCartStore = (cartReference: string) =>
         return state.line_items.some((li) => li.quantity > 0);
       },
       isDirty(state) {
-        return JSON.stringify(state.referencePayload) !== JSON.stringify(state.cartPayload);
+        return JSON.stringify(state.referencePayload) !== JSON.stringify({
+          ...state.cartPayload,
+          line_items: this.adjustLineItems(state.cartPayload.line_items),
+        });
       },
 
       // The kitchen order that needs to be sent to the kitchen.
@@ -192,7 +195,7 @@ export const useDynamicCartStore = (cartReference: string) =>
         newQuantities.forEach((quantity, productId) => {
           if (!oldKotProductIds.includes(productId)) {
             const itemStore = useItemStore();
-            const product = itemStore.items.find((item) => item.id === productId);
+            const product = itemStore.items.findLast((item) => item.id === productId);
             if (!product) {
               return;
             }
@@ -355,15 +358,27 @@ export const useDynamicCartStore = (cartReference: string) =>
        * set the line item subtotal, which isn't reliable.
        */
       adjustLineItems(line_items: LineItem[]) {
-        const newLineItems = <LineItem[]> [];
-        const itemsBeingRemoved = <LineItem[]> [];
         if( !this.referencePayload.line_items ) {
           return line_items;
         }
 
-        line_items.forEach((item) => {
+        const dedupedLineItems = <Record<string, LineItem>> {};
+        const tentativeItems = <LineItem[]> [];
+
+        for(let i = 0; i < line_items.length; i++ ) {
+          const key = `${line_items[i].product_id}-${line_items[i].variation_id}`;
+          if( dedupedLineItems[key] ) {
+            tentativeItems.push({
+              ...dedupedLineItems[key],
+              quantity: 0,
+            });
+          }
+          dedupedLineItems[key] = line_items[i];
+        }
+
+        Object.values(dedupedLineItems).forEach((item) => {
           // if quantity is different from referencePayload
-          const existingLineItem = this.referencePayload.line_items.find(
+          const existingLineItem = this.referencePayload.line_items.findLast(
             (li) => li.product_id === item.product_id && li.variation_id === item.variation_id
           );
           if (
@@ -371,24 +386,26 @@ export const useDynamicCartStore = (cartReference: string) =>
             existingLineItem.quantity !== item.quantity
           ) {
             // Set existing line item quantity to zero.
-            existingLineItem.quantity = 0;
-            itemsBeingRemoved.push(existingLineItem);
+            tentativeItems.push({
+              ...existingLineItem,
+              quantity: 0,
+            });
 
             if( item.quantity > 0 ) {
-              newLineItems.push({
+              tentativeItems.push({
                 ...item,
                 id: undefined,
               });
             }
           } else if( item.quantity > 0 ) {
-            newLineItems.push(item);
+            tentativeItems.push(item);
           }
         });
 
         // The order matters on Woo. For some reason, if we add the new line items first, and then remove the old ones, it doesn't work.
         return [
-          ...itemsBeingRemoved,
-          ...newLineItems,
+          ...tentativeItems.filter((item) => item.quantity === 0),
+          ...tentativeItems.filter((item) => item.quantity > 0),
         ];
       },
       setItemQuantity(product: Product, quantity: number) {
@@ -426,14 +443,12 @@ export const useDynamicCartStore = (cartReference: string) =>
         }
 
         let existingQuantity = 0;
-        const existingLineItem = this.line_items.find(
+        const existingLineItem = this.line_items.findLast(
           (li) => this.isProductLineItem(li, product) && li.quantity > 0
         );
         if (typeof existingLineItem !== "undefined") {
           existingQuantity = existingLineItem.quantity;
         }
-
-        console.log("product", JSON.stringify(product));
 
         this.setItemQuantity(product, existingQuantity + quantity);
       },
@@ -443,7 +458,7 @@ export const useDynamicCartStore = (cartReference: string) =>
         }
 
         let existingQuantity = 0;
-        const existingLineItem = this.line_items.find(
+        const existingLineItem = this.line_items.findLast(
           (li) => this.isProductLineItem(li, product) && li.quantity > 0
         );
         if (typeof existingLineItem !== "undefined") {
