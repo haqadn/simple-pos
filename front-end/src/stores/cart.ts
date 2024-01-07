@@ -37,6 +37,7 @@ export const useDynamicCartStore = (cartReference: string) =>
       orderIdSalt: Math.floor(Math.random() * 90) + 10,
       pending_kot_print: false,
       pending_bill_print: false,
+      autoClose: true,
     }),
     getters: {
       reference() {
@@ -244,7 +245,6 @@ export const useDynamicCartStore = (cartReference: string) =>
           }
           const expiry = new Date(coupon.date_expires);
           if (coupon.date_expires !== null && new Date() > expiry) {
-            console.log(coupon, typeof coupon.date_expires, expiry, new Date());
             throw new Error("Coupon expired");
           }
           if (this.coupons.find((c: { code: string }) => c.code === code)) {
@@ -532,6 +532,9 @@ export const useDynamicCartStore = (cartReference: string) =>
           this.pending_bill_print = status;
         }
       },
+      disableAutoClose() {
+        this.autoClose = false;
+      }
     },
   })();
 
@@ -655,7 +658,11 @@ export const useCartManagerStore = defineStore("cartManager", {
         };
       });
       return carts;
-    }
+    },
+    openOrderIds: (state) => {
+      const carts = [...state.carts];
+      return carts.map((cart) => useDynamicCartStore(cart.key).orderId).filter((id) => id !== null);
+    },
   },
 });
 

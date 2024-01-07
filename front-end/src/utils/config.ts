@@ -55,5 +55,4 @@ const config = {
   printHeight: simplePosSettings?.printHeight || 300,
   printerConfig: simplePosSettings?.printerConfig || {},
 };
-console.log(config);
 export default config;

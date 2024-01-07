@@ -60,6 +60,7 @@ export default class implements Command {
 
     if (!cartStore.isDirty) {
       cartStore.hydrateOrderData(order);
+      cartStore.disableAutoClose();
       cartManagerStore.setActiveCart(cartStore.reference);
     }
   }

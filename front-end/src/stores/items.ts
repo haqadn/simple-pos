@@ -26,17 +26,7 @@ export const useItemStore = defineStore("items", {
   actions: {
     async loadItems() {
       const response = await ProductsAPI.getProducts();
-      // const products = (response.data as Array<any>).map((item) => {
-      //   return {
-      //     ...item,
-      //     price: parseFloat(item.price),
-      //     regular_price: parseFloat(item.regular_price),
-      //   };
-      // });
-
       const products = <Array<Product>>[];
-
-      console.log('Before', products.length);
 
       for (const product of response.data as Array<any>) {
         if (product.variations.length === 0) {
@@ -48,7 +38,6 @@ export const useItemStore = defineStore("items", {
         } else {
           const variations = await ProductsAPI.getVariations(product.id);
           (variations.data as Array<any>).forEach((variation) => {
-            console.log('Pushing variation', variation);
             products.push({
               ...variation,
               name: `${product.name} - ${variation.name}`,
@@ -58,8 +47,6 @@ export const useItemStore = defineStore("items", {
           });
         }
       }
-
-      console.log('After', products.length);
 
       this.items = products;
     },

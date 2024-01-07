@@ -69,12 +69,25 @@ export default defineComponent({
     },
 
     async loadOpenOrders() {
-      // Load pending orders from API
-      const orders = await OrdersAPI.listOrders({
-        status: "pending,processing",
-      });
       const cartManagerStore = useCartManagerStore();
-      Object.values(orders.data).forEach(async (order: object) => {
+      const orders = [
+        // Orders that we currently have open
+        ...(cartManagerStore.openOrderIds.length > 0
+          ? ((
+              await OrdersAPI.listOrders({
+                include: cartManagerStore.openOrderIds.join(","),
+              })
+            ).data as any[])
+          : []),
+        // Orders that are open in another device
+        ...((
+          await OrdersAPI.listOrders({
+            status: "pending,processing",
+            exclude: cartManagerStore.openOrderIds.join(","),
+          })
+        ).data as any[]),
+      ];
+      Object.values(orders).forEach(async (order: object) => {
         const orderCartNameMeta = order.meta_data.find(
           (meta: { key: string }) => meta.key === "cart_name"
         );
@@ -96,6 +109,10 @@ export default defineComponent({
         }
 
         if (!cartStore.isDirty) {
+          if (order.status === "completed" && cartStore.autoClose) {
+            cartStore.clearCart();
+            return;
+          }
           cartStore.hydrateOrderData(order);
 
           if (cartStore.pending_bill_print) {
