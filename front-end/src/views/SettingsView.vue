@@ -46,6 +46,11 @@
         persistent-hint
       ></v-select>
     </div>
+    <div class="mt-3">
+      <page-shortcuts-input
+        v-model="settings.pageShortcuts"
+      ></page-shortcuts-input>
+    </div>
 
     <h2>Printer Settings</h2>
     <v-checkbox
@@ -103,7 +108,9 @@
 <script>
 import { mapActions, mapState } from "pinia";
 import { useItemStore } from "../stores/items";
+import PageShortcutsInput from "../components/PageShortcutsInput.vue";
 export default {
+  components: { PageShortcutsInput },
   data() {
     return {
       settings: {
@@ -120,6 +127,7 @@ export default {
         printHeight: 300,
         printerConfig: "{}",
         skipKotCategories: [],
+        pageShortcuts: [],
       },
       printers: [],
     };

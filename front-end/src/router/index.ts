@@ -1,8 +1,9 @@
 import { createRouter, createWebHashHistory } from "vue-router";
-import HomeView from "../views/HomeView.vue";
-import PosView from "../views/PosView.vue";
-import ReportView from "../views/ReportView.vue";
-import SettingsView from "../views/SettingsView.vue";
+import HomeView from "@/views/HomeView.vue";
+import IframeView from "@/views/IframeView.vue";
+import PosView from "@/views/PosView.vue";
+import ReportView from "@/views/ReportView.vue";
+import SettingsView from "@/views/SettingsView.vue";
 import { hasConfig } from "@/utils/config";
 
 function requiresSettings(to) {
@@ -25,6 +26,11 @@ const router = createRouter({
           name: "cart",
           component: PosView,
         },
+        {
+          path: "/shortcut/:url",
+          name: "shortcut",
+          component: IframeView,
+        },
       ],
     },
     {
@@ -34,14 +40,9 @@ const router = createRouter({
       beforeEnter: requiresSettings,
     },
     {
-      path: '/settings',
-      name: 'settings',
+      path: "/settings",
+      name: "settings",
       component: SettingsView,
-    },
-    {
-      path: '/:id',
-      name: 'order',
-      component: HomeView,
     },
   ],
 });

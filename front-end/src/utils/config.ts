@@ -2,6 +2,7 @@ type settings = {
   url: string; // Site URL
   tables: string[]; // List of table numbers
   skipKotCategories: number[]; // List of categories to skip in KOT
+  pageShortcuts: Array<{ name: string; url: string }>; // List of page shortcuts
   billPrinter: string; // Bill printer name
   kitchenPrinter: string; // Kitchen printer name
   drawerPrinter: string; // Drawer printer name
@@ -46,6 +47,7 @@ const config = {
   adminUrl: simplePosSettings?.url + "/wp-admin/",
   tables: simplePosSettings?.tables || [1, 2, 3, 4, 5, 6],
   skipKotCategories: simplePosSettings?.skipKotCategories || [],
+  pageShortcuts: simplePosSettings?.pageShortcuts || [],
   billPrinter: simplePosSettings?.billPrinter || "",
   kitchenPrinter: simplePosSettings?.kitchenPrinter || "",
   drawerPrinter: simplePosSettings?.drawerPrinter || "",
@@ -55,4 +57,5 @@ const config = {
   printHeight: simplePosSettings?.printHeight || 300,
   printerConfig: simplePosSettings?.printerConfig || {},
 };
+console.log(config);
 export default config;
