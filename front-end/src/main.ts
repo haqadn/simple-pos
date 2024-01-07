@@ -12,11 +12,3 @@ pinia.use(({ store }) => {
 });
 
 createApp(App).use(router).use(vuetify).use(pinia).mount("#pos-app");
-
-window.addEventListener("visibilitychange", function () {
-  console.log("Visibility changed");
-  if (document.visibilityState === "visible") {
-    console.log("APP resumed");
-    window.location.reload();
-  }
-});
