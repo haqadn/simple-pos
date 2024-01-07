@@ -99,26 +99,24 @@ export default defineComponent({
           cartStore.hydrateOrderData(order);
 
           if (cartStore.pending_bill_print) {
-            cartStore.queuePrint("bill", false);
-            new PrintCommand("bill", cartStore).execute();
+            await new PrintCommand("bill", cartStore).execute();
           }
 
           if (cartStore.pending_kot_print) {
-            cartStore.queuePrint("kot", false);
-            new PrintCommand("kot", cartStore).execute();
+            await new PrintCommand("kot", cartStore).execute();
           }
         }
       });
+
+      // Load again after 10 seconds
+      setTimeout(() => {
+        this.loadOpenOrders();
+      }, 10000);
     },
   },
 
   async mounted() {
     this.loadOpenOrders();
-
-    // Load open orders every 30 seconds
-    setInterval(() => {
-      this.loadOpenOrders();
-    }, 10000);
   },
 });
 </script>

@@ -22,21 +22,25 @@ export default class implements Command {
   async execute(): Promise<void> {
     if (config.enablePrinting === false) {
       this.cartStore.queuePrint(this.printType);
-      await this.cartStore.saveOrder();
+      if (this.cartStore.isDirty) {
+        await this.cartStore.saveOrder();
+      }
       return;
     }
 
-    // Save the order if it hasn't been saved yet. Make sure we have an order id
-    if (!this.cartStore.orderId) {
-      await this.cartStore.saveOrder();
-    }
+    // Unqueue the print as we are going to print it now
+    this.cartStore.queuePrint(this.printType, false);
 
     if (this.printType === "kot") {
       this.cartStore.updateKot();
     }
 
+    if (!this.cartStore.orderId || this.cartStore.isDirty) {
+      await this.cartStore.saveOrder();
+    }
+
     const printStore = usePrintStore();
-    printStore.push(this.printType, {
+    await printStore.push(this.printType, {
       items: this.cartStore.items,
       kotItems: this.cartStore.kotItems,
       customer: this.cartStore.customer,
@@ -47,9 +51,5 @@ export default class implements Command {
       discountTotal: this.cartStore.discountTotal,
       cartName: this.cartStore.cartName,
     });
-
-    if (this.cartStore.isDirty) {
-      this.cartStore.saveOrder();
-    }
   }
 }
