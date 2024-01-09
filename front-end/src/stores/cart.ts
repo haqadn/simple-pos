@@ -157,10 +157,11 @@ export const useDynamicCartStore = (cartReference: string) =>
         const productQuantityMap = new Map<number, number>();
 
         state.line_items.filter((li) => {
-          return ! itemStore.shouldSkipProductFromKot(li.product_id);
+          return ! itemStore.shouldSkipProductFromKot(li);
         }).forEach((li) => {
           if (li.quantity > 0) {
-            productQuantityMap.set(li.product_id, li.quantity);
+            const id = li.variation_id > 0 ? li.variation_id : li.product_id;
+            productQuantityMap.set(id, li.quantity);
           }
         });
 
@@ -174,7 +175,7 @@ export const useDynamicCartStore = (cartReference: string) =>
 
         let changed = false;
         const newKot = oldQuantities.map((item) => {
-          const newQuantity = newQuantities.get(item.product_id) || 0;
+          const newQuantity = newQuantities.get(item.variation_id > 0 ? item.variation_id : item.product_id) || 0;
           if (newQuantity !== item.quantity) {
             changed = true;
 
@@ -191,17 +192,19 @@ export const useDynamicCartStore = (cartReference: string) =>
           }
         });
 
-        const oldKotProductIds = oldQuantities.map((item) => item.product_id);
+        const oldKotProductIds = oldQuantities.map((item) => item.variation_id > 0 ? item.variation_id : item.product_id);
         // Find newQuantities that are not in the oldKotProductIds
-        newQuantities.forEach((quantity, productId) => {
-          if (!oldKotProductIds.includes(productId)) {
+        newQuantities.forEach((quantity, id) => {
+          if (!oldKotProductIds.includes(id)) {
             const itemStore = useItemStore();
-            const product = itemStore.items.findLast((item) => item.id === productId);
+            const product = itemStore.items.findLast((item) => item.id === id);
             if (!product) {
+
               return;
             }
             newKot.push({
-              product_id: productId,
+              product_id: product.parent_id ? product.parent_id : product.id,
+              variation_id: product.parent_id ? product.id : undefined,
               quantity,
               previousQuantity: 0,
               name: product.name,
@@ -337,6 +340,7 @@ export const useDynamicCartStore = (cartReference: string) =>
             ...item,
             line_item_id: item.id,
             product_id: item.product_id,
+            variation_id: item.variation_id,
           });
         });
         this.coupons = data.coupon_lines || [];

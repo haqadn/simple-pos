@@ -1,5 +1,5 @@
 import ProductsAPI from "@/api/products";
-import type { Product } from "@/types";
+import type { LineItem, Product } from "@/types";
 import config from "@/utils/config";
 import { defineStore } from "pinia";
 
@@ -56,12 +56,13 @@ export const useItemStore = defineStore("items", {
 
       this.categories = categories;
     },
-    shouldSkipProductFromKot(productId: number) {
+    shouldSkipProductFromKot(lineItem: LineItem) {
+      const id = lineItem.variation_id ?? lineItem.product_id;
       // Do not skip if we cannot determine the product category
-      if (!this.productCategoryMap[productId]) {
+      if (!this.productCategoryMap[id]) {
         return false;
       }
-      return this.productCategoryMap[productId].some((category) =>
+      return this.productCategoryMap[id].some((category) =>
         config.skipKotCategories.includes(category)
       );
     },
