@@ -54,6 +54,8 @@ export default {
       "subtotal",
       "remainingAmount",
       "isDirty",
+      "status",
+      "invoiceNumber",
     ]),
     ...mapState(useCartManagerStore, ["drawerDialog"]),
 
@@ -69,11 +71,16 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useCartManagerStore, ["hideDrawerDialog"]),
-    ...mapActions(useCartStore, ["clearCart"]),
+    ...mapActions(useCartManagerStore, ["hideDrawerDialog", "addRecentOrder"]),
+    ...mapActions(useCartStore, ["clearCart", "saveOrder", "setOrderStatus"]),
 
     async handleClose() {
       this.hideDrawerDialog();
+      await this.setOrderStatus("completed");
+      if (this.orderId) {
+        this.addRecentOrder(this.invoiceNumber);
+      }
+
       this.clearCart();
     },
 

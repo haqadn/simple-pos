@@ -39,12 +39,7 @@ export default class implements Command {
     const cartManagerStore = useCartManagerStore();
 
     cartStore.addCartPayment(this.amount);
-    cartManagerStore.showDrawerDialog().then(async () => {
-      await nextTick();
-      if (cartStore.orderId) {
-        cartManagerStore.addRecentOrder(cartStore.invoiceNumber);
-      }
-    });
+    cartManagerStore.showDrawerDialog();
     const printCommand = new PrintCommand("drawer");
     await printCommand.execute();
   }

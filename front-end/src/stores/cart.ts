@@ -538,6 +538,11 @@ export const useDynamicCartStore = (cartReference: string) =>
       },
       disableAutoClose() {
         this.autoClose = false;
+      },
+      setOrderStatus(status: string) {
+        this.status = status;
+
+        return this.saveOrder();
       }
     },
   })();
@@ -574,8 +579,6 @@ export const useCartManagerStore = defineStore("cartManager", {
     },
     async showDrawerDialog() {
       this.drawerDialog = true;
-      this.cartStore.status = 'completed';
-      await this.cartStore.saveOrder();
     },
     async rotateCarts(indexes: number[]) {
       // If only one index is provided, switch current cart with that index.
