@@ -57,7 +57,7 @@ export const useItemStore = defineStore("items", {
       this.categories = categories;
     },
     shouldSkipProductFromKot(lineItem: LineItem) {
-      const id = lineItem.variation_id ?? lineItem.product_id;
+      const id = lineItem.variation_id > 0 ? lineItem.variation_id : lineItem.product_id;
       // Do not skip if we cannot determine the product category
       if (!this.productCategoryMap[id]) {
         return false;
