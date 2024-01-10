@@ -22,6 +22,11 @@ const router = createRouter({
       beforeEnter: requiresSettings,
       children: [
         {
+          path: "/",
+          name: "pos",
+          redirect: { name: "cart", params: { cart: "T-1" } },
+        },
+        {
           path: "/:cart",
           name: "cart",
           component: PosView,
