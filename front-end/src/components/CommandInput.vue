@@ -14,7 +14,7 @@
     @keyup.ctrl.down="historyDown"
     enterkeyhint="done"
     :custom-filter="itemFiler"
-    :items="items"
+    :items="products"
     item-value="sku"
     item-title="sku"
   >
@@ -30,7 +30,7 @@
 
 <script>
 import { tryToExecuteCommand } from "../utils/command";
-import { useItemStore } from "@/stores/items";
+import { useCatalogStore } from "@/stores/catalog";
 import { mapState } from "pinia";
 
 export default {
@@ -43,7 +43,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(useItemStore, ["items"]),
+    ...mapState(useCatalogStore, ["products"]),
   },
   methods: {
     itemFiler(name, search, item) {

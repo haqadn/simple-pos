@@ -1,5 +1,5 @@
 import type { Command } from "./command";
-import { useItemStore } from "../stores/items";
+import { useCatalogStore } from "../stores/catalog";
 import { useCartStore } from "../stores/cart";
 import type { Product } from "@/types";
 
@@ -11,8 +11,8 @@ export default class implements Command {
     const parts = command.split(" ");
     const sku = parts[0];
 
-    const itemStore = useItemStore();
-    this.item = itemStore.items.find(
+    const catalogStore = useCatalogStore();
+    this.item = catalogStore.products.find(
       (item: Product) => item.sku === sku || item.menu_order === parseInt(sku)
     );
     if (this.item) {

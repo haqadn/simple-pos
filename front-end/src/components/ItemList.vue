@@ -24,7 +24,7 @@
       </v-col>
 
       <v-col
-        v-for="item in items
+        v-for="item in products
           .filter((item) => item.categories[0].id === category.id)
           .sort((a, b) => {
             if (a.menu_order !== b.menu_order) {
@@ -43,7 +43,7 @@
 
 <script>
 import { mapState, mapActions } from "pinia";
-import { useItemStore } from "../stores/items";
+import { useCatalogStore } from "../stores/catalog";
 import { useCartStore } from "../stores/cart";
 import ListItem from "./ListItem.vue";
 
@@ -54,10 +54,10 @@ export default {
   }),
   methods: {
     ...mapActions(useCartStore, ["loadOrder"]),
-    ...mapActions(useItemStore, ["loadItems", "loadCategories"]),
+    ...mapActions(useCatalogStore, ["loadProducts", "loadCategories"]),
   },
   computed: {
-    ...mapState(useItemStore, ["items", "categories"]),
+    ...mapState(useCatalogStore, ["products", "categories"]),
 
     visibleCategories() {
       if (this.tab === "all") {
@@ -68,12 +68,12 @@ export default {
     },
 
     popularProducts() {
-      const items = [...this.items];
+      const items = [...this.products];
       return items.slice(0, 10);
     },
   },
   async created() {
-    await Promise.all([this.loadItems(), this.loadCategories()]);
+    await Promise.all([this.loadProducts(), this.loadCategories()]);
 
     if (this.$route.params.id) {
       await this.loadOrder(this.$route.params.id);

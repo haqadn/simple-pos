@@ -17,7 +17,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 import { useCartStore } from "../stores/cart";
-import { useItemStore } from "../stores/items";
+import { useCatalogStore } from "../stores/catalog";
 
 export default {
   props: ["item"],
@@ -29,10 +29,10 @@ export default {
     ]),
   },
   computed: {
-    ...mapState(useItemStore, ["items"]),
+    ...mapState(useCatalogStore, ["products"]),
 
     product() {
-      return this.items.find(
+      return this.products.find(
         (product) =>
           product.id === this.item.variation_id ||
           product.id === this.item.product_id

@@ -6,7 +6,7 @@ import config from "@/utils/config";
 import { defineStore } from "pinia";
 import { v4 as uuid4 } from "uuid";
 import { alertAsync, confirmAsync } from "./alerts";
-import { useItemStore } from "./items";
+import { useCatalogStore } from "./catalog";
 import { debounce } from "@/utils/debounce";
 
 type Customer = {
@@ -153,11 +153,11 @@ export const useDynamicCartStore = (cartReference: string) =>
 
       // The kitchen order that needs to be sent to the kitchen.
       currentOrderQuantities(state) {
-        const itemStore = useItemStore();
+        const catalogStore = useCatalogStore();
         const productQuantityMap = new Map<number, number>();
 
         state.line_items.filter((li) => {
-          return ! itemStore.shouldSkipProductFromKot(li);
+          return ! catalogStore.shouldSkipProductFromKot(li);
         }).forEach((li) => {
           if (li.quantity > 0) {
             const id = li.variation_id > 0 ? li.variation_id : li.product_id;
@@ -196,8 +196,8 @@ export const useDynamicCartStore = (cartReference: string) =>
         // Find newQuantities that are not in the oldKotProductIds
         newQuantities.forEach((quantity, id) => {
           if (!oldKotProductIds.includes(id)) {
-            const itemStore = useItemStore();
-            const product = itemStore.items.findLast((item) => item.id === id);
+            const catalogStore = useCatalogStore();
+            const product = catalogStore.products.findLast((item) => item.id === id);
             if (!product) {
 
               return;

@@ -107,7 +107,7 @@
 
 <script>
 import { mapActions, mapState } from "pinia";
-import { useItemStore } from "../stores/items";
+import { useCatalogStore } from "../stores/catalog";
 import PageShortcutsInput from "../components/PageShortcutsInput.vue";
 export default {
   components: { PageShortcutsInput },
@@ -133,7 +133,7 @@ export default {
     };
   },
   methods: {
-    ...mapActions(useItemStore, ["loadCategories"]),
+    ...mapActions(useCatalogStore, ["loadCategories"]),
     saveSettings() {
       const newSettings = {
         ...this.settings,
@@ -179,7 +179,7 @@ export default {
     },
   },
   computed: {
-    ...mapState(useItemStore, ["categories"]),
+    ...mapState(useCatalogStore, ["categories"]),
 
     decodedCategories() {
       return this.categories.map((category) => ({

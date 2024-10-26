@@ -3,19 +3,19 @@ import type { LineItem, Product } from "@/types";
 import config from "@/utils/config";
 import { defineStore } from "pinia";
 
-export const useItemStore = defineStore("items", {
+export const useCatalogStore = defineStore("catalog", {
   state: () => ({
-    items: <Product[]>[],
+    products: <Product[]>[],
     categories: [],
   }),
   getters: {
     productCategoryMap() {
-      const items = this.items;
+      const products = this.products;
       const catMap: { [productId: number]: number[] } = {};
-      items.forEach(
-        (item: { id: number; categories?: Array<{ id: number }> }) => {
-          if (item.categories) {
-            catMap[item.id] = item.categories.map((category) => category.id);
+      products.forEach(
+        (product: { id: number; categories?: Array<{ id: number }> }) => {
+          if (product.categories) {
+            catMap[product.id] = product.categories.map((category) => category.id);
           }
         }
       );
@@ -24,7 +24,7 @@ export const useItemStore = defineStore("items", {
     },
   },
   actions: {
-    async loadItems() {
+    async loadProducts() {
       const response = await ProductsAPI.getProducts();
       const products = <Array<Product>>[];
 
@@ -48,7 +48,7 @@ export const useItemStore = defineStore("items", {
         }
       }
 
-      this.items = products;
+      this.products = products;
     },
     async loadCategories() {
       const response = await ProductsAPI.getCategories();

@@ -1,5 +1,5 @@
 import type { Command } from "./command";
-import { useItemStore } from "../stores/items";
+import { useCatalogStore } from "../stores/catalog";
 import { useCartStore } from "../stores/cart";
 
 export default class implements Command {
@@ -9,9 +9,9 @@ export default class implements Command {
 
   async execute(): Promise<void> {
     const cartStore = useCartStore();
-    const itemStore = useItemStore();
+    const catalogStore = useCatalogStore();
 
     cartStore.clearCart();
-    await itemStore.loadItems();
+    await catalogStore.loadProducts();
   }
 }

@@ -1,5 +1,5 @@
 import type { Command } from "./command";
-import { useItemStore } from "../stores/items";
+import { useCatalogStore } from "../stores/catalog";
 import ProductsAPI from "@/api/products";
 
 export default class implements Command {
@@ -16,8 +16,8 @@ export default class implements Command {
 
     const sku = parts[2];
 
-    const itemStore = useItemStore();
-    this.item = itemStore.items.find((item) => item.sku === sku);
+    const catalogStore = useCatalogStore();
+    this.item = catalogStore.products.find((item) => item.sku === sku);
     if (!this.item) {
       console.log(`Item with SKU ${sku} not found`);
       return false;
@@ -36,21 +36,21 @@ export default class implements Command {
   }
 
   async execute(): Promise<void> {
-    const itemStore = useItemStore();
+    const catalogStore = useCatalogStore();
 
     // Just do an initial refresh
     const data = { manage_stock: true, stock_quantity: this.quantity };
 
     if (this.action === "add") {
-      await itemStore.loadItems();
+      await catalogStore.loadProducts();
       data.stock_quantity = this.quantity + this.item.stock_quantity;
     }
     if (this.action === "rm") {
-      await itemStore.loadItems();
+      await catalogStore.loadProducts();
       data.stock_quantity = this.item.stock_quantity - this.quantity;
     }
 
     await ProductsAPI.updateProduct(this.item.id, data);
-    await itemStore.loadItems();
+    await catalogStore.loadProducts();
   }
 }
