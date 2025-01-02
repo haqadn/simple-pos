@@ -11,7 +11,11 @@ export default function Sidebar() {
             <Listbox>
                 <ListboxSection title="Orders" showDivider={true}>
                     {orders.map((order, index) => (
-                        <ListboxItem key={order.id} endContent={<Chip size="sm">{index + 1}</Chip>}>
+                        <ListboxItem
+                            key={order.id} 
+                            endContent={<Chip size="sm">{index + 1}</Chip>}
+                            href={`/orders/${order.id}`}
+                        >
                             {order.name}
                         </ListboxItem>
                     ))}
