@@ -15,14 +15,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className='dark'>
-      <body className={styles.grid}>
+      <body>
         <Providers>
-          <aside>
-            <Sidebar />
-          </aside>
-          <main>
-            {children}
-          </main>
+          <div className="flex flex-row">
+            <aside className="w-64">
+              <Sidebar />
+            </aside>
+            <main className="flex-1">
+              {children}
+            </main>
+          </div>
         </Providers>
       </body>
     </html>

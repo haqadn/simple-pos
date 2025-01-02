@@ -1,6 +1,6 @@
 'use client'
 
-import { Listbox, ListboxItem, ListboxSection } from "@nextui-org/react";
+import { Chip, Listbox, ListboxItem, ListboxSection } from "@nextui-org/react";
 import { useState } from "react"
 
 export default function Sidebar() {
@@ -11,7 +11,7 @@ export default function Sidebar() {
             <Listbox>
                 <ListboxSection title="Orders" showDivider={true}>
                     {orders.map((order, index) => (
-                        <ListboxItem key={order.id} endContent={<span className="text-small">{index + 1}</span>}>
+                        <ListboxItem key={order.id} endContent={<Chip size="sm">{index + 1}</Chip>}>
                             {order.name}
                         </ListboxItem>
                     ))}
