@@ -49,7 +49,7 @@ type Order = {
 }
 
 const useOrderList = () => {
-    const [ cartList, setCartList ] = useState<Order[]>([
+    const [ orders, setOrders ] = useState<Order[]>([
         { id: '1', name: 'Table 1' },
         { id: '2', name: 'Table 2' },
         { id: '3', name: 'Table 3' },
@@ -60,21 +60,21 @@ const useOrderList = () => {
 
     const addOrder = () => {
         const randomId = Array(3).fill(null).map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join('');
-        setCartList([...cartList, { id: randomId, name: 'Takeaway ' + randomId }]);
+        setOrders([...orders, { id: randomId, name: 'Takeaway ' + randomId }]);
     }
 
     const reorderOrders = (draggedId: string, droppedId: string) => {
         if (draggedId === droppedId) return;
         
-        const draggedIndex = cartList.findIndex(item => item.id === draggedId);
-        const droppedIndex = cartList.findIndex(item => item.id === droppedId);
+        const draggedIndex = orders.findIndex(item => item.id === draggedId);
+        const droppedIndex = orders.findIndex(item => item.id === droppedId);
         
-        const newList = [...cartList];
+        const newList = [...orders];
         const [draggedItem] = newList.splice(draggedIndex, 1);
         newList.splice(droppedIndex, 0, draggedItem);
         
-        setCartList(newList);
+        setOrders(newList);
     }
 
-    return [ cartList, addOrder, reorderOrders ] as const;
+    return [ orders, addOrder, reorderOrders ] as const;
 }
