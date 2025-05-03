@@ -2,6 +2,7 @@
 
 import { Chip, Listbox, ListboxItem, ListboxSection } from "@nextui-org/react";
 import { useState } from "react"
+import Link from "next/link"
 
 export default function Sidebar() {
     const [ orders, addOrder, reorderOrders ] = useOrderList();
@@ -27,6 +28,7 @@ export default function Sidebar() {
                             }}
                             key={order.id} 
                             endContent={<Chip size="sm">{index + 1}</Chip>}
+                            as={Link}
                             href={`/orders/${order.id}`}
                         >
                             {order.name}
