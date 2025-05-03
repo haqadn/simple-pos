@@ -4,7 +4,7 @@ import { Chip, Listbox, ListboxItem, ListboxSection } from "@nextui-org/react";
 import { useState } from "react"
 
 export default function Sidebar() {
-    const [ orders, addOrder ] = useOrderList();
+    const [ orders, addOrder, reorderOrders ] = useOrderList();
   
     return (
         <aside>
@@ -23,7 +23,7 @@ export default function Sidebar() {
                                 e.preventDefault();
                                 const draggedId = e.dataTransfer.getData('text/plain');
                                 const droppedId = order.id;
-                                console.log(draggedId, droppedId);
+                                reorderOrders(draggedId, droppedId);
                             }}
                             key={order.id} 
                             endContent={<Chip size="sm">{index + 1}</Chip>}
