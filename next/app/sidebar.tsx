@@ -12,6 +12,19 @@ export default function Sidebar() {
                 <ListboxSection title="Orders" showDivider={true}>
                     {orders.map((order, index) => (
                         <ListboxItem
+                            draggable={true}
+                            onDragStart={(e) => {
+                                e.dataTransfer.setData('text/plain', order.id);
+                            }}
+                            onDragOver={(e) => {
+                                e.preventDefault();
+                            }}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                const draggedId = e.dataTransfer.getData('text/plain');
+                                const droppedId = order.id;
+                                console.log(draggedId, droppedId);
+                            }}
                             key={order.id} 
                             endContent={<Chip size="sm">{index + 1}</Chip>}
                             href={`/orders/${order.id}`}
@@ -48,5 +61,18 @@ const useOrderList = () => {
         setCartList([...cartList, { id: randomId, name: 'Takeaway ' + randomId }]);
     }
 
-    return [ cartList, addOrder ] as const;
+    const reorderOrders = (draggedId: string, droppedId: string) => {
+        if (draggedId === droppedId) return;
+        
+        const draggedIndex = cartList.findIndex(item => item.id === draggedId);
+        const droppedIndex = cartList.findIndex(item => item.id === droppedId);
+        
+        const newList = [...cartList];
+        const [draggedItem] = newList.splice(draggedIndex, 1);
+        newList.splice(droppedIndex, 0, draggedItem);
+        
+        setCartList(newList);
+    }
+
+    return [ cartList, addOrder, reorderOrders ] as const;
 }
