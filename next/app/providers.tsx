@@ -9,11 +9,10 @@ import {useRouter} from "next/navigation";
 export function Providers({children}: { children: React.ReactNode }) {
   const queryClient = new QueryClient()
   const router = useRouter();
-  const useHref = (href: string) => href;
 
 
   return (
-    <HeroUIProvider navigate={router.push} useHref={useHref}>
+    <HeroUIProvider navigate={router.push}>
       <QueryClientProvider client={queryClient}>
         {children}
       </QueryClientProvider>

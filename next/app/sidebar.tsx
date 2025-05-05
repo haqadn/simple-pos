@@ -1,11 +1,10 @@
 'use client'
 
-import { Chip, Tabs, Tab } from "@heroui/react";
-import { useState } from "react"
+import { Chip, Tabs, Tab, Button } from "@heroui/react";
 import Link from "next/link"
-import { useQuery } from "@tanstack/react-query";
-import { getOrders } from "@/api/config";
-import { usePathname } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { createOrder as createOrderApi, getOrders } from "@/api/config";
+import { usePathname, useRouter } from "next/navigation";
 
 type OrderLinkProps = { 
     color: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger',
@@ -13,8 +12,10 @@ type OrderLinkProps = {
 }
 
 export default function Sidebar() {
-    const [ orders, addOrder, reorderOrders ] = useOrderList();
+    const { orders, isLoading, createOrder, reorderOrders } = useOrderList();
     const pathname = usePathname();
+    const router = useRouter();
+
 
     const orderStateProps : (status: string) => OrderLinkProps = (status: string) => {
         switch (status) {
@@ -25,12 +26,24 @@ export default function Sidebar() {
         }
     }
 
-    
+    const newOrder = async () => {
+        const order = await createOrder();
+        router.push(`/orders/${ order.id }`);
+    }
+
+    if (isLoading) {
+        return <div>Loading...</div>;
+    }
   
     return (
         <aside>
-            <Tabs selectedKey={pathname} aria-label="Navigation" title="Navigation" isVertical={true}>
-                {orders.data?.map((order: Order, index: number) => (
+            <Tabs 
+                selectedKey={pathname} 
+                aria-label="Navigation" 
+                title="Navigation" 
+                isVertical={true}
+            >
+                {orders.map((order: Order, index: number) => (
                     <Tab
                         key={`/orders/${order.id}`}
                         { ...orderStateProps( order.status ) }
@@ -50,10 +63,10 @@ export default function Sidebar() {
                         href={`/orders/${order.id}`}
                         as={Link}
                         title={<>Order {order.id} <Chip size="sm">{index + 1}</Chip></>}
-                    >
-                    </Tab>
-                )) ?? []}
+                    />
+                ))}
             </Tabs>
+            <Button onPress={newOrder}>+ New Order</Button>
         </aside>
     );
 }
@@ -65,27 +78,23 @@ type Order = {
 }
 
 const useOrderList = () => {
-    const ordersNew = useQuery<Order[]>({
+    const { data: orders = [], isLoading } = useQuery<Order[]>({
         queryKey: ['orders'],
         queryFn: getOrders
     });
-    // const addOrder = () => {};
-    // const reorderOrders = () => {};
+    const queryClient = useQueryClient()
 
 
-    const [ orders, setOrders ] = useState<Order[]>([
-        { id: '1', name: 'Table 1', status: 'pending' },
-        { id: '2', name: 'Table 2', status: 'pending' },
-        { id: '3', name: 'Table 3', status: 'pending' },
-        { id: '4', name: 'Table 4', status: 'pending' },
-        { id: '5', name: 'Table 5', status: 'pending' },
-        { id: '6', name: 'Table 6', status: 'pending' },
-    ]);
-
-    const addOrder = () => {
-        const randomId = Array(3).fill(null).map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join('');
-        setOrders([...orders, { id: randomId, name: 'Takeaway ' + randomId, status: 'pending' }]);
-    }
+    const createOrder = async () => {
+        try {
+            const order = await createOrderApi();
+            // You might want to invalidate the query here
+            await queryClient.invalidateQueries({ queryKey: ['orders'] });
+            return order;
+        } catch (error) {
+            console.error('Failed to create order:', error);
+        }
+    };
 
     const reorderOrders = (draggedId: string, droppedId: string) => {
         if (draggedId === droppedId) return;
@@ -93,13 +102,16 @@ const useOrderList = () => {
         const draggedIndex = orders.findIndex(item => item.id === draggedId);
         const droppedIndex = orders.findIndex(item => item.id === droppedId);
         
+        if (draggedIndex === -1 || droppedIndex === -1) return;
+        
         const newList = [...orders];
         const [draggedItem] = newList.splice(draggedIndex, 1);
         newList.splice(droppedIndex, 0, draggedItem);
         
-        setOrders(newList);
-    }
+        // You might want to update the server here
+        // updateOrders(newList);
+    };
 
-    return [ ordersNew, addOrder, reorderOrders ] as const;
+    return { orders, isLoading, createOrder, reorderOrders };
 }
 
