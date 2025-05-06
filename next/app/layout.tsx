@@ -3,6 +3,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import Sidebar from "@/app/components/sidebar";
 import "./layout.module.css";
+import CommandBar from "@/app/components/command-bar";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -18,11 +19,17 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Providers>
+          <div className="flex flex-row py-4">
+            <div className="w-48"></div>
+            <div className="flex-1 px-8">
+              <CommandBar />
+            </div>
+          </div>
           <div className="flex flex-row">
-            <aside className="w-64">
+            <aside className="w-48 px-8">
               <Sidebar />
             </aside>
-            <main className="flex-1">
+            <main className="flex-1 px-8">
               {children}
             </main>
           </div>

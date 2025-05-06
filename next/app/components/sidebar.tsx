@@ -36,12 +36,14 @@ export default function Sidebar() {
     }
   
     return (
-        <aside>
-            <Tabs 
+        <>
+            <Tabs
+                variant="light"
                 selectedKey={pathname} 
                 aria-label="Navigation" 
                 title="Navigation" 
                 isVertical={true}
+                fullWidth={true}
             >
                 {orders.map((order: Order, index: number) => (
                     <Tab
@@ -66,8 +68,8 @@ export default function Sidebar() {
                     />
                 ))}
             </Tabs>
-            <Button onPress={newOrder}>+ New Order</Button>
-        </aside>
+            <Button fullWidth variant="light" onPress={newOrder}>+ New Order</Button>
+        </>
     );
 }
 
