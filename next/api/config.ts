@@ -14,14 +14,10 @@ const request = async ( path: string, method: string, data: unknown ) => {
     return response.json();
 }
 
-const get = async ( path: string ) => {
+export const get = async ( path: string ) => {
     return request(path, 'GET', null);
 }
 
-const post = async ( path: string, data: unknown ) => {
+export const post = async ( path: string, data: unknown ) => {
     return request(path, 'POST', data);
 }
-
-export const getOrders = () => get('orders');
-
-export const createOrder = () => post('orders', {})

@@ -3,7 +3,7 @@
 import { Chip, Tabs, Tab, Button } from "@heroui/react";
 import Link from "next/link"
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createOrder as createOrderApi, getOrders } from "@/api/config";
+import { createOrder as createOrderApi, getOrders } from "@/api/orders";
 import { usePathname, useRouter } from "next/navigation";
 
 type OrderLinkProps = { 
