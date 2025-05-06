@@ -3,7 +3,7 @@
 import { Chip, Tabs, Tab, Button } from "@heroui/react";
 import Link from "next/link"
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createOrder as createOrderApi, getOrders } from "@/api/orders";
+import OrdersAPI, { type OrderSchema } from "@/api/orders";
 import { usePathname, useRouter } from "next/navigation";
 
 type OrderLinkProps = { 
@@ -45,13 +45,13 @@ export default function Sidebar() {
                 isVertical={true}
                 fullWidth={true}
             >
-                {orders.map((order: Order, index: number) => (
+                {orders.map((order: OrderSchema, index: number) => (
                     <Tab
                         key={`/orders/${order.id}`}
                         { ...orderStateProps( order.status ) }
                         draggable={true}
                         onDragStart={(e) => {
-                            e.dataTransfer.setData('text/plain', order.id);
+                            e.dataTransfer.setData('text/plain', order.id.toString());
                         }}
                         onDragOver={(e) => {
                             e.preventDefault();
@@ -59,7 +59,7 @@ export default function Sidebar() {
                         onDrop={(e) => {
                             e.preventDefault();
                             const draggedId = e.dataTransfer.getData('text/plain');
-                            const droppedId = order.id;
+                            const droppedId = order.id.toString();
                             reorderOrders(draggedId, droppedId);
                         }}
                         href={`/orders/${order.id}`}
@@ -73,24 +73,17 @@ export default function Sidebar() {
     );
 }
 
-type Order = {
-    id: string;
-    name: string;
-    status: string;
-}
-
 const useOrderList = () => {
-    const { data: orders = [], isLoading } = useQuery<Order[]>({
+    const { data: orders = [], isLoading } = useQuery<OrderSchema[]>({
         queryKey: ['orders'],
-        queryFn: getOrders
+        queryFn: () => OrdersAPI.listOrders({})
     });
     const queryClient = useQueryClient()
 
 
     const createOrder = async () => {
         try {
-            const order = await createOrderApi();
-            // You might want to invalidate the query here
+            const order = await OrdersAPI.saveOrder({ status: 'pending' });
             await queryClient.invalidateQueries({ queryKey: ['orders'] });
             return order;
         } catch (error) {
@@ -101,8 +94,8 @@ const useOrderList = () => {
     const reorderOrders = (draggedId: string, droppedId: string) => {
         if (draggedId === droppedId) return;
         
-        const draggedIndex = orders.findIndex(item => item.id === draggedId);
-        const droppedIndex = orders.findIndex(item => item.id === droppedId);
+        const draggedIndex = orders.findIndex(item => item.id === parseInt(draggedId));
+        const droppedIndex = orders.findIndex(item => item.id === parseInt(droppedId));
         
         if (draggedIndex === -1 || droppedIndex === -1) return;
         
