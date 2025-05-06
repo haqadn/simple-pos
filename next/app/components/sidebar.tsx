@@ -2,9 +2,9 @@
 
 import { Chip, Tabs, Tab, Button } from "@heroui/react";
 import Link from "next/link"
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import OrdersAPI, { type OrderSchema } from "@/api/orders";
+import { type OrderSchema } from "@/api/orders";
 import { usePathname, useRouter } from "next/navigation";
+import { useOrdersStore } from "@/stores/orders";
 
 type OrderLinkProps = { 
     color: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger',
@@ -12,7 +12,7 @@ type OrderLinkProps = {
 }
 
 export default function Sidebar() {
-    const { orders, isLoading, createOrder, reorderOrders } = useOrderList();
+    const { orders, isLoading, createOrder, reorderOrders } = useOrdersStore();
     const pathname = usePathname();
     const router = useRouter();
 
@@ -27,8 +27,12 @@ export default function Sidebar() {
     }
 
     const newOrder = async () => {
-        const order = await createOrder();
-        router.push(`/orders/${ order.id }`);
+        try {
+            const order = await createOrder();
+            router.push(`/orders/${ order.id }`);
+        } catch (error) {
+            alert(`Failed to create order: ${error}`);
+        }
     }
 
     if (isLoading) {
@@ -72,41 +76,3 @@ export default function Sidebar() {
         </>
     );
 }
-
-const useOrderList = () => {
-    const { data: orders = [], isLoading } = useQuery<OrderSchema[]>({
-        queryKey: ['orders'],
-        queryFn: () => OrdersAPI.listOrders({})
-    });
-    const queryClient = useQueryClient()
-
-
-    const createOrder = async () => {
-        try {
-            const order = await OrdersAPI.saveOrder({ status: 'pending' });
-            await queryClient.invalidateQueries({ queryKey: ['orders'] });
-            return order;
-        } catch (error) {
-            console.error('Failed to create order:', error);
-        }
-    };
-
-    const reorderOrders = (draggedId: string, droppedId: string) => {
-        if (draggedId === droppedId) return;
-        
-        const draggedIndex = orders.findIndex(item => item.id === parseInt(draggedId));
-        const droppedIndex = orders.findIndex(item => item.id === parseInt(droppedId));
-        
-        if (draggedIndex === -1 || droppedIndex === -1) return;
-        
-        const newList = [...orders];
-        const [draggedItem] = newList.splice(draggedIndex, 1);
-        newList.splice(droppedIndex, 0, draggedItem);
-        
-        // You might want to update the server here
-        // updateOrders(newList);
-    };
-
-    return { orders, isLoading, createOrder, reorderOrders };
-}
-
