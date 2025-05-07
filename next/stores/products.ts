@@ -1,4 +1,4 @@
-import ProductsAPI, { ProductSchema } from "@/api/products";
+import ProductsAPI, { ProductCategorySchema, ProductSchema } from "@/api/products";
 import { useQuery } from "@tanstack/react-query";
 
 const getProductsAndVariations = async () => {
@@ -27,7 +27,14 @@ export const useProductsStore = () => {
         initialData: []
     });
 
+    const categoriesQuery = useQuery<ProductCategorySchema[]>({
+        queryKey: ['categories'],
+        queryFn: () => ProductsAPI.getCategories(),
+        initialData: []
+    });
+
     return {
-        productsQuery
+        productsQuery,
+        categoriesQuery
     }
 }
