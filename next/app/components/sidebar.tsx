@@ -12,7 +12,7 @@ type OrderLinkProps = {
 }
 
 export default function Sidebar() {
-    const { orders, isLoading, createOrder, reorderOrders } = useOrdersStore();
+    const { ordersQuery: { data: orders, isLoading }, createOrder } = useOrdersStore();
     const pathname = usePathname();
     const router = useRouter();
 
@@ -64,7 +64,7 @@ export default function Sidebar() {
                             e.preventDefault();
                             const draggedId = e.dataTransfer.getData('text/plain');
                             const droppedId = order.id.toString();
-                            reorderOrders(draggedId, droppedId);
+                            console.log( 'dragged', draggedId, 'into', droppedId);
                         }}
                         href={`/orders/${order.id}`}
                         as={Link}
