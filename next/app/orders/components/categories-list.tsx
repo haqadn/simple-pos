@@ -1,19 +1,16 @@
 'use client'
 
-import { useState, useEffect } from "react";
 import { useCategoriesQuery } from "@/stores/products";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Settings01Icon } from '@hugeicons/core-free-icons';
 import { Button, Skeleton, useDisclosure } from "@heroui/react";
-import { CategoryConfig } from "./visible-category-config";
+import { CategoryConfig, useVisibleCategories, VisibleCategoriesProvider } from "./visible-category-config";
 
 const decodeHtmlEntities = (text: string) => {
     const textarea = document.createElement('textarea');
     textarea.innerHTML = text;
     return textarea.value;
 };
-
-const STORAGE_KEY = 'visible-categories';
 
 const CategorySkeleton = () => {
     return (
@@ -31,28 +28,10 @@ const Wrapper = ({ children }: { children: React.ReactNode }) => {
     )
 }
 
-export default function CategoriesList() {
+const CategoriesListContent = () => {
     const { data: categories, isLoading } = useCategoriesQuery();
     const { isOpen, onOpenChange, onOpen } = useDisclosure();
-    const [visibleCategories, setVisibleCategories] = useState<Set<string>>(() => {
-        if (typeof window === 'undefined') return new Set();
-        const stored = localStorage.getItem(STORAGE_KEY);
-        return new Set(stored ? JSON.parse(stored) : []);
-    });
-
-    useEffect(() => {
-        const handleStorageChange = () => {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            setVisibleCategories(new Set(stored ? JSON.parse(stored) : []));
-        };
-
-        window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
-    }, []);
-
-    const handleSaveCategories = (newCategories: Set<string>) => {
-        setVisibleCategories(newCategories);
-    };
+    const { visibleCategories } = useVisibleCategories();
 
     if (!categories && isLoading) {
         return (
@@ -93,9 +72,16 @@ export default function CategoriesList() {
             </Button>
             <CategoryConfig 
                 isOpen={isOpen} 
-                onOpenChange={onOpenChange} 
-                onSave={handleSaveCategories}
+                onOpenChange={onOpenChange}
             />
         </Wrapper>
+    );
+};
+
+export default function CategoriesList() {
+    return (
+        <VisibleCategoriesProvider>
+            <CategoriesListContent />
+        </VisibleCategoriesProvider>
     );
 }
