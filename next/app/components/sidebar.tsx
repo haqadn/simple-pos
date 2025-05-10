@@ -38,7 +38,15 @@ export default function Sidebar() {
     if (isLoading) {
         return <div>Loading...</div>;
     }
-  
+
+    if ( ! orders || orders.length === 0 ) {
+        return (
+            <div className="my-4">
+                <p>No orders found</p>
+            </div>
+        );
+    }
+
     return (
         <>
             <Tabs

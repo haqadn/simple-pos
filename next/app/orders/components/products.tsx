@@ -1,7 +1,66 @@
+'use client'
+import { ProductSchema } from "@/api/products";
+import { useProductsQuery } from "@/stores/products";
+import { CardBody, Divider, Table, TableBody, TableCell, TableRow, CardFooter, CardHeader, Card, TableHeader, TableColumn } from "@heroui/react";
+
 export default function Products() {
+    const { data: products, isLoading } = useProductsQuery();
+
+    if( isLoading ) {
+        return (
+            <div>
+                Products are loading...
+            </div>
+        );
+    }
+
+    if (! products || products.length === 0) {
+        return (
+            <div className="my-4">
+                No products found
+            </div>
+        );
+    }
+
     return (
-        <div>
-            <h1>Products</h1>
+        <div className="flex flex-wrap gap-4 my-1 h-full overflow-y-auto p-5 -m-5">
+            {products.map((product) => (
+                <div key={product.id} className="flex-1 min-w-[300px] max-w-[400px]">
+                    <ProductCard product={product} />
+                </div>
+            ))}
         </div>
+    );
+}
+
+const ProductCard = ({ product }: { product: ProductSchema }) => {
+    return (
+        <Card isPressable className="h-full w-full">
+            <CardHeader className="flex gap-3">
+                <div className="text-left">
+                    <p className="text-md font-bold">{product.name}</p>
+                    <p className="text-small text-default-500">{product.variation_name}</p>
+                </div>
+            </CardHeader>
+            {product.description && <Divider />}
+            <CardBody className="flex-1">
+                <p className="text-black/75 text-small" dangerouslySetInnerHTML={{ __html: product.description }} />
+            </CardBody>
+            <Divider />
+            <CardFooter>
+                <Table className="text-black/50" removeWrapper isStriped hideHeader>
+                    <TableHeader>
+                        <TableColumn>Details</TableColumn>
+                        <TableColumn>Value</TableColumn>
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow>
+                            <TableCell>Price</TableCell>
+                            <TableCell className="text-right">{product.price}</TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+            </CardFooter>
+        </Card>
     );
 }

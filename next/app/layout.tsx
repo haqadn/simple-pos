@@ -19,8 +19,8 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Providers>
-          <div className="flex flex-col h-screen py-4">
-            <div className="flex flex-row flex-1">
+          <div className="flex flex-col h-screen py-4 max-h-screen">
+            <div className="flex flex-row flex-1 overflow-y-hidden">
               <aside className="w-48 px-4">
                 <Sidebar />
               </aside>
@@ -28,7 +28,7 @@ export default function RootLayout({
                 {children}
               </main>
             </div>
-            <div className="flex flex-row py-4">
+            <div className="flex flex-row py-4 bg-zinc-50">
               <div className="flex-1 px-4">
                 <CommandBar />
               </div>

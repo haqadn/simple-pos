@@ -1,17 +1,20 @@
 import ProductsAPI, { ProductCategorySchema, ProductSchema } from "@/api/products";
 import { useQuery } from "@tanstack/react-query";
 
-const getProductsAndVariations = async () => {
+const getProductsAndVariations = async (): Promise<ProductSchema[]> => {
     const products = await ProductsAPI.getProducts();
 
     // Process all products and their variations into a flat array
-    const allProductsAndVariations = await Promise.all(products.map(async (product) => {
-        if (product.variations.length === 0) {
+    const allProductsAndVariations = await Promise.all(products.map(async (product): Promise<ProductSchema[]> => {
+        if (product.variations?.length === 0) {
             return [product];
         } else {
             const variations = await ProductsAPI.getVariations(product.id);
-            return variations.map((variation) => ({
+            return variations.map(variation => ({
                 ...variation,
+                name: product.name,
+                variation_name: `${variation.name}`,
+                categories: product.categories
             }));
         }
     }));
@@ -20,21 +23,18 @@ const getProductsAndVariations = async () => {
     return allProductsAndVariations.flat();
 }
 
-export const useProductsStore = () => {
-    const productsQuery = useQuery<ProductSchema[]>({
+export const useProductsQuery = () => {
+    return useQuery<ProductSchema[]>({
         queryKey: ['products'],
         queryFn: getProductsAndVariations,
-        initialData: []
+        staleTime: 60 * 60 * 1000
     });
+}
 
-    const categoriesQuery = useQuery<ProductCategorySchema[]>({
+export const useCategoriesQuery = () => {
+    return useQuery<ProductCategorySchema[]>({
         queryKey: ['categories'],
         queryFn: () => ProductsAPI.getCategories(),
-        initialData: []
+        staleTime: 60 * 60 * 1000,
     });
-
-    return {
-        productsQuery,
-        categoriesQuery
-    }
 }

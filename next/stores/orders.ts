@@ -9,7 +9,7 @@ export const useOrdersStore = () => {
     const ordersQuery = useQuery<OrderSchema[]>({
         queryKey: ['orders'],
         queryFn: () => OrdersAPI.listOrders({}),
-        initialData: []
+        refetchInterval: 10 * 1000,
     });
     const queryClient = useQueryClient()
 

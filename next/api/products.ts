@@ -4,7 +4,6 @@ import { API } from "./api";
 const ProductCategorySchema = z.object({
   id: z.number(),
   name: z.string(),
-  slug: z.string(),
   parent: z.number(),
   description: z.string(),
   menu_order: z.number(),
@@ -13,23 +12,39 @@ const ProductCategorySchema = z.object({
 
 export type ProductCategorySchema = z.infer<typeof ProductCategorySchema>;
 
-const ProductSchema = z.object({
+const ServerSideProductSchema = z.object({
   id: z.number(),
   name: z.string(),
-  slug: z.string(),
   sku: z.string(),
-  price: z.number(),
-  regular_price: z.number(),
-  sale_price: z.number(),
+  price: z.string().transform((val) => parseFloat(val)),
+  regular_price: z.string().transform((val) => parseFloat(val)),
+  sale_price: z.string().transform((val) => parseFloat(val)),
   description: z.string(),
-  categories: z.array(ProductCategorySchema.pick({ id: true, name: true, slug: true })),
-  variations: z.array(z.number()),
+  categories: z.array(ProductCategorySchema.pick({ id: true, name: true })),
+  variations: z.array(z.number()).optional(),
 });
+
+export type ServerSideProductSchema = z.infer<typeof ServerSideProductSchema>;
+
+const ServerSideVariationSchema = ServerSideProductSchema.omit({
+  categories: true,
+  variations: true,
+});
+
+export type ServerSideVariationSchema = z.infer<typeof ServerSideVariationSchema>;
+
+const ProductSchema = ServerSideProductSchema
+  .omit({
+    variations: true,
+  })
+  .extend({
+    variation_name: z.string().optional(),
+  });
 
 export type ProductSchema = z.infer<typeof ProductSchema>;
 
 export default class ProductsAPI extends API {
-  static async getCategories() {
+  static async getCategories(): Promise<ProductCategorySchema[]> {
     const response = await this.client.get("/products/categories", {
       params: { per_page: "100" },
     });
@@ -37,7 +52,7 @@ export default class ProductsAPI extends API {
     return ProductCategorySchema.array().parse(response.data);
   }
 
-  static async getProducts(params: Record<string, string | number> = {}) {
+  static async getProducts(params: Record<string, string | number> = {}): Promise<ServerSideProductSchema[]> {
     const response = await this.client.get("/products", {
       params: {
         per_page: "100",
@@ -46,22 +61,30 @@ export default class ProductsAPI extends API {
         ...params,
       },
     });
-
-    return ProductSchema.array().parse(response.data);
+    try {
+      return ServerSideProductSchema.array().parse(response.data);
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
   }
 
-  static async getVariations(productId: number) {
+  static async getVariations(productId: number): Promise<ServerSideVariationSchema[]> {
     const response = await this.client.get(`/products/${productId}/variations`, {
       params: {
         per_page: "100",
         status: "publish",
       },
     });
-
-    return ProductSchema.array().parse(response.data);
+    try {
+      return ServerSideVariationSchema.array().parse(response.data);
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
   }
 
-  static async updateProduct(productId: ProductSchema['id'], data: Partial<ProductSchema>) {
+  static async updateProduct(productId: ServerSideProductSchema['id'], data: Partial<ServerSideProductSchema>) {
     return await this.client.put(`/products/${productId}`, data);
   }
 }

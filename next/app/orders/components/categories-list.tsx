@@ -1,7 +1,7 @@
 'use client'
 
 import { Chip, Skeleton } from "@heroui/react";
-import { useProductsStore } from "@/stores/products";
+import { useCategoriesQuery } from "@/stores/products";
 
 const CategorySkeleton = () => {
     return (
@@ -11,12 +11,20 @@ const CategorySkeleton = () => {
     )
 }
 
-export default function CategoriesList() {
-    const { categoriesQuery: { data: categories, isLoading } } = useProductsStore();
+const Wrapper = ({ children }: { children: React.ReactNode }) => {
+    return (
+        <div className="-mx-1 my-4">
+            {children}
+        </div>
+    )
+}
 
-    if( isLoading && categories.length === 0 ) {
+export default function CategoriesList() {
+    const { data: categories, isLoading } = useCategoriesQuery();
+
+    if( ! categories && isLoading ) {
         return (
-            <div className="-mx-1">
+            <Wrapper>
                 <CategorySkeleton />
                 <CategorySkeleton />
                 <CategorySkeleton />
@@ -25,15 +33,23 @@ export default function CategoriesList() {
                 <CategorySkeleton />
                 <CategorySkeleton />
                 <CategorySkeleton />
-            </div>
+            </Wrapper>
+        );
+    }
+
+    if ( !categories ) {
+        return (
+            <Wrapper>
+                <p>No categories found</p>
+            </Wrapper>
         );
     }
 
     return (
-        <div className="-mx-1">
+        <Wrapper>
             {categories.map((category) => (
                 <Chip className="m-1" key={category.id}>{category.name}</Chip>
             ))}
-        </div>
+        </Wrapper>
     )
 }
