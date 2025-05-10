@@ -2,6 +2,8 @@
 
 import { Chip, Skeleton } from "@heroui/react";
 import { useCategoriesQuery } from "@/stores/products";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Settings01Icon } from '@hugeicons/core-free-icons';
 
 const CategorySkeleton = () => {
     return (
@@ -13,7 +15,7 @@ const CategorySkeleton = () => {
 
 const Wrapper = ({ children }: { children: React.ReactNode }) => {
     return (
-        <div className="-mx-1 my-4">
+        <div className="-mx-1 my-4 flex flex-wrap">
             {children}
         </div>
     )
@@ -50,6 +52,9 @@ export default function CategoriesList() {
             {categories.map((category) => (
                 <Chip className="m-1" key={category.id}>{category.name}</Chip>
             ))}
+            <Chip className="m-1">
+                <HugeiconsIcon icon={Settings01Icon} className="h-4 w-4" />
+            </Chip>
         </Wrapper>
     )
 }
