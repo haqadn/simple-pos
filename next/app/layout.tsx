@@ -19,21 +19,20 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Providers>
-          <div className="flex flex-row py-4">
-            <div className="flex-1 px-8">
-              <CommandBar />
+          <div className="flex flex-col h-screen py-4">
+            <div className="flex flex-row flex-1">
+              <aside className="w-48 px-4">
+                <Sidebar />
+              </aside>
+              <main className="flex-1 px-4">
+                {children}
+              </main>
             </div>
-          </div>
-          <div className="flex flex-row">
-            <aside className="w-48 px-8">
-              <Sidebar />
-            </aside>
-            <main className="px-8">
-              Here goes the cart
-            </main>
-            <section className="flex-1 px-8">
-              {children}
-            </section>
+            <div className="flex flex-row py-4">
+              <div className="flex-1 px-4">
+                <CommandBar />
+              </div>
+            </div>
           </div>
         </Providers>
       </body>

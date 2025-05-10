@@ -16,7 +16,7 @@ export default function CategoriesList() {
 
     if( isLoading && categories.length === 0 ) {
         return (
-            <>
+            <div className="-mx-1">
                 <CategorySkeleton />
                 <CategorySkeleton />
                 <CategorySkeleton />
@@ -25,17 +25,15 @@ export default function CategoriesList() {
                 <CategorySkeleton />
                 <CategorySkeleton />
                 <CategorySkeleton />
-            </>
+            </div>
         );
     }
 
     return (
-        <>
+        <div className="-mx-1">
             {categories.map((category) => (
-                <>
-                    <Chip className="m-1" key={category.id}>{category.name}</Chip>
-                </>
+                <Chip className="m-1" key={category.id}>{category.name}</Chip>
             ))}
-        </>
+        </div>
     )
 }
