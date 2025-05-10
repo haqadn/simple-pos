@@ -62,6 +62,7 @@ const CategoriesListContent = () => {
 
     return (
         <Wrapper>
+            <Button className="m-1" variant="light">All</Button>
             {filteredCategories.map((category) => (
                 <Button className="m-1" variant="light" key={category.id}>
                     {decodeHtmlEntities(category.name)}
