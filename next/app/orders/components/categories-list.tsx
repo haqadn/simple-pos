@@ -5,6 +5,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Settings01Icon } from '@hugeicons/core-free-icons';
 import { Button, Skeleton, useDisclosure } from "@heroui/react";
 import { CategoryConfig, useVisibleCategories, VisibleCategoriesProvider } from "./visible-category-config";
+import { useSelectedCategory } from "./selected-category";
 
 const decodeHtmlEntities = (text: string) => {
     const textarea = document.createElement('textarea');
@@ -32,6 +33,7 @@ const CategoriesListContent = () => {
     const { data: categories, isLoading } = useCategoriesQuery();
     const { isOpen, onOpenChange, onOpen } = useDisclosure();
     const { visibleCategories } = useVisibleCategories();
+    const { selectedCategoryId, setSelectedCategoryId } = useSelectedCategory();
 
     if (!categories && isLoading) {
         return (
@@ -62,9 +64,20 @@ const CategoriesListContent = () => {
 
     return (
         <Wrapper>
-            <Button className="m-1" variant="light">All</Button>
+            <Button 
+                className="m-1" 
+                variant={selectedCategoryId === null ? "solid" : "light"}
+                onPress={() => setSelectedCategoryId(null)}
+            >
+                All
+            </Button>
             {filteredCategories.map((category) => (
-                <Button className="m-1" variant="light" key={category.id}>
+                <Button 
+                    className="m-1" 
+                    variant={selectedCategoryId === category.id ? "solid" : "light"} 
+                    key={category.id}
+                    onPress={() => setSelectedCategoryId(category.id)}
+                >
                     {decodeHtmlEntities(category.name)}
                 </Button>
             ))}

@@ -2,9 +2,11 @@
 import { ProductSchema } from "@/api/products";
 import { useProductsQuery } from "@/stores/products";
 import { CardBody, Divider, Table, TableBody, TableCell, TableRow, CardFooter, CardHeader, Card, TableHeader, TableColumn } from "@heroui/react";
+import { useSelectedCategory } from "./selected-category";
 
 export default function Products() {
     const { data: products, isLoading } = useProductsQuery();
+    const { selectedCategoryId } = useSelectedCategory();
 
     if( isLoading ) {
         return (
@@ -22,9 +24,15 @@ export default function Products() {
         );
     }
 
+    const filteredProducts = selectedCategoryId === null 
+        ? products 
+        : products.filter(product => 
+            product.categories?.some(category => category.id === selectedCategoryId)
+        );
+
     return (
         <div className="flex flex-wrap gap-4 my-1 h-full overflow-y-auto p-5 -m-5">
-            {products.map((product) => (
+            {filteredProducts.map((product) => (
                 <div key={product.id} className="flex-1 min-w-[300px] max-w-[400px]">
                     <ProductCard product={product} />
                 </div>
