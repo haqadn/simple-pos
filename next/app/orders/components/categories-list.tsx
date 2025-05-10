@@ -1,19 +1,11 @@
 'use client'
 
+import { useState, useEffect } from "react";
 import { useCategoriesQuery } from "@/stores/products";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Settings01Icon } from '@hugeicons/core-free-icons';
-import {
-    Chip,
-    Skeleton,
-    Modal,
-    ModalContent,
-    ModalHeader,
-    ModalBody,
-    ModalFooter,
-    Button,
-    useDisclosure,
-} from "@heroui/react";
+import { Button, Skeleton, useDisclosure } from "@heroui/react";
+import { CategoryConfig } from "./visible-category-config";
 
 const decodeHtmlEntities = (text: string) => {
     const textarea = document.createElement('textarea');
@@ -21,11 +13,13 @@ const decodeHtmlEntities = (text: string) => {
     return textarea.value;
 };
 
+const STORAGE_KEY = 'visible-categories';
+
 const CategorySkeleton = () => {
     return (
-        <Chip className="m-1">
+        <Button className="m-1" variant="light">
             <Skeleton className="w-24 h-4" />
-        </Chip>
+        </Button>
     )
 }
 
@@ -39,10 +33,28 @@ const Wrapper = ({ children }: { children: React.ReactNode }) => {
 
 export default function CategoriesList() {
     const { data: categories, isLoading } = useCategoriesQuery();
-
     const { isOpen, onOpenChange, onOpen } = useDisclosure();
+    const [visibleCategories, setVisibleCategories] = useState<Set<string>>(() => {
+        if (typeof window === 'undefined') return new Set();
+        const stored = localStorage.getItem(STORAGE_KEY);
+        return new Set(stored ? JSON.parse(stored) : []);
+    });
 
-    if( ! categories && isLoading ) {
+    useEffect(() => {
+        const handleStorageChange = () => {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            setVisibleCategories(new Set(stored ? JSON.parse(stored) : []));
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
+
+    const handleSaveCategories = (newCategories: Set<string>) => {
+        setVisibleCategories(newCategories);
+    };
+
+    if (!categories && isLoading) {
         return (
             <Wrapper>
                 <CategorySkeleton />
@@ -57,7 +69,7 @@ export default function CategoriesList() {
         );
     }
 
-    if ( !categories ) {
+    if (!categories) {
         return (
             <Wrapper>
                 <p>No categories found</p>
@@ -65,9 +77,13 @@ export default function CategoriesList() {
         );
     }
 
+    const filteredCategories = categories.filter(category => 
+        visibleCategories.size === 0 || visibleCategories.has(category.id.toString())
+    );
+
     return (
         <Wrapper>
-            {categories.map((category) => (
+            {filteredCategories.map((category) => (
                 <Button className="m-1" variant="light" key={category.id}>
                     {decodeHtmlEntities(category.name)}
                 </Button>
@@ -75,48 +91,11 @@ export default function CategoriesList() {
             <Button className="m-1" variant="light" onPress={onOpen}>
                 <HugeiconsIcon icon={Settings01Icon} className="h-4 w-4" />
             </Button>
-            <CategoryConfig isOpen={isOpen} onOpenChange={onOpenChange} />
+            <CategoryConfig 
+                isOpen={isOpen} 
+                onOpenChange={onOpenChange} 
+                onSave={handleSaveCategories}
+            />
         </Wrapper>
-    )
-}
-
-const CategoryConfig = ( { isOpen, onOpenChange }: { isOpen: boolean, onOpenChange: (isOpen: boolean) => void }) => {
-    return (
-        <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-            <ModalContent>
-                {(onClose) => (
-                <>
-                <ModalHeader className="flex flex-col gap-1">Modal Title</ModalHeader>
-                <ModalBody>
-                    <p>
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pulvinar risus non
-                    risus hendrerit venenatis. Pellentesque sit amet hendrerit risus, sed porttitor
-                    quam.
-                    </p>
-                    <p>
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pulvinar risus non
-                    risus hendrerit venenatis. Pellentesque sit amet hendrerit risus, sed porttitor
-                    quam.
-                    </p>
-                    <p>
-                    Magna exercitation reprehenderit magna aute tempor cupidatat consequat elit dolor
-                    adipisicing. Mollit dolor eiusmod sunt ex incididunt cillum quis. Velit duis sit
-                    officia eiusmod Lorem aliqua enim laboris do dolor eiusmod. Et mollit incididunt
-                    nisi consectetur esse laborum eiusmod pariatur proident Lorem eiusmod et. Culpa
-                    deserunt nostrud ad veniam.
-                    </p>
-                </ModalBody>
-                <ModalFooter>
-                    <Button color="danger" variant="light" onPress={onClose}>
-                    Close
-                    </Button>
-                    <Button color="primary" onPress={onClose}>
-                    Action
-                    </Button>
-                </ModalFooter>
-                </>
-            )}
-            </ModalContent>
-        </Modal>
-    )
+    );
 }
