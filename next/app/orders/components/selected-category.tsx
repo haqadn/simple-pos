@@ -10,7 +10,7 @@ type SelectedCategoryContextType = {
 const SelectedCategoryContext = createContext<SelectedCategoryContextType | null>(null);
 
 export const SelectedCategoryProvider = ({ children }: { children: React.ReactNode }) => {
-    const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(41);
+    const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
 
     return (
         <SelectedCategoryContext.Provider value={{
