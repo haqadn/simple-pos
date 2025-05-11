@@ -6,7 +6,7 @@ import Service from "./components/service";
 export default async function OrderPage({ params }: { params: { reference: string } }) {
     return (
         <div className="overflow-y-auto h-full -m-4 p-4">
-            Order #{(await params).reference}
+            <h2 className="text-xl font-bold mb-4">Order #{(await params).reference}</h2>
             <Service />
             <LineItems />
             <PaymentCard />
