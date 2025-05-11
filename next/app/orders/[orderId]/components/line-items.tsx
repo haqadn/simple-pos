@@ -23,7 +23,7 @@ export default function LineItems() {
             </TableHeader>
             <TableBody>
                 {(lineItems ?? []).map((lineItem: LineItemSchema) => (
-                    <TableRow key={`${lineItem.id}-${lineItem.product_id}-${lineItem.variation_id}`}>
+                    <TableRow key={`${lineItem.product_id}-${lineItem.variation_id}`}>
                         <TableCell>
                             <span className="mr-2">{lineItem.name}</span>
                         </TableCell>
