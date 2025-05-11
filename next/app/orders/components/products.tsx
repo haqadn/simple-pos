@@ -43,10 +43,10 @@ export default function Products() {
 
 const ProductCard = ({ product }: { product: ProductSchema }) => {
     return (
-        <Card isPressable className="h-full w-full">
+        <Card isPressable className="h-full w-full max-h-[300px]">
             <CardHeader className="flex gap-3">
                 <div className="text-left">
-                    <p className="text-md font-bold">{product.name}</p>
+                    <p className="text-xl font-bold">{product.name}</p>
                     <p className="text-small text-default-500">{product.variation_name}</p>
                 </div>
             </CardHeader>
