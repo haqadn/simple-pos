@@ -53,21 +53,26 @@ export const useCurrentOrderQuery = () => {
     });
 }
 
-const addToOrder = async (order: OrderSchema | undefined, product: ProductSchema, quantity: number) => {
+const setLineItem = async (order: OrderSchema | undefined, product: ProductSchema, quantity: number) => {
     if ( !order ) {
         throw new Error('Order is required');
     }
 
+    let name = `${product.name}`;
+    if (product.variation_name) {
+        name += ` - ${product.variation_name}`;
+    }
+
     const { product_id, variation_id } = product;
-    order?.line_items.push({ product_id, variation_id, quantity });
+    order?.line_items.push({ product_id, variation_id, quantity, name });
     await OrdersAPI.updateOrder(order.id.toString(), order);
 }
 
-export const useAddToOrder = () => {
+export const useSetOrderLineItem = () => {
     const order = useCurrentOrderQuery();
     const orderData = order.data;
     const mutation = useMutation({
-        mutationFn: (params: { product: ProductSchema, quantity: number }) => addToOrder(orderData, params.product, params.quantity),
+        mutationFn: (params: { product: ProductSchema, quantity: number }) => setLineItem(orderData, params.product, params.quantity),
     });
 
     return mutation;

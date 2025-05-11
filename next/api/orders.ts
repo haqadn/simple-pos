@@ -3,6 +3,7 @@ import { API } from "./api";
 
 const LineItemSchema = z.object({
   id: z.number().optional(),
+  name: z.string(),
   product_id: z.number(),
   variation_id: z.number(),
   quantity: z.number(),
