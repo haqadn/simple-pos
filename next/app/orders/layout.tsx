@@ -1,3 +1,4 @@
+import { Divider } from "@heroui/react";
 import CategoriesList from "./components/categories-list";
 import Products from "./components/products";
 import { SelectedCategoryProvider } from "./components/selected-category";
@@ -10,9 +11,10 @@ export default function OrderLayout({ children }: { children: React.ReactNode })
             </div>
             <div className="flex flex-col h-full flex-1 px-4">
                 <SelectedCategoryProvider>
-                    <div className="-m-4 p-4 bg-gray-50">
+                    <div className="-m-4 p-4">
                         <CategoriesList />
                     </div>
+                    <Divider />
                     <Products />
                 </SelectedCategoryProvider>
             </div>
