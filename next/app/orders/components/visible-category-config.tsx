@@ -108,18 +108,23 @@ export const CategoryConfig = ({
     };
 
     return (
-        <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+        <Modal 
+            isOpen={isOpen} 
+            onOpenChange={onOpenChange}
+            aria-label="Category visibility configuration"
+        >
             <ModalContent>
                 {(onClose) => (
                     <>
                         <ModalHeader className="flex flex-col gap-1">Configure Visible Categories</ModalHeader>
                         <ModalBody>
-                            <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-2" role="list" aria-label="Category visibility options">
                                 {categories?.map((category) => (
                                     <Checkbox
                                         key={category.id}
                                         isSelected={localVisibleCategories.has(category.id.toString())}
                                         onValueChange={() => handleToggleCategory(category.id)}
+                                        aria-label={`Toggle visibility for ${decodeHtmlEntities(category.name)} category`}
                                     >
                                         {decodeHtmlEntities(category.name)}
                                     </Checkbox>
@@ -127,7 +132,11 @@ export const CategoryConfig = ({
                             </div>
                         </ModalBody>
                         <ModalFooter>
-                            <Button color="primary" onPress={() => handleSave(onClose)}>
+                            <Button 
+                                color="primary" 
+                                onPress={() => handleSave(onClose)}
+                                aria-label="Save category visibility settings"
+                            >
                                 Done
                             </Button>
                         </ModalFooter>

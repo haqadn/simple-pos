@@ -4,7 +4,10 @@ import { NumberInput, Table, TableBody, TableCell, TableColumn, TableHeader, Tab
 
 export default function PaymentCard() {
     return (
-        <Table className="mb-4">
+        <Table 
+            className="mb-4"
+            aria-label="Payment details"
+        >
             <TableHeader>
                 <TableColumn>Description</TableColumn>
                 <TableColumn>Amount</TableColumn>
@@ -16,7 +19,12 @@ export default function PaymentCard() {
                 </TableRow>
                 <TableRow>
                     <TableCell>Received</TableCell>
-                    <TableCell><NumberInput value={500} /></TableCell>
+                    <TableCell>
+                        <NumberInput 
+                            value={500} 
+                            aria-label="Amount received"
+                        />
+                    </TableCell>
                 </TableRow>
                 <TableRow>
                     <TableCell>Change</TableCell>

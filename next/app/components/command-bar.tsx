@@ -4,9 +4,14 @@ import {Input} from "@heroui/react";
 export default function CommandBar() {
     return (
         <>
-            <Input classNames={ {
-                mainWrapper: 'w-full',
-            } } labelPlacement="outside-left" label="Command" />
+            <Input 
+                classNames={{ 
+                    mainWrapper: 'w-full',
+                }} 
+                labelPlacement="outside-left" 
+                label="Command"
+                aria-label="Command input field"
+            />
         </>
     )
 }

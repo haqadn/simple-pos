@@ -42,6 +42,11 @@ export default function Products() {
 }
 
 const ProductCard = ({ product }: { product: ProductSchema }) => {
+    const formatPrice = (price: number) => {
+        if (isNaN(price)) return 'N/A';
+        return price.toFixed(2);
+    };
+
     return (
         <Card isPressable className="h-full w-full max-h-[300px]">
             <CardHeader className="flex gap-3">
@@ -56,7 +61,13 @@ const ProductCard = ({ product }: { product: ProductSchema }) => {
             </CardBody>
             <Divider />
             <CardFooter>
-                <Table className="text-black/50" removeWrapper isStriped hideHeader>
+                <Table 
+                    className="text-black/50" 
+                    removeWrapper 
+                    isStriped 
+                    hideHeader
+                    aria-label={`Product details for ${product.name}`}
+                >
                     <TableHeader>
                         <TableColumn>Details</TableColumn>
                         <TableColumn>Value</TableColumn>
@@ -64,7 +75,7 @@ const ProductCard = ({ product }: { product: ProductSchema }) => {
                     <TableBody>
                         <TableRow>
                             <TableCell>Price</TableCell>
-                            <TableCell className="text-right">{product.price}</TableCell>
+                            <TableCell className="text-right">{formatPrice(product.price)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell>SKU</TableCell>

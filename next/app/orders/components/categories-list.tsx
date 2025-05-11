@@ -15,7 +15,7 @@ const decodeHtmlEntities = (text: string) => {
 
 const CategorySkeleton = () => {
     return (
-        <Button className="m-1" variant="light">
+        <Button className="m-1" variant="light" aria-label="Loading category">
             <Skeleton className="w-24 h-4" />
         </Button>
     )
@@ -23,7 +23,7 @@ const CategorySkeleton = () => {
 
 const Wrapper = ({ children }: { children: React.ReactNode }) => {
     return (
-        <div className="-mx-1 my-4 flex flex-wrap">
+        <div className="-mx-1 my-4 flex flex-wrap" role="list" aria-label="Product categories">
             {children}
         </div>
     )
@@ -68,6 +68,7 @@ const CategoriesListContent = () => {
                 className="m-1" 
                 variant={selectedCategoryId === null ? "solid" : "light"}
                 onPress={() => setSelectedCategoryId(null)}
+                aria-label="Show all categories"
             >
                 All
             </Button>
@@ -77,11 +78,17 @@ const CategoriesListContent = () => {
                     variant={selectedCategoryId === category.id ? "solid" : "light"} 
                     key={category.id}
                     onPress={() => setSelectedCategoryId(category.id)}
+                    aria-label={`Select ${decodeHtmlEntities(category.name)} category`}
                 >
                     {decodeHtmlEntities(category.name)}
                 </Button>
             ))}
-            <Button className="m-1" variant="light" onPress={onOpen}>
+            <Button 
+                className="m-1" 
+                variant="light" 
+                onPress={onOpen}
+                aria-label="Configure visible categories"
+            >
                 <HugeiconsIcon icon={Settings01Icon} className="h-4 w-4" />
             </Button>
             <CategoryConfig 
