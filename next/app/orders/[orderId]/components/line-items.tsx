@@ -1,12 +1,16 @@
 'use client'
 
-import { useCurrentOrderQuery } from "@/stores/orders";
+import { useCurrentOrderQuery, useSetOrderLineItem } from "@/stores/orders";
 import { NumberInput, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import { LineItemSchema } from "@/api/orders";
+import { useGetProductById } from "@/stores/products";
 
 export default function LineItems() {
     const { data: order } = useCurrentOrderQuery();
     const lineItems = order?.line_items;
+
+    const setLineItem = useSetOrderLineItem();
+    const getProductById = useGetProductById();
     
     return (
         <Table 
@@ -27,6 +31,12 @@ export default function LineItems() {
                             <NumberInput 
                                 value={lineItem.quantity} 
                                 aria-label="Quantity of line item"
+                                onChange={(e) => {
+                                    const product = getProductById(lineItem.product_id, lineItem.variation_id);
+                                    if (!product) return;
+                                    const quantity = typeof e === 'number' ? e : Number(e.target.value);
+                                    setLineItem.mutate({ product, quantity });
+                                }}
                             />
                         </TableCell>
                     </TableRow>

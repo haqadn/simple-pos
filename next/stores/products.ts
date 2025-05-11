@@ -37,6 +37,14 @@ export const useProductsQuery = () => {
     });
 }
 
+export const useGetProductById = () => {
+    const { data: products } = useProductsQuery();
+    
+    return (product_id: number, variation_id: number) => {
+        return products?.find(product => product.product_id === product_id && product.variation_id === variation_id);
+    }
+}
+
 export const useCategoriesQuery = () => {
     return useQuery<ProductCategorySchema[]>({
         queryKey: ['categories'],

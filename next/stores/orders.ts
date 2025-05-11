@@ -64,7 +64,14 @@ const setLineItem = async (order: OrderSchema | undefined, product: ProductSchem
     }
 
     const { product_id, variation_id } = product;
-    order?.line_items.push({ product_id, variation_id, quantity, name });
+
+    const lineItem = order.line_items.find(lineItem => lineItem.product_id === product_id && lineItem.variation_id === variation_id);
+    if (lineItem) {
+        lineItem.quantity = quantity;
+    } else {
+        order.line_items.push({ product_id, variation_id, quantity, name });
+    }
+
     await OrdersAPI.updateOrder(order.id.toString(), order);
 }
 
