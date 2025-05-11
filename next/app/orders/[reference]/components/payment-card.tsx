@@ -1,6 +1,6 @@
 'use client'
 
-import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
+import { NumberInput, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 
 export default function PaymentCard() {
     return (
@@ -12,14 +12,14 @@ export default function PaymentCard() {
             <TableBody>
                 <TableRow>
                     <TableCell>Total</TableCell>
-                    <TableCell>500</TableCell>
+                    <TableCell>400</TableCell>
                 </TableRow>
                 <TableRow>
-                    <TableCell>Paid</TableCell>
-                    <TableCell>600</TableCell>
+                    <TableCell>Received</TableCell>
+                    <TableCell><NumberInput value={500} /></TableCell>
                 </TableRow>
                 <TableRow>
-                    <TableCell>Balance</TableCell>
+                    <TableCell>Change</TableCell>
                     <TableCell>100</TableCell>
                 </TableRow>
             </TableBody>
