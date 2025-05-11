@@ -7,11 +7,17 @@ const getProductsAndVariations = async (): Promise<ProductSchema[]> => {
     // Process all products and their variations into a flat array
     const allProductsAndVariations = await Promise.all(products.map(async (product): Promise<ProductSchema[]> => {
         if (product.variations?.length === 0) {
-            return [product];
+            return [{
+                ...product,
+                product_id: product.id,
+                variant_id: 0,
+            }];
         } else {
             const variations = await ProductsAPI.getVariations(product.id);
             return variations.map(variation => ({
                 ...variation,
+                product_id: product.id,
+                variant_id: variation.id,
                 name: product.name,
                 variation_name: `${variation.name}`,
                 categories: product.categories

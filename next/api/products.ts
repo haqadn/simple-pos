@@ -38,6 +38,8 @@ const ProductSchema = ServerSideProductSchema
     variations: true,
   })
   .extend({
+    variation_id: z.number(),
+    product_id: z.number(),
     variation_name: z.string().optional(),
   });
 
