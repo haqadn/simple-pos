@@ -1,41 +1,41 @@
 'use client'
 
 import { useShippingMethodsQuery } from "@/stores/shipping";
-import { Card, CardBody, Chip, Kbd, Radio, RadioGroup, Tab, Tabs } from "@heroui/react";
+import { Card, CardBody, Kbd, Radio, RadioGroup, Tab, Tabs } from "@heroui/react";
 import { useState } from "react";
 
 
 export default function Service() {
-    const [selectedTab, setSelectedTab] = useState("dine_in");
+    const [selectedTab, setSelectedTab] = useState("table");
 
     return (
         <Card>
             <CardBody>
                 <Tabs className="mb-2" fullWidth={true} selectedKey={selectedTab} onSelectionChange={(key) => setSelectedTab(key as string)}>
-                    <Tab key="dine_in" title="Dine In"/>
-                    <Tab key="take_out" title="Take Out"/>
+                    <Tab key="table" title="Table"/>
+                    <Tab key="delivery" title="Delivery"/>
                 </Tabs>
-                {selectedTab === "dine_in" && <DineInTab />}
-                {selectedTab === "take_out" && <DeliveryTab />}
+                {selectedTab === "table" && <TableServiceTab />}
+                {selectedTab === "delivery" && <DeliveryServiceTab />}
             </CardBody>
         </Card>
     );
 }
 
-function DineInTab() {
+function TableServiceTab() {
     return (
         <RadioGroup label="Table" orientation="horizontal">
-            <RadioItem value="1">1</RadioItem>
-            <RadioItem value="2">2</RadioItem>
-            <RadioItem value="3">3</RadioItem>
-            <RadioItem value="4">4</RadioItem>
-            <RadioItem value="5">5</RadioItem>
-            <RadioItem value="6">6</RadioItem>
+            <RadioItem value="1"><Kbd>t1</Kbd> 1</RadioItem>
+            <RadioItem value="2"><Kbd>t2</Kbd> 2</RadioItem>
+            <RadioItem value="3"><Kbd>t3</Kbd> 3</RadioItem>
+            <RadioItem value="4"><Kbd>t4</Kbd> 4</RadioItem>
+            <RadioItem value="5"><Kbd>t5</Kbd> 5</RadioItem>
+            <RadioItem value="6"><Kbd>t6</Kbd> 6</RadioItem>
         </RadioGroup>
     );
 }
 
-function DeliveryTab() {
+function DeliveryServiceTab() {
     const { data: shippingMethods } = useShippingMethodsQuery();
     if (!shippingMethods || shippingMethods.length === 0) return null;
 
@@ -52,7 +52,7 @@ function DeliveryTab() {
                     value={shippingMethod.id.toString()}
                 >
                     
-                    <Kbd>{shippingMethod.id}</Kbd>
+                    <Kbd>d{shippingMethod.id}</Kbd>
                     <span className="mx-1">{shippingMethod.title}</span>
                     <span className="text-sm text-gray-500">({reacableCost(shippingMethod.cost)})</span>
                 </RadioItem>

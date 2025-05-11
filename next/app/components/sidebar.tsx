@@ -1,6 +1,6 @@
 'use client'
 
-import { Chip, Tabs, Tab, Button } from "@heroui/react";
+import { Tabs, Tab, Button, Kbd } from "@heroui/react";
 import Link from "next/link"
 import { type OrderSchema } from "@/api/orders";
 import { usePathname, useRouter } from "next/navigation";
@@ -76,7 +76,7 @@ export default function Sidebar() {
                         }}
                         href={`/orders/${order.id}`}
                         as={Link}
-                        title={<>Order {order.id} <Chip size="sm">{index + 1}</Chip></>}
+                        title={<>Order {order.id} <Kbd>{index + 1}</Kbd></>}
                     />
                 ))}
             </Tabs>
