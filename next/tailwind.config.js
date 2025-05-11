@@ -14,7 +14,7 @@ module.exports = {
   theme: {
     extend: {},
   },
-  darkMode: "class",
+  darkMode: false,
   plugins: [heroui()],
 }
 
