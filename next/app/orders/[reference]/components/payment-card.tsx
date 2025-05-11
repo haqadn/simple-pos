@@ -4,7 +4,7 @@ import { NumberInput, Table, TableBody, TableCell, TableColumn, TableHeader, Tab
 
 export default function PaymentCard() {
     return (
-        <Table>
+        <Table className="mb-4">
             <TableHeader>
                 <TableColumn>Description</TableColumn>
                 <TableColumn>Amount</TableColumn>
