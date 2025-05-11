@@ -1,7 +1,7 @@
 'use client'
 import { ProductSchema } from "@/api/products";
 import { useProductsQuery } from "@/stores/products";
-import { CardBody, Divider, Table, TableBody, TableCell, TableRow, CardFooter, CardHeader, Card, TableHeader, TableColumn } from "@heroui/react";
+import { CardBody, Divider, Table, TableBody, TableCell, TableRow, CardFooter, CardHeader, Card, TableHeader, TableColumn, Kbd } from "@heroui/react";
 import { useSelectedCategory } from "./selected-category";
 
 export default function Products() {
@@ -65,6 +65,10 @@ const ProductCard = ({ product }: { product: ProductSchema }) => {
                         <TableRow>
                             <TableCell>Price</TableCell>
                             <TableCell className="text-right">{product.price}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell>SKU</TableCell>
+                            <TableCell className="text-right">{product.sku ? <Kbd>{product.sku}</Kbd> : ''}</TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>
