@@ -3,6 +3,7 @@ import { ProductSchema } from "@/api/products";
 import { useProductsQuery } from "@/stores/products";
 import { CardBody, Divider, Table, TableBody, TableCell, TableRow, CardFooter, CardHeader, Card, TableHeader, TableColumn, Kbd } from "@heroui/react";
 import { useSelectedCategory } from "./selected-category";
+import { useCurrentOrderQuery, useLineItemQuery } from "@/stores/orders";
 
 export default function Products() {
     const { data: products, isLoading } = useProductsQuery();
@@ -42,13 +43,18 @@ export default function Products() {
 }
 
 const ProductCard = ({ product }: { product: ProductSchema }) => {
+    const { data: order } = useCurrentOrderQuery();
+    const [query, mutation] = useLineItemQuery(order!, product);
+
+    const currentQuantity = query.data?.quantity ?? 0;
+
     const formatPrice = (price: number) => {
         if (isNaN(price)) return 'N/A';
         return price.toFixed(2);
     };
 
     const addToOrder = () => {
-        console.log('addToOrder', product, 1);
+        mutation.mutate({ product, quantity: currentQuantity + 1 });
     }
 
     return (

@@ -39,7 +39,7 @@ export const useCurrentOrderQuery = () => {
     const cachedOrder = ordersQuery.ordersQuery.data?.find(order => order.id === parseInt(orderId));
 
     return useQuery<OrderSchema | undefined>({
-        queryKey: ['order', orderId],
+        queryKey: ['order', orderId, 'detail'],
         queryFn: async () => {
             if (!orderId) {
                 return undefined;
@@ -56,7 +56,7 @@ export const useCurrentOrderQuery = () => {
 
 const findOrderLineItem = (order: OrderSchema, product: ProductSchema | undefined) => {
     if ( !product ) {
-        return undefined;
+        return null;
     }
 
     let lineItem = order.line_items.find(lineItem => lineItem.product_id === product.product_id && lineItem.variation_id === product.variation_id);
@@ -78,11 +78,13 @@ export const useLineItemQuery = (order: OrderSchema, product: ProductSchema | un
 
     const getOrderLineItem = async (orderId: number, product: ProductSchema | undefined) => {
         if ( !product ) {
-            return undefined;
+            return null;
         }
 
         const freshOrder = await OrdersAPI.getOrder(orderId.toString());
-        if (!freshOrder) return undefined;
+        if (!freshOrder) {
+            return null;
+        }
 
         return findOrderLineItem(freshOrder, product);
     }
@@ -93,7 +95,9 @@ export const useLineItemQuery = (order: OrderSchema, product: ProductSchema | un
         }
 
         const lineItem = queryClient.getQueryData<LineItemSchema>(key);
-        if (!lineItem) return;
+        if (!lineItem) {
+            return null;
+        }
 
         const patchLineItems: LineItemSchema[] = [];
         
@@ -111,14 +115,14 @@ export const useLineItemQuery = (order: OrderSchema, product: ProductSchema | un
 
     const key = ['order', order.id, 'lineItem', product?.product_id, product?.variation_id];
 
-    const query = useQuery<LineItemSchema | undefined>({
+    const query = useQuery<LineItemSchema | null>({
         queryKey: key,
         queryFn: () => getOrderLineItem(order.id, product),
         initialData: findOrderLineItem(order, product),
         staleTime: 1000,
     });
 
-    const debouncedUpdateLineItemQuantity = useDebounce(updateLineItemQuantity, 400);
+    const debouncedUpdateLineItemQuantity = useDebounce(updateLineItemQuantity, 1000);
 
     const mutation = useMutation({
         mutationFn: (params: { product: ProductSchema, quantity: number }) => debouncedUpdateLineItemQuantity(order, params.product, params.quantity),
@@ -137,8 +141,11 @@ export const useLineItemQuery = (order: OrderSchema, product: ProductSchema | un
                 queryClient.setQueryData(key, context.previousLineItem);
             }
         },
-        onSettled: (data) => {
+        onSettled: (data, _error, _variables, context) => {
             queryClient.setQueryData(key, data);
+            if (typeof context?.previousLineItem?.id === 'undefined') {
+                queryClient.invalidateQueries({ queryKey: ['order', order.id.toString(), 'detail'] });
+            }
         },
     });
 
