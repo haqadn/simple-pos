@@ -38,19 +38,23 @@ const LineItemQuantity = ({ lineItem, order }: { lineItem: LineItemSchema, order
     const getProductById = useGetProductById();
     const product = getProductById(lineItem.product_id, lineItem.variation_id);
 
-    const [query, mutation] = useLineItemQuery(order, product);
+    const [query, mutation, isMutating] = useLineItemQuery(order, product);
     
     return (
         <NumberInput
             size="sm"
             min={0}
-            color={mutation.isPending ? 'warning' : 'default'}
+            color={isMutating ? 'warning' : 'default'}
             value={query.data?.quantity} 
             aria-label="Quantity of line item"
             onValueChange={(quantity) => {
                 if (!product) {
                     console.error('Product not found');
                     return;
+                }
+
+                if (quantity < 0) {
+                    quantity = 0;
                 }
 
                 mutation.mutate({ product, quantity });

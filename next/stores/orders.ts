@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useIsMutating, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDebounce } from "@/hooks/useDebounce";
 
 import OrdersAPI, { LineItemSchema } from "@/api/orders";
@@ -115,6 +115,8 @@ export const useLineItemQuery = (order: OrderSchema, product: ProductSchema | un
 
     const key = ['order', order.id, 'lineItem', product?.product_id, product?.variation_id];
 
+    const isMutating = useIsMutating({ mutationKey: key });
+
     const query = useQuery<LineItemSchema | null>({
         queryKey: key,
         queryFn: () => getOrderLineItem(order.id, product),
@@ -129,7 +131,6 @@ export const useLineItemQuery = (order: OrderSchema, product: ProductSchema | un
         mutationKey: key,
         onMutate: async (params) => {
             if (!order) return;
-            
             const previousLineItem = queryClient.getQueryData<LineItemSchema>(key);
             
             queryClient.setQueryData(key, { ...previousLineItem, quantity: params.quantity });
@@ -137,8 +138,8 @@ export const useLineItemQuery = (order: OrderSchema, product: ProductSchema | un
             return { previousLineItem };
         },
         onError: (err, variables, context) => {
-            if (context?.previousLineItem) {
-                queryClient.setQueryData(key, context.previousLineItem);
+            if (context?.previousLineItem && err.toString() !== 'debounce') {
+                queryClient.invalidateQueries({ queryKey: key });
             }
         },
         onSettled: (data, _error, _variables, context) => {
@@ -149,5 +150,5 @@ export const useLineItemQuery = (order: OrderSchema, product: ProductSchema | un
         },
     });
 
-    return [ query, mutation ] as const;
+    return [ query, mutation, isMutating ] as const;
 }
