@@ -1,17 +1,14 @@
 'use client'
 
-import { useCurrentOrderQuery, useSetOrderLineItem } from "@/stores/orders";
+import { useCurrentOrderQuery, useLineItemQuery } from "@/stores/orders";
 import { NumberInput, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
-import { LineItemSchema } from "@/api/orders";
+import { LineItemSchema, OrderSchema } from "@/api/orders";
 import { useGetProductById } from "@/stores/products";
 
 export default function LineItems() {
     const { data: order } = useCurrentOrderQuery();
     const lineItems = order?.line_items;
 
-    const setLineItem = useSetOrderLineItem();
-    const getProductById = useGetProductById();
-    
     return (
         <Table 
             className="my-4"
@@ -23,25 +20,41 @@ export default function LineItems() {
             </TableHeader>
             <TableBody>
                 {(lineItems ?? []).map((lineItem: LineItemSchema) => (
-                    <TableRow key={`${lineItem.product_id}-${lineItem.variation_id}`}>
+                    <TableRow key={lineItem.id}>
                         <TableCell>
                             <span className="mr-2">{lineItem.name}</span>
                         </TableCell>
                         <TableCell>
-                            <NumberInput 
-                                value={lineItem.quantity} 
-                                aria-label="Quantity of line item"
-                                onChange={(e) => {
-                                    const product = getProductById(lineItem.product_id, lineItem.variation_id);
-                                    if (!product) return;
-                                    const quantity = typeof e === 'number' ? e : Number(e.target.value);
-                                    setLineItem.mutate({ product, quantity });
-                                }}
-                            />
+                            <LineItemQuantity lineItem={lineItem} order={order!} />
                         </TableCell>
                     </TableRow>
                 ))}
             </TableBody>
         </Table>
+    );
+}
+
+const LineItemQuantity = ({ lineItem, order }: { lineItem: LineItemSchema, order: OrderSchema }) => {
+    const getProductById = useGetProductById();
+    const product = getProductById(lineItem.product_id, lineItem.variation_id);
+
+    const [query, mutation] = useLineItemQuery(order, product);
+    
+    return (
+        <NumberInput
+            size="sm"
+            min={0}
+            color={mutation.isPending ? 'warning' : 'default'}
+            value={query.data?.quantity} 
+            aria-label="Quantity of line item"
+            onValueChange={(quantity) => {
+                if (!product) {
+                    console.error('Product not found');
+                    return;
+                }
+
+                mutation.mutate({ product, quantity });
+            }}
+        />
     );
 }

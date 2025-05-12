@@ -3,7 +3,6 @@ import { ProductSchema } from "@/api/products";
 import { useProductsQuery } from "@/stores/products";
 import { CardBody, Divider, Table, TableBody, TableCell, TableRow, CardFooter, CardHeader, Card, TableHeader, TableColumn, Kbd } from "@heroui/react";
 import { useSelectedCategory } from "./selected-category";
-import { useSetOrderLineItem } from "@/stores/orders";
 
 export default function Products() {
     const { data: products, isLoading } = useProductsQuery();
@@ -43,15 +42,17 @@ export default function Products() {
 }
 
 const ProductCard = ({ product }: { product: ProductSchema }) => {
-    const { mutate: addToOrder } = useSetOrderLineItem();
-
     const formatPrice = (price: number) => {
         if (isNaN(price)) return 'N/A';
         return price.toFixed(2);
     };
 
+    const addToOrder = () => {
+        console.log('addToOrder', product, 1);
+    }
+
     return (
-        <Card isPressable className="h-full w-full max-h-[300px]" onPress={() => addToOrder({ product, quantity: 1 })}>
+        <Card isPressable className="h-full w-full max-h-[300px]" onPress={() => addToOrder()}>
             <CardHeader className="flex gap-3">
                 <div className="text-left">
                     <p className="text-xl font-bold">{product.name}</p>

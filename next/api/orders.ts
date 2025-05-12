@@ -29,7 +29,7 @@ export default class OrdersAPI extends API {
     }
   }
 
-  static async updateOrder(id: string, order: OrderSchema) {
+  static async updateOrder(id: string, order: Partial<OrderSchema>) {
     const response = await this.client.put(`/orders/${id}`, order);
     return OrderSchema.parse(response.data);
   }
