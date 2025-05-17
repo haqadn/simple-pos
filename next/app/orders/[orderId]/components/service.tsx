@@ -24,7 +24,7 @@ export default function Service() {
 
 function TableServiceTab() {
     return (
-        <RadioGroup label="Table" orientation="horizontal">
+        <RadioGroup aria-label="Table" orientation="horizontal">
             <RadioItem value="1"><Kbd>t1</Kbd> 1</RadioItem>
             <RadioItem value="2"><Kbd>t2</Kbd> 2</RadioItem>
             <RadioItem value="3"><Kbd>t3</Kbd> 3</RadioItem>
@@ -45,7 +45,7 @@ function DeliveryServiceTab() {
     }
 
     return (
-        <RadioGroup label="Delivery location">
+        <RadioGroup aria-label="Delivery location">
             {shippingMethods?.map((shippingMethod) => (
                 <RadioItem
                     key={shippingMethod.id}
