@@ -9,13 +9,13 @@
  */
 
 use SimplePOS\Endpoints\Customers;
-use SimplePOS\Endpoints\LocalPickups;
+use SimplePOS\Endpoints\Tables;
 
 require plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 
 // Instantiate and initialize the custom endpoints
 (new Customers())->init();
-(new LocalPickups())->init();
+(new Tables())->init();
 
 
 function spos_register_scripts() {
