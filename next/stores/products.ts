@@ -1,5 +1,17 @@
-import ProductsAPI, { ProductCategorySchema, ProductSchema } from "@/api/products";
+import ProductsAPI, { ProductCategorySchema, ServerSideProductSchema } from "@/api/products";
 import { useQuery } from "@tanstack/react-query";
+import { z } from "zod";
+
+export const ProductSchema = ServerSideProductSchema
+  .omit({
+    variations: true,
+  })
+  .extend({
+    variation_id: z.number(),
+    product_id: z.number(),
+    variation_name: z.string().optional(),
+  });
+export type ProductSchema = z.infer<typeof ProductSchema>;
 
 const getProductsAndVariations = async (): Promise<ProductSchema[]> => {
     const products = await ProductsAPI.getProducts();

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { API } from "./api";
 
-const ProductCategorySchema = z.object({
+export const ProductCategorySchema = z.object({
   id: z.number(),
   name: z.string(),
   parent: z.number(),
@@ -12,7 +12,7 @@ const ProductCategorySchema = z.object({
 
 export type ProductCategorySchema = z.infer<typeof ProductCategorySchema>;
 
-const ServerSideProductSchema = z.object({
+export const ServerSideProductSchema = z.object({
   id: z.number(),
   name: z.string(),
   sku: z.string(),
@@ -26,24 +26,12 @@ const ServerSideProductSchema = z.object({
 
 export type ServerSideProductSchema = z.infer<typeof ServerSideProductSchema>;
 
-const ServerSideVariationSchema = ServerSideProductSchema.omit({
+export const ServerSideVariationSchema = ServerSideProductSchema.omit({
   categories: true,
   variations: true,
 });
 
 export type ServerSideVariationSchema = z.infer<typeof ServerSideVariationSchema>;
-
-const ProductSchema = ServerSideProductSchema
-  .omit({
-    variations: true,
-  })
-  .extend({
-    variation_id: z.number(),
-    product_id: z.number(),
-    variation_name: z.string().optional(),
-  });
-
-export type ProductSchema = z.infer<typeof ProductSchema>;
 
 export default class ProductsAPI extends API {
   static async getCategories(): Promise<ProductCategorySchema[]> {

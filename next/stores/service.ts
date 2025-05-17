@@ -8,59 +8,61 @@ const ServiceMethodSchema = z.object({
   type: z.enum(["table", "takeaway"]),
   fee: z.number(),
 });
+
 export type ServiceMethodSchema = z.infer<typeof ServiceMethodSchema>;
 
 
 const TableSchema = ServiceMethodSchema.extend({
-  type: z.literal("table"),
+type: z.literal("table"),
 });
 export type TableSchema = z.infer<typeof TableSchema>;
 
 
 const DeliveryZoneSchema = ServiceMethodSchema.extend({
-  type: z.literal("takeaway"),
+type: z.literal("takeaway"),
 });
 export type DeliveryZoneSchema = z.infer<typeof DeliveryZoneSchema>;
 
-const shippingMethodsToDeliveryZones = (shippingMethods: BeShippingMethodSchema[]): DeliveryZoneSchema[] => {
+function shippingMethodsToDeliveryZones(shippingMethods: BeShippingMethodSchema[]): DeliveryZoneSchema[] {
   const validZones: DeliveryZoneSchema[] = [];
   shippingMethods.forEach((method) => {
-    if ( ! method.enabled) return;
-    
-    try {
+      if ( ! method.enabled) return;
+      
+      try {
       validZones.push(DeliveryZoneSchema.parse({
-        slug: method.id.toString(),
-        title: method.title,
-        type: 'takeaway',
-        fee: method.settings.cost ? method.settings.cost.value : 0,
+          slug: method.id.toString(),
+          title: method.title,
+          type: 'takeaway',
+          fee: method.settings.cost ? method.settings.cost.value : 0,
       }));
-    } catch (error) {
+      } catch (error) {
       console.error(error);
       // ignore
-    }
+      }
   });
 
   return validZones;
 }
 
-const pickupLocationsToTables = (pickupLocations: BePickupLocationsSchema[]): TableSchema[] => {
-  const validTables: TableSchema[] = [];
-  pickupLocations.forEach((location) => {
-    if ( ! location.enabled) return;
-    
-    try {
-      validTables.push(TableSchema.parse({
-        slug: location.details,
-        title: location.name,
-        type: 'table',
-        fee: 0,
-      }));
-    } catch (error) {
-      console.error(error);
-      // ignore
-    }
-  });
-  return validTables;
+function pickupLocationsToTables(pickupLocations: BePickupLocationsSchema[]): TableSchema[] {
+    const validTables: TableSchema[] = [];
+    pickupLocations.forEach((location) => {
+        if ( ! location.enabled) return;
+        
+        try {
+        validTables.push(TableSchema.parse({
+            slug: location.details,
+            title: location.name,
+            type: 'table',
+            fee: 0,
+        }));
+        } catch (error) {
+        console.error(error);
+        // ignore
+        }
+    });
+
+    return validTables;
 }
 
 const getDeliveryZones = async (): Promise<DeliveryZoneSchema[]> => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useDeliveryZoneQuery, useTablesQuery } from "@/stores/shipping";
+import { useDeliveryZoneQuery, useTablesQuery } from "@/stores/service";
 import { Card, CardBody, Radio, RadioGroup, Tab, Tabs } from "@heroui/react";
 import { useState } from "react";
 
