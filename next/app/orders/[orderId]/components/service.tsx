@@ -1,6 +1,6 @@
 'use client'
 
-import { useDeliveryZoneQuery, useTablesQuery } from "@/stores/service";
+import { useDeliveryZonesQuery, useTablesQuery } from "@/stores/service";
 import { Card, CardBody, Radio, RadioGroup, Tab, Tabs } from "@heroui/react";
 import { useState } from "react";
 
@@ -38,10 +38,10 @@ function TableServiceTab() {
 }
 
 function DeliveryServiceTab() {
-    const { data: deliveryZones } = useDeliveryZoneQuery();
+    const { data: deliveryZones } = useDeliveryZonesQuery();
     if (!deliveryZones || deliveryZones.length === 0) return null;
 
-    const reacableCost = (cost: number) => {
+    const readableCost = (cost: number) => {
         if (cost === 0) return "Free";
         return `${cost}`;
     }
@@ -55,7 +55,7 @@ function DeliveryServiceTab() {
                 >
                     
                     <span className="mx-1">{zone.title}</span>
-                    <span className="text-sm text-gray-500">({reacableCost(zone.fee)})</span>
+                    <span className="text-sm text-gray-500">({readableCost(zone.fee)})</span>
                 </RadioItem>
             ))}
         </RadioGroup>

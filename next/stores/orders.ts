@@ -6,7 +6,7 @@ import OrdersAPI, { LineItemSchema } from "@/api/orders";
 import { OrderSchema } from "@/api/orders";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
-import { ProductSchema } from "@/api/products";
+import { ProductSchema } from "./products";
 
 function generateOrderQueryKey(context: string, order?: OrderSchema, product?: ProductSchema) {
     switch (context) {

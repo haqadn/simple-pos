@@ -75,7 +75,7 @@ const getTables = async (): Promise<TableSchema[]> => {
   return pickupLocationsToTables(response);
 };
 
-export const useDeliveryZoneQuery = () => {
+export const useDeliveryZonesQuery = () => {
   return useQuery({
     queryKey: ["delivery_zones"],
     queryFn: getDeliveryZones,
