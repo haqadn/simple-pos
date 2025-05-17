@@ -8,14 +8,14 @@
  * Domain Path:       /languages
  */
 
+use SimplePOS\Endpoints\PickupLocations;
 use SimplePOS\Endpoints\Customers;
-use SimplePOS\Endpoints\Tables;
 
 require plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 
 // Instantiate and initialize the custom endpoints
 (new Customers())->init();
-(new Tables())->init();
+(new PickupLocations())->init();
 
 
 function spos_register_scripts() {

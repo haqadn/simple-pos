@@ -1,15 +1,16 @@
 import { z } from "zod";
 import { API } from "./api";
 
-const BackendShippingZoneSchema = z.object({
+export const BeShippingZoneSchema = z.object({
   id: z.number(),
   name: z.string(),
 });
 
-const BackendShippingMethodSchema = z
+export const BeShippingMethodSchema = z
     .object({
         id: z.number(),
         title: z.string(),
+        enabled: z.boolean(),
         method_id: z.enum(["flat_rate", "free_shipping"]),
         settings: z.object({
             cost: z.object({
@@ -18,32 +19,36 @@ const BackendShippingMethodSchema = z
         }),
     });
 
-const ShippingMethodSchema = BackendShippingMethodSchema
-  .transform((method) => {
-    const cost = method.settings.cost ? method.settings.cost.value : 0;
+const BePickupLocationsSchema = z.object({
+  name: z.string(),
+  details: z.string(),
+  enabled: z.boolean(),
+});
 
-    return {
-        id: method.id,
-        title: method.title,
-        method_id: method.method_id,
-        cost,
-    }
-  });
+export const BePickupLocationsResponseSchema = z.object({
+  pickup_locations: z.array(BePickupLocationsSchema),
+});
 
-export type BackendShippingZoneSchema = z.infer<typeof BackendShippingZoneSchema>;
-export type BackendShippingMethodSchema = z.infer<typeof BackendShippingMethodSchema>;
-export type ShippingMethodSchema = z.infer<typeof ShippingMethodSchema>;
+export type BePickupLocationsResponseSchema = z.infer<typeof BePickupLocationsResponseSchema>;
+export type BePickupLocationsSchema = z.infer<typeof BePickupLocationsSchema>;
+export type BeShippingZoneSchema = z.infer<typeof BeShippingZoneSchema>;
+export type BeShippingMethodSchema = z.infer<typeof BeShippingMethodSchema>;
 
 export default class ShippingAPI extends API {
 
-  static async getShippingMethods() {
+  static async getShippingMethods(): Promise<BeShippingMethodSchema[]> {
     const response = await this.client.get(`/shipping/zones/0/methods`);
 
     try {
-      return ShippingMethodSchema.array().parse(response.data);
+      return BeShippingMethodSchema.array().parse(response.data);
     } catch (error) {
       console.error(error);
       return [];
     }
+  }
+
+  static async getPickupLocations(): Promise<BePickupLocationsSchema[]> {
+    const response = await this.client.get(`/simple-pos/pickup-locations`);
+    return BePickupLocationsResponseSchema.parse(response.data).pickup_locations;
   }
 }

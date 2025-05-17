@@ -1,7 +1,7 @@
 'use client'
 
-import { useShippingMethodsQuery } from "@/stores/shipping";
-import { Card, CardBody, Kbd, Radio, RadioGroup, Tab, Tabs } from "@heroui/react";
+import { useDeliveryZoneQuery, useTablesQuery } from "@/stores/shipping";
+import { Card, CardBody, Radio, RadioGroup, Tab, Tabs } from "@heroui/react";
 import { useState } from "react";
 
 
@@ -23,21 +23,23 @@ export default function Service() {
 }
 
 function TableServiceTab() {
+    const { data: tables } = useTablesQuery();
+    if (!tables || tables.length === 0) return null;
+
     return (
-        <RadioGroup aria-label="Table" orientation="horizontal">
-            <RadioItem value="1"><Kbd>t1</Kbd> 1</RadioItem>
-            <RadioItem value="2"><Kbd>t2</Kbd> 2</RadioItem>
-            <RadioItem value="3"><Kbd>t3</Kbd> 3</RadioItem>
-            <RadioItem value="4"><Kbd>t4</Kbd> 4</RadioItem>
-            <RadioItem value="5"><Kbd>t5</Kbd> 5</RadioItem>
-            <RadioItem value="6"><Kbd>t6</Kbd> 6</RadioItem>
+        <RadioGroup aria-label="Tables" orientation="horizontal">
+            {tables.map((table) => (
+                <RadioItem key={table.slug} value={table.slug}>
+                    {table.title}
+                </RadioItem>
+            ))}
         </RadioGroup>
     );
 }
 
 function DeliveryServiceTab() {
-    const { data: shippingMethods } = useShippingMethodsQuery();
-    if (!shippingMethods || shippingMethods.length === 0) return null;
+    const { data: deliveryZones } = useDeliveryZoneQuery();
+    if (!deliveryZones || deliveryZones.length === 0) return null;
 
     const reacableCost = (cost: number) => {
         if (cost === 0) return "Free";
@@ -45,16 +47,15 @@ function DeliveryServiceTab() {
     }
 
     return (
-        <RadioGroup aria-label="Delivery location">
-            {shippingMethods?.map((shippingMethod) => (
+        <RadioGroup aria-label="Delivery zones">
+            {deliveryZones.map((zone) => (
                 <RadioItem
-                    key={shippingMethod.id}
-                    value={shippingMethod.id.toString()}
+                    key={zone.slug}
+                    value={zone.slug}
                 >
                     
-                    <Kbd>d{shippingMethod.id}</Kbd>
-                    <span className="mx-1">{shippingMethod.title}</span>
-                    <span className="text-sm text-gray-500">({reacableCost(shippingMethod.cost)})</span>
+                    <span className="mx-1">{zone.title}</span>
+                    <span className="text-sm text-gray-500">({reacableCost(zone.fee)})</span>
                 </RadioItem>
             ))}
         </RadioGroup>
