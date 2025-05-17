@@ -7,20 +7,15 @@
  * Author URI:        https://eadnan.com
  * Domain Path:       /languages
  */
+
+use SimplePOS\Endpoints\Customers;
+use SimplePOS\Endpoints\LocalPickups;
+
 require plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
-require_once plugin_dir_path( __FILE__ ) . 'utils/class-hotspot.php';
-require_once plugin_dir_path( __FILE__ ) . 'utils/class-authentication.php';
-require_once plugin_dir_path( __FILE__ ) . 'utils/class-report.php';
-require_once plugin_dir_path( __FILE__ ) . 'utils/class-customers.php';
 
-// Init report endpoint
-$report = new Report();
-$report->init();
-
-
-// Instantiate and initialize the Customers endpoint
-$customers = new Customers();
-$customers->init();
+// Instantiate and initialize the custom endpoints
+(new Customers())->init();
+(new LocalPickups())->init();
 
 
 function spos_register_scripts() {
@@ -62,11 +57,6 @@ function spos_add_type_attribute($tag, $handle, $src) {
 	return $tag;
 }
 
-function spos_on_order_created( $order_id, $order ) {
-	$order->update_meta_data( 'wifi_password', Hotspot::generatePassword() );
-}
-// add_action( 'woocommerce_new_order', 'spos_on_order_created', 10, 2 );
-
 add_filter('woocommerce_checkout_get_value', function($input, $key ) {
 
 	global $current_user;
@@ -83,3 +73,30 @@ add_filter('woocommerce_checkout_get_value', function($input, $key ) {
 	endswitch;
 
 }, 10, 2);
+
+// Register custom endpoint for local pickup shipping method
+add_action('rest_api_init', function() {
+    register_rest_route('wc/v3', '/shipping_methods/local_pickup', array(
+        'methods' => 'GET',
+        'callback' => function($request) {
+            // Get the shipping method
+            $shipping_method = WC()->shipping()->get_shipping_methods()['local_pickup'];
+            
+            // Get pickup locations from shipping method settings
+            $pickup_locations = get_option('pickup_location_pickup_locations');
+            
+            // Prepare the response
+            $response = array(
+                'id' => 'local_pickup',
+                'title' => $shipping_method->get_method_title(),
+                'description' => $shipping_method->get_method_description(),
+                'pickup_locations' => $pickup_locations
+            );
+            
+            return rest_ensure_response($response);
+        },
+        'permission_callback' => function() {
+            return current_user_can('manage_woocommerce');
+        }
+    ));
+});

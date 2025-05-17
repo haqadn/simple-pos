@@ -1,5 +1,7 @@
 <?php
 
+namespace SimplePOS\Endpoints;
+
 class Customers {
     // Initialize the class
     public function init() {
