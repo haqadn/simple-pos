@@ -8,9 +8,20 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { ProductSchema } from "@/api/products";
 
+function generateOrderQueryKey(context: string, order?: OrderSchema, product?: ProductSchema) {
+    switch (context) {
+        case 'detail':
+            return ['orders', order?.id, 'detail'];
+        case 'lineItem':
+            return ['orders', order?.id, 'lineItem', product?.product_id, product?.variation_id];
+        default:
+            return ['orders'];
+    }
+}
+
 export const useOrdersStore = () => {
     const ordersQuery = useQuery<OrderSchema[]>({
-        queryKey: ['orders'],
+        queryKey: generateOrderQueryKey('list'),
         queryFn: () => OrdersAPI.listOrders({}),
         refetchInterval: 60 * 1000,
     });
@@ -20,7 +31,7 @@ export const useOrdersStore = () => {
     const createOrder = async () => {
         try {
             const order = await OrdersAPI.saveOrder({ status: 'pending' });
-            await queryClient.invalidateQueries({ queryKey: ['orders'] });
+            await queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
             return order;
         } catch (error) {
             console.error('Failed to create order:', error);
@@ -39,7 +50,7 @@ export const useCurrentOrderQuery = () => {
     const cachedOrder = ordersQuery.ordersQuery.data?.find(order => order.id === parseInt(orderId));
 
     return useQuery<OrderSchema | undefined>({
-        queryKey: ['order', orderId, 'detail'],
+        queryKey: generateOrderQueryKey('detail', cachedOrder),
         queryFn: async () => {
             if (!orderId) {
                 return undefined;
@@ -59,15 +70,15 @@ const findOrderLineItem = (order: OrderSchema, product: ProductSchema | undefine
         return null;
     }
 
-    let lineItem = order.line_items.find(lineItem => lineItem.product_id === product.product_id && lineItem.variation_id === product.variation_id);
+    const lineItem = order.line_items.find(lineItem => lineItem.product_id === product.product_id && lineItem.variation_id === product.variation_id);
 
     if ( !lineItem ) {
-        lineItem = {
+        return {
             product_id: product.product_id,
             variation_id: product.variation_id,
             quantity: 0,
-            name: product.name,
-        };
+            name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
+        }
     }
 
     return lineItem;
@@ -113,9 +124,10 @@ export const useLineItemQuery = (order: OrderSchema, product: ProductSchema | un
         return findOrderLineItem(updatedOrder, product);
     }
 
-    const key = ['order', order.id, 'lineItem', product?.product_id, product?.variation_id];
+    const key = generateOrderQueryKey('lineItem', order, product);
 
     const isMutating = useIsMutating({ mutationKey: key });
+
 
     const query = useQuery<LineItemSchema | null>({
         queryKey: key,
@@ -132,8 +144,27 @@ export const useLineItemQuery = (order: OrderSchema, product: ProductSchema | un
         onMutate: async (params) => {
             if (!order) return;
             const previousLineItem = queryClient.getQueryData<LineItemSchema>(key);
-            
-            queryClient.setQueryData(key, { ...previousLineItem, quantity: params.quantity });
+
+            let newLineItem = {
+                product_id: params.product.product_id,
+                variation_id: params.product.variation_id,
+                quantity: params.quantity,
+                name: params.product.name + (params.product.variation_name ? ` - ${params.product.variation_name}` : ''),
+            };
+
+            if ( previousLineItem ) {
+                newLineItem = { ...previousLineItem, quantity: params.quantity };
+            }
+
+            // Ensure the line item is present in the order, id, detail query
+            const orderDetailKey = generateOrderQueryKey('detail', order);
+            const orderQueryData = queryClient.getQueryData<OrderSchema>(orderDetailKey);
+            const sameLineItem = orderQueryData?.line_items.find(lineItem => lineItem.product_id === newLineItem.product_id && lineItem.variation_id === newLineItem.variation_id);
+            if ( ! sameLineItem && params.quantity > 0 ) {
+                queryClient.setQueryData(orderDetailKey, { ...order, line_items: [...order.line_items, newLineItem] });
+            }
+
+            queryClient.setQueryData(key, newLineItem);
             
             return { previousLineItem };
         },
@@ -142,11 +173,8 @@ export const useLineItemQuery = (order: OrderSchema, product: ProductSchema | un
                 queryClient.invalidateQueries({ queryKey: key });
             }
         },
-        onSettled: (data, _error, _variables, context) => {
+        onSettled: (data) => {
             queryClient.setQueryData(key, data);
-            if (typeof context?.previousLineItem?.id === 'undefined') {
-                queryClient.invalidateQueries({ queryKey: ['order', order.id.toString(), 'detail'] });
-            }
         },
     });
 
