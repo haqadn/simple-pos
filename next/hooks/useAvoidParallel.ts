@@ -8,7 +8,6 @@ export const useAvoidParallel = <Args extends unknown[], T>(callback: (input: T,
     return useCallback(
         async (input: T, ...args: Args): Promise<T> => {
             state.current = input;
-            console.log( 'state', state.current );
 
             // If there's already a call in progress
             if (currentPromise.current) {
