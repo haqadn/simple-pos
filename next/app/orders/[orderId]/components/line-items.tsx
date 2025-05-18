@@ -4,11 +4,13 @@ import { useCurrentOrder, useLineItemQuery } from "@/stores/orders";
 import { Card, CardBody, NumberInput } from "@heroui/react";
 import { LineItemSchema } from "@/api/orders";
 import { useGetProductById } from "@/stores/products";
+import { useMaintainOrder } from "@/hooks/useMaintainOrder";
 
 export default function LineItems() {
     const { query: { data: order } } = useCurrentOrder();
-    const lineItems = order?.line_items;
+    const lineItems = order?.line_items ?? [];
 
+    const orderedLineItems = useMaintainOrder(lineItems, (a, b) => a.product_id === b.product_id && a.variation_id === b.variation_id);
     return (
         <Card className="my-4">
             <CardBody>
@@ -22,7 +24,7 @@ export default function LineItems() {
                         </tr>
                     </thead>
                     <tbody>
-                        {(lineItems ?? []).map((lineItem: LineItemSchema) => (
+                        {orderedLineItems.map((lineItem: LineItemSchema) => (
                             <LineItemRow key={lineItem.id} lineItem={lineItem} />
                         ))}
                     </tbody>
