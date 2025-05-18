@@ -11,7 +11,14 @@ export const useMaintainOrder = <T>(items: T[], compare: (a: T, b: T) => boolean
     const [orderedItems, setOrderedItems] = useState<T[]>(items ?? []);
 
     useEffect(() => {
-        if (!items) return;
+        if (!items || items.length === 0) {
+            return;
+        }
+
+        if ( orderedItems.length === 0 ) {
+            setOrderedItems(items);
+            return;
+        }
         
         const newItemsList: (T | undefined)[] = orderedItems.map((eli) => {
                 const newLI = items.find((nli) => compare(eli, nli));

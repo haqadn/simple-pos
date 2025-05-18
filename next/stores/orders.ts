@@ -20,6 +20,7 @@ function generateOrderQueryKey(context: string, order?: OrderSchema, product?: P
 			return ['orders', order?.id, 'lineItem', product?.product_id, product?.variation_id];
 		case 'order':
 			return ['orders', order?.id];
+		case 'list':
 		default:
 			return ['orders'];
 	}
@@ -40,6 +41,7 @@ export const useOrdersStore = () => {
 		queryKey: generateOrderQueryKey('list'),
 		queryFn: () => OrdersAPI.listOrders({}),
 		refetchInterval: 60 * 1000,
+		staleTime: 60 * 1000,
 	});
 	const queryClient = useQueryClient()
 
@@ -62,8 +64,8 @@ export const useCurrentOrder = () => {
 	const params = useParams();
 	const orderId = params.orderId as string;
 
-	const ordersQuery = useOrdersStore();
-	const cachedOrder = ordersQuery.ordersQuery.data?.find(order => order.id === parseInt(orderId));
+	const { ordersQuery } = useOrdersStore();
+	const cachedOrder = ordersQuery.data?.find(order => order.id === parseInt(orderId));
 
 	const queryKey = generateOrderQueryKey('detail', cachedOrder);
 
@@ -98,8 +100,7 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | u
 	const lineItemQuery = useQuery<LineItemSchema | undefined>({
 		queryKey: lineItemKey,
 		queryFn: () => findOrderLineItems(order, product)[0] ?? null,
-		enabled: orderQuery.isFetched,
-		staleTime: 60 * 1000,
+		staleTime: 1000,
 	});
 
 	const updateLineItemQuantity = async (inputOrder?: OrderSchema, quantity?: number) => {

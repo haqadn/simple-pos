@@ -25,7 +25,7 @@ export default function LineItems() {
                     </thead>
                     <tbody>
                         {orderedLineItems.map((lineItem: LineItemSchema) => (
-                            <LineItemRow key={lineItem.id} lineItem={lineItem} />
+                            <LineItemRow key={`${lineItem.product_id}-${lineItem.variation_id}`} lineItem={lineItem} />
                         ))}
                     </tbody>
                 </table>
