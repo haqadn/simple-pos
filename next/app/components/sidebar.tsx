@@ -61,19 +61,6 @@ export default function Sidebar() {
                     <Tab
                         key={`/orders/${order.id}`}
                         { ...orderStateProps( order.status ) }
-                        draggable={true}
-                        onDragStart={(e) => {
-                            e.dataTransfer.setData('text/plain', order.id.toString());
-                        }}
-                        onDragOver={(e) => {
-                            e.preventDefault();
-                        }}
-                        onDrop={(e) => {
-                            e.preventDefault();
-                            const draggedId = e.dataTransfer.getData('text/plain');
-                            const droppedId = order.id.toString();
-                            console.log( 'dragged', draggedId, 'into', droppedId);
-                        }}
                         href={`/orders/${order.id}`}
                         as={Link}
                         title={<>Order {order.id} <Kbd>{index + 1}</Kbd></>}
