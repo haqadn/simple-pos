@@ -56,7 +56,7 @@ const ProductCard = ({ product }: { product: ProductSchema }) => {
     };
 
     const addToOrder = () => {
-        mutation.mutate({ product, quantity: currentQuantity + 1 });
+        mutation.mutate({ quantity: currentQuantity + 1 });
     }
 
     return (

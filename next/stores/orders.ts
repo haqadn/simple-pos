@@ -126,16 +126,21 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | u
 		return updatedOrder;
 	}
 
-	const debouncedMutationFn = useDebounce(useAvoidParallel(updateLineItemQuantity), 1000);
+	const tamedMutationFn = useDebounce(useAvoidParallel(updateLineItemQuantity), 1000);
 
 	const mutation = useMutation({
 		mutationFn: (params: { quantity: number }) => {
 			if (!order) throw new Error('Order is required');
-			return debouncedMutationFn(order, params.quantity);
+			return tamedMutationFn(order, params.quantity);
 		},
 		mutationKey: lineItemKey,
 		onMutate: async (params) => {
-			if (!order || !product) return;
+			if (!order || !product) {
+				return;
+			}
+
+			const newOrderQueryData = { ...order };
+			
 			const newLineItem: LineItemSchema = {
 				product_id: product.product_id,
 				variation_id: product.variation_id,
@@ -147,11 +152,12 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | u
 			if ( existingLineItem ) {
 				existingLineItem.quantity = params.quantity;
 			} else if ( params.quantity > 0 ) {
-				order.line_items.push(newLineItem);
+				newOrderQueryData.line_items = [ ...newOrderQueryData.line_items, newLineItem ];
 			}
 
-			queryClient.setQueryData(orderQueryKey, { ...order, line_items: [...order.line_items] });
-			queryClient.setQueryData(lineItemKey, newLineItem);  
+			console.log( 'Setting new order data', newOrderQueryData );
+			queryClient.setQueryData(orderQueryKey, newOrderQueryData);
+			queryClient.setQueryData(lineItemKey, newLineItem);
 		},
 		onError: (err) => {
 			if (err.toString() !== 'newer-call' && err.toString() !== 'debounce') {

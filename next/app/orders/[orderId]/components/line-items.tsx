@@ -67,7 +67,9 @@ const LineItemRow = ({ lineItem }: { lineItem: LineItemSchema }) => {
                                 quantity = 0;
                             }
 
-                        mutation.mutate({ quantity });
+                            if ( quantity !== query.data?.quantity ) {
+                                mutation.mutate({ quantity });
+                            }
                         }}
                     />
             </td>
