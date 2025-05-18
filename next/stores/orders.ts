@@ -1,5 +1,4 @@
-import { useIsMutating, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useDebounce } from "@/hooks/useDebounce";
+import { QueryObserverResult, useIsMutating, useMutation, useMutationState, useQueryClient } from "@tanstack/react-query";
 
 import OrdersAPI, { LineItemSchema } from "@/api/orders";
 
@@ -7,176 +6,163 @@ import { OrderSchema } from "@/api/orders";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { ProductSchema } from "./products";
+import { useAvoidParallel } from "@/hooks/useAvoidParallel";
+import { useDebounce } from "@/hooks/useDebounce";
 
 function generateOrderQueryKey(context: string, order?: OrderSchema, product?: ProductSchema) {
-    switch (context) {
-        case 'detail':
-            return ['orders', order?.id, 'detail'];
-        case 'lineItem':
-            return ['orders', order?.id, 'lineItem', product?.product_id, product?.variation_id];
-        default:
-            return ['orders'];
-    }
+	switch (context) {
+		case 'detail':
+			return ['orders', order?.id, 'detail'];
+		case 'lineItem':
+			return ['orders', order?.id, 'lineItem', product?.product_id, product?.variation_id];
+		case 'order':
+			return ['orders', order?.id];
+		default:
+			return ['orders'];
+	}
+}
+
+const findOrderLineItems = (order?: OrderSchema, product?: ProductSchema): LineItemSchema[] => {
+	if ( !product || !order ) {
+		return [];
+	}
+
+	const lineItems = order.line_items.filter(lineItem => lineItem.product_id === product.product_id && lineItem.variation_id === product.variation_id);
+
+	return lineItems;
 }
 
 export const useOrdersStore = () => {
-    const ordersQuery = useQuery<OrderSchema[]>({
-        queryKey: generateOrderQueryKey('list'),
-        queryFn: () => OrdersAPI.listOrders({}),
-        refetchInterval: 60 * 1000,
-    });
-    const queryClient = useQueryClient()
+	const ordersQuery = useQuery<OrderSchema[]>({
+		queryKey: generateOrderQueryKey('list'),
+		queryFn: () => OrdersAPI.listOrders({}),
+		refetchInterval: 60 * 1000,
+	});
+	const queryClient = useQueryClient()
 
 
-    const createOrder = async () => {
-        try {
-            const order = await OrdersAPI.saveOrder({ status: 'pending' });
-            await queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
-            return order;
-        } catch (error) {
-            console.error('Failed to create order:', error);
-            throw error;
-        }
-    };
+	const createOrder = async () => {
+		try {
+			const order = await OrdersAPI.saveOrder({ status: 'pending' });
+			await queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
+			return order;
+		} catch (error) {
+			console.error('Failed to create order:', error);
+			throw error;
+		}
+	};
 
-    return { ordersQuery, createOrder };
+	return { ordersQuery, createOrder };
 }
 
-export const useCurrentOrderQuery = () => {
-    const params = useParams();
-    const orderId = params.orderId as string;
+export const useCurrentOrder = () => {
+	const params = useParams();
+	const orderId = params.orderId as string;
 
-    const ordersQuery = useOrdersStore();
-    const cachedOrder = ordersQuery.ordersQuery.data?.find(order => order.id === parseInt(orderId));
+	const ordersQuery = useOrdersStore();
+	const cachedOrder = ordersQuery.ordersQuery.data?.find(order => order.id === parseInt(orderId));
 
-    return useQuery<OrderSchema | undefined>({
-        queryKey: generateOrderQueryKey('detail', cachedOrder),
-        queryFn: async () => {
-            if (!orderId) {
-                return undefined;
-            }
-            const order = await OrdersAPI.getOrder(orderId);
-            if (!order) {
-                return undefined;
-            }
-            return order;
-        },
-        initialData: cachedOrder,
-    });
+	const queryKey = generateOrderQueryKey('detail', cachedOrder);
+
+	const query = useQuery<OrderSchema | undefined>({
+		queryKey,
+		queryFn: async () => {
+			if (!orderId) {
+				return undefined;
+			}
+			const order = await OrdersAPI.getOrder(orderId);
+			if (!order) {
+				return undefined;
+			}
+			return order;
+		},
+		initialData: cachedOrder,
+	});
+
+	return { query };
 }
 
-const findOrderLineItem = (order: OrderSchema, product: ProductSchema | undefined) => {
-    if ( !product ) {
-        return null;
-    }
+export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | undefined>, product?: ProductSchema) => {
+	const queryClient = useQueryClient();
+	const order = orderQuery.data;
+	const orderRootKey = generateOrderQueryKey( 'order', order );
+	const orderQueryKey = generateOrderQueryKey( 'detail', order );
+	const lineItemKey = generateOrderQueryKey('lineItem', order, product);
+	const lineItemIsMutating = useIsMutating({ mutationKey: lineItemKey });
 
-    const lineItem = order.line_items.find(lineItem => lineItem.product_id === product.product_id && lineItem.variation_id === product.variation_id);
+	const lineItemQuery = useQuery<LineItemSchema | undefined>({
+		queryKey: lineItemKey,
+		queryFn: () => findOrderLineItems(order, product)[0] ?? null,
+		enabled: orderQuery.isFetched,
+	});
 
-    if ( !lineItem ) {
-        return {
-            product_id: product.product_id,
-            variation_id: product.variation_id,
-            quantity: 0,
-            name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
-        }
-    }
+	const updateLineItemQuantity = async (inputOrder?: OrderSchema, quantity?: number) => {
+		if ( !inputOrder || !product || typeof quantity === 'undefined' ) {
+			throw new Error('Order, product, quantity are required to update line item quantity');
+		}
+		
+		const patchLineItems: LineItemSchema[] = [];
+		const existingLineItems = findOrderLineItems(inputOrder, product);
+		existingLineItems.forEach(li => {
+			if ( li.id ) {
+				patchLineItems.push( { ...li, quantity: 0 } );
+			}
 
-    return lineItem;
-}
+			li.id = undefined; // Remove the id so future mutations do not get this outdated data
+		});
 
-export const useLineItemQuery = (order: OrderSchema, product: ProductSchema | undefined) => {
-    const queryClient = useQueryClient();
+		if (quantity !== 0) {
+			patchLineItems.push( {
+				name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
+				product_id: product.product_id,
+				variation_id: product.variation_id,
+				quantity: quantity,
+				id: undefined,
+			} );
+		}
 
-    const getOrderLineItem = async (orderId: number, product: ProductSchema | undefined) => {
-        if ( !product ) {
-            return null;
-        }
+		const updatedOrder = await OrdersAPI.updateOrder(inputOrder.id.toString(), {line_items: patchLineItems});
 
-        const freshOrder = await OrdersAPI.getOrder(orderId.toString());
-        if (!freshOrder) {
-            return null;
-        }
+		return updatedOrder;
+	}
 
-        return findOrderLineItem(freshOrder, product);
-    }
+	const debouncedMutationFn = useDebounce(useAvoidParallel(updateLineItemQuantity), 1000);
 
-    const updateLineItemQuantity = async (order: OrderSchema | undefined, product: ProductSchema, quantity: number) => {
-        if ( !order ) {
-            throw new Error('Order is required');
-        }
+	const mutation = useMutation({
+		mutationFn: (params: { quantity: number }) => {
+			if (!order) throw new Error('Order is required');
+			return debouncedMutationFn(order, params.quantity);
+		},
+		mutationKey: lineItemKey,
+		onMutate: async (params) => {
+			if (!order || !product) return;
+			const newLineItem: LineItemSchema = {
+				product_id: product.product_id,
+				variation_id: product.variation_id,
+				quantity: params.quantity,
+				name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
+			};
 
-        const lineItem = queryClient.getQueryData<LineItemSchema>(key);
-        if (!lineItem) {
-            return null;
-        }
+			const existingLineItem = order.line_items.find(lineItem => lineItem.product_id === newLineItem.product_id && lineItem.variation_id === newLineItem.variation_id);
+			if ( existingLineItem ) {
+				existingLineItem.quantity = params.quantity;
+			} else if ( params.quantity > 0 ) {
+				order.line_items.push(newLineItem);
+			}
 
-        const patchLineItems: LineItemSchema[] = [];
-        
-        if (lineItem.id) {
-            patchLineItems.push( { ...lineItem, quantity: 0 } );
-        }
+			queryClient.setQueryData(orderQueryKey, { ...order, line_items: [...order.line_items] });
+			queryClient.setQueryData(lineItemKey, newLineItem);  
+		},
+		onError: (err) => {
+			if (err.toString() !== 'newer-call' && err.toString() !== 'debounce') {
+				queryClient.invalidateQueries({ queryKey: orderRootKey });
+				mutation.reset();
+			}
+		},
+		onSuccess: (data: OrderSchema) => {
+			queryClient.setQueryData(orderQueryKey, data);
+		},
+	});
 
-        if (quantity !== 0) {
-            patchLineItems.push( { ...lineItem, id: undefined } );
-        }
-
-        const updatedOrder = await OrdersAPI.updateOrder(order.id.toString(), {line_items: patchLineItems});
-        return findOrderLineItem(updatedOrder, product);
-    }
-
-    const key = generateOrderQueryKey('lineItem', order, product);
-
-    const isMutating = useIsMutating({ mutationKey: key });
-
-
-    const query = useQuery<LineItemSchema | null>({
-        queryKey: key,
-        queryFn: () => getOrderLineItem(order.id, product),
-        initialData: findOrderLineItem(order, product),
-        staleTime: 1000,
-    });
-
-    const debouncedUpdateLineItemQuantity = useDebounce(updateLineItemQuantity, 1000);
-
-    const mutation = useMutation({
-        mutationFn: (params: { product: ProductSchema, quantity: number }) => debouncedUpdateLineItemQuantity(order, params.product, params.quantity),
-        mutationKey: key,
-        onMutate: async (params) => {
-            if (!order) return;
-            const previousLineItem = queryClient.getQueryData<LineItemSchema>(key);
-
-            let newLineItem = {
-                product_id: params.product.product_id,
-                variation_id: params.product.variation_id,
-                quantity: params.quantity,
-                name: params.product.name + (params.product.variation_name ? ` - ${params.product.variation_name}` : ''),
-            };
-
-            if ( previousLineItem ) {
-                newLineItem = { ...previousLineItem, quantity: params.quantity };
-            }
-
-            // Ensure the line item is present in the order, id, detail query
-            const orderDetailKey = generateOrderQueryKey('detail', order);
-            const orderQueryData = queryClient.getQueryData<OrderSchema>(orderDetailKey);
-            const sameLineItem = orderQueryData?.line_items.find(lineItem => lineItem.product_id === newLineItem.product_id && lineItem.variation_id === newLineItem.variation_id);
-            if ( ! sameLineItem && params.quantity > 0 ) {
-                queryClient.setQueryData(orderDetailKey, { ...order, line_items: [...order.line_items, newLineItem] });
-            }
-
-            queryClient.setQueryData(key, newLineItem);
-            
-            return { previousLineItem };
-        },
-        onError: (err, variables, context) => {
-            if (context?.previousLineItem && err.toString() !== 'debounce') {
-                queryClient.invalidateQueries({ queryKey: key });
-            }
-        },
-        onSettled: (data) => {
-            queryClient.setQueryData(key, data);
-        },
-    });
-
-    return [ query, mutation, isMutating ] as const;
+	return [ lineItemQuery, mutation, lineItemIsMutating ] as const;
 }

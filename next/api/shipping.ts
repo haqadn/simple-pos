@@ -35,9 +35,8 @@ export type BeShippingZoneSchema = z.infer<typeof BeShippingZoneSchema>;
 export type BeShippingMethodSchema = z.infer<typeof BeShippingMethodSchema>;
 
 export default class ShippingAPI extends API {
-
   static async getShippingMethods(): Promise<BeShippingMethodSchema[]> {
-    const response = await this.client.get(`/shipping/zones/0/methods`);
+    const response = await this.client.get<BeShippingMethodSchema[]>(`/shipping/zones/0/methods`);
 
     try {
       return BeShippingMethodSchema.array().parse(response.data);
@@ -48,7 +47,7 @@ export default class ShippingAPI extends API {
   }
 
   static async getPickupLocations(): Promise<BePickupLocationsSchema[]> {
-    const response = await this.client.get(`/simple-pos/pickup-locations`);
+    const response = await this.client.get<BePickupLocationsResponseSchema>(`/simple-pos/pickup-locations`);
     return BePickupLocationsResponseSchema.parse(response.data).pickup_locations;
   }
 }

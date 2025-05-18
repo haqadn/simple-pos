@@ -1,12 +1,12 @@
 'use client'
 
-import { useCurrentOrderQuery, useLineItemQuery } from "@/stores/orders";
+import { useCurrentOrder, useLineItemQuery } from "@/stores/orders";
 import { Card, CardBody, NumberInput } from "@heroui/react";
-import { LineItemSchema, OrderSchema } from "@/api/orders";
+import { LineItemSchema } from "@/api/orders";
 import { useGetProductById } from "@/stores/products";
 
 export default function LineItems() {
-    const { data: order } = useCurrentOrderQuery();
+    const { query: { data: order } } = useCurrentOrder();
     const lineItems = order?.line_items;
 
     return (
@@ -23,7 +23,7 @@ export default function LineItems() {
                     </thead>
                     <tbody>
                         {(lineItems ?? []).map((lineItem: LineItemSchema) => (
-                            <LineItemRow key={lineItem.id} lineItem={lineItem} order={order!} />
+                            <LineItemRow key={lineItem.id} lineItem={lineItem} />
                         ))}
                     </tbody>
                 </table>
@@ -32,11 +32,12 @@ export default function LineItems() {
     );
 }
 
-const LineItemRow = ({ lineItem, order }: { lineItem: LineItemSchema, order: OrderSchema }) => {
+const LineItemRow = ({ lineItem }: { lineItem: LineItemSchema }) => {
     const getProductById = useGetProductById();
     const product = getProductById(lineItem.product_id, lineItem.variation_id);
+    const { query: orderQuery } = useCurrentOrder();
 
-    const [query, mutation, isMutating] = useLineItemQuery(order, product);
+    const [query, mutation, isMutating] = useLineItemQuery(orderQuery, product);
 
     if ( !isMutating && query.data?.quantity === 0 ) {
         return null;
@@ -64,7 +65,7 @@ const LineItemRow = ({ lineItem, order }: { lineItem: LineItemSchema, order: Ord
                                 quantity = 0;
                             }
 
-                        mutation.mutate({ product, quantity });
+                        mutation.mutate({ quantity });
                         }}
                     />
             </td>

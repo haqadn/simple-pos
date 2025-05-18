@@ -1,9 +1,8 @@
 'use client'
-import { ProductSchema } from "@/api/products";
-import { useProductsQuery } from "@/stores/products";
+import { ProductSchema, useProductsQuery } from "@/stores/products";
 import { CardBody, Divider, CardFooter, CardHeader, Card, Kbd } from "@heroui/react";
 import { useSelectedCategory } from "./selected-category";
-import { useCurrentOrderQuery, useLineItemQuery } from "@/stores/orders";
+import { useCurrentOrder, useLineItemQuery } from "@/stores/orders";
 import { useMemo } from "react";
 
 export default function Products() {
@@ -36,7 +35,7 @@ export default function Products() {
 
     return (
         <div className="flex flex-wrap gap-4 my-1 h-full overflow-y-auto p-5 -m-5">
-            {filteredProducts.map((product) => (
+            {filteredProducts?.map((product) => (
                 <div key={product.id} className="flex-1 min-w-[300px] max-w-[400px]">
                     <ProductCard product={product} />
                 </div>
@@ -46,8 +45,8 @@ export default function Products() {
 }
 
 const ProductCard = ({ product }: { product: ProductSchema }) => {
-    const { data: order } = useCurrentOrderQuery();
-    const [query, mutation] = useLineItemQuery(order!, product);
+    const { query: orderQuery } = useCurrentOrder();
+    const [query, mutation] = useLineItemQuery(orderQuery, product);
 
     const currentQuantity = query.data?.quantity ?? 0;
 

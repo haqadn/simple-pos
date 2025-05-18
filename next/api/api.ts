@@ -6,17 +6,17 @@ export type Request_Config = {
 };
 
 export interface API_Client {
-  get: (endpoint: string, config?: Request_Config) => Promise<{ data: object }>;
-  post: (
+  get: <T = unknown>(endpoint: string, config?: Request_Config) => Promise<{ data: T }>;
+  post: <T = unknown>(
     endpoint: string,
     data: object,
     config?: Request_Config
-  ) => Promise<{ data: object }>;
-  put: (
+  ) => Promise<{ data: T }>;
+  put: <T = unknown>(
     endpoint: string,
     data: object,
     config?: Request_Config
-  ) => Promise<{ data: object }>;
+  ) => Promise<{ data: T }>;
 }
 
 function makeClient(): API_Client {
@@ -33,7 +33,6 @@ function makeClient(): API_Client {
     },
   });
 }
-
 
 export class API {
   static client = makeClient();
