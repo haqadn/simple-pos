@@ -1,4 +1,4 @@
-import { QueryObserverResult, useIsMutating, useMutation, useMutationState, useQueryClient } from "@tanstack/react-query";
+import { QueryObserverResult, useIsMutating, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import OrdersAPI, { LineItemSchema } from "@/api/orders";
 
@@ -14,6 +14,9 @@ function generateOrderQueryKey(context: string, order?: OrderSchema, product?: P
 		case 'detail':
 			return ['orders', order?.id, 'detail'];
 		case 'lineItem':
+			if ( !product ) {
+				return ['orders', order?.id, 'lineItem'];
+			}
 			return ['orders', order?.id, 'lineItem', product?.product_id, product?.variation_id];
 		case 'order':
 			return ['orders', order?.id];
@@ -77,6 +80,7 @@ export const useCurrentOrder = () => {
 			return order;
 		},
 		initialData: cachedOrder,
+		staleTime: 60 * 1000,
 	});
 
 	return { query };
@@ -89,11 +93,13 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | u
 	const orderQueryKey = generateOrderQueryKey( 'detail', order );
 	const lineItemKey = generateOrderQueryKey('lineItem', order, product);
 	const lineItemIsMutating = useIsMutating({ mutationKey: lineItemKey });
+	const lineItemsAreMutating = useIsMutating({ mutationKey: generateOrderQueryKey('lineItem', order) });
 
 	const lineItemQuery = useQuery<LineItemSchema | undefined>({
 		queryKey: lineItemKey,
 		queryFn: () => findOrderLineItems(order, product)[0] ?? null,
 		enabled: orderQuery.isFetched,
+		staleTime: 60 * 1000,
 	});
 
 	const updateLineItemQuantity = async (inputOrder?: OrderSchema, quantity?: number) => {
@@ -155,7 +161,6 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | u
 				newOrderQueryData.line_items = [ ...newOrderQueryData.line_items, newLineItem ];
 			}
 
-			console.log( 'Setting new order data', newOrderQueryData );
 			queryClient.setQueryData(orderQueryKey, newOrderQueryData);
 			queryClient.setQueryData(lineItemKey, newLineItem);
 		},
@@ -166,7 +171,9 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | u
 			}
 		},
 		onSuccess: (data: OrderSchema) => {
-			queryClient.setQueryData(orderQueryKey, data);
+			if (lineItemsAreMutating <= 1) {
+				queryClient.setQueryData(orderQueryKey, data);
+			}
 		},
 	});
 
