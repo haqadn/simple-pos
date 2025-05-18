@@ -1,5 +1,12 @@
 import { useCallback, useRef } from 'react';
 
+/**
+ * Avoid parallel calls to a function and instead chain them with one active and one pending at most.
+ * It is used to avoid race conditions between mutations.
+ * 
+ * @param callback - The function to call. The first argument should be the same type as the return value as that is passed on to the pending call.
+ * @returns A function that can be called to call the function.
+ */
 export const useAvoidParallel = <Args extends unknown[], T>(callback: (input: T,...args: Args) => Promise<T>) => {
     const currentPromise = useRef<Promise<T> | null>(null);
     const queuedCall = useRef<{ args: Args; resolve: (value: T) => void; reject: (reason: unknown) => void } | null>(null);
