@@ -155,8 +155,9 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | u
 				name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
 			};
 
-			const existingLineItem = order.line_items.find(lineItem => lineItem.product_id === newLineItem.product_id && lineItem.variation_id === newLineItem.variation_id);
+			const existingLineItem = newOrderQueryData.line_items.find(lineItem => lineItem.product_id === newLineItem.product_id && lineItem.variation_id === newLineItem.variation_id);
 			if ( existingLineItem ) {
+				// Updating newOrderQuery data by reference
 				existingLineItem.quantity = params.quantity;
 			} else if ( params.quantity > 0 ) {
 				newOrderQueryData.line_items = [ ...newOrderQueryData.line_items, newLineItem ];
