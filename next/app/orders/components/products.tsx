@@ -36,7 +36,7 @@ export default function Products() {
     return (
         <div className="flex flex-wrap gap-4 my-1 h-full overflow-y-auto p-5 -m-5">
             {filteredProducts?.map((product) => (
-                <div key={product.id} className="flex-1 min-w-[300px] max-w-[400px]">
+                <div key={product.id} className="flex-1 min-w-[150px] max-w-[200px]">
                     <ProductCard product={product} />
                 </div>
             ))}

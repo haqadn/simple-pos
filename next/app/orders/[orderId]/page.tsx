@@ -1,13 +1,37 @@
+import { Divider } from "@heroui/react";
 import Buttons from "./components/buttons";
-import Order from "./components/order";
+import CustomerInfo from "./components/customer-info";
+import LineItems from "./components/line-items";
+import OrderNote from "./components/order-note";
+import PaymentCard from "./components/payment-card";
+import Service from "./components/service";
 
 export default async function OrderPage({ params }: { params: Promise<{ orderId: string }> }) {
     const { orderId } = await params;
 
     return (
         <div className="flex flex-col h-full">
-            <Order orderId={orderId} />
-            <Buttons />
+            <h2 className="text-xl font-bold mb-4">Order #{orderId}</h2>
+            <div className="flex-1 flex flex-row -mx-4 overflow-hidden -m-4 p-4">
+                <div className="w-96 px-4 -mx-4">
+                    <div className="flex flex-col h-full">
+                        <div className="overflow-y-auto">
+                            <LineItems />
+                        </div>
+                        <div className="flex-1"></div>
+                        <Divider className="mb-1" />
+                        <OrderNote />
+                        <Buttons />
+                    </div>
+                </div>
+                <div className="w-96 px-4">
+                    <div className="overflow-y-auto h-full -m-4 p-4">
+                        <Service />
+                        <PaymentCard />
+                        <CustomerInfo />
+                    </div>  
+                </div>
+            </div>
         </div>
     );
 }

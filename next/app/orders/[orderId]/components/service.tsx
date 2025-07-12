@@ -9,7 +9,7 @@ export default function Service() {
     const [selectedTab, setSelectedTab] = useState("table");
 
     return (
-        <Card>
+        <Card className="mb-4">
             <CardBody>
                 <Tabs className="mb-2" fullWidth={true} selectedKey={selectedTab} onSelectionChange={(key) => setSelectedTab(key as string)}>
                     <Tab key="table" title="Table"/>

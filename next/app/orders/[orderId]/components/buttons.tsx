@@ -4,8 +4,7 @@ import { ButtonGroup, Button, Divider, Dropdown, DropdownTrigger, DropdownMenu, 
 
 export default function Buttons() {
     return (
-        <div className="bg-white py-4">
-            <Divider className="mb-4" />
+        <div className="bg-white">
             <ButtonGroup fullWidth>
                 <Button color="primary">Save</Button>
                 <Button color="default">KOT</Button>

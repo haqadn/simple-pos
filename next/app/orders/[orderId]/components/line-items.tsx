@@ -1,7 +1,7 @@
 'use client'
 
 import { useCurrentOrder, useLineItemQuery } from "@/stores/orders";
-import { Card, CardBody, NumberInput } from "@heroui/react";
+import { NumberInput } from "@heroui/react";
 import { LineItemSchema } from "@/api/orders";
 import { useGetProductById } from "@/stores/products";
 import { useMaintainOrder } from "@/hooks/useMaintainOrder";
@@ -12,25 +12,21 @@ export default function LineItems() {
 
     const orderedLineItems = useMaintainOrder(lineItems, (a, b) => a.product_id === b.product_id && a.variation_id === b.variation_id);
     return (
-        <Card className="my-4">
-            <CardBody>
-                <table 
+            <table 
                     aria-label="Order line items"
                 >
-                    <thead>
-                        <tr className="group/tr outline-none data-[focus-visible=true]:z-10 data-[focus-visible=true]:outline-2 data-[focus-visible=true]:outline-focus data-[focus-visible=true]:outline-offset-2">
-                            <th className="p-2 group/th px-3 h-10 align-middle bg-default-100 whitespace-nowrap text-foreground-500 text-tiny font-semibold first:rounded-s-lg last:rounded-e-lg data-[sortable=true]:cursor-pointer data-[hover=true]:text-foreground-400 outline-none data-[focus-visible=true]:z-10 data-[focus-visible=true]:outline-2 data-[focus-visible=true]:outline-focus data-[focus-visible=true]:outline-offset-2 text-start">Product</th>
-                            <th className="p-2 group/th px-3 h-10 align-middle bg-default-100 whitespace-nowrap text-foreground-500 text-tiny font-semibold first:rounded-s-lg last:rounded-e-lg data-[sortable=true]:cursor-pointer data-[hover=true]:text-foreground-400 outline-none data-[focus-visible=true]:z-10 data-[focus-visible=true]:outline-2 data-[focus-visible=true]:outline-focus data-[focus-visible=true]:outline-offset-2 text-start">Quantity</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {orderedLineItems.map((lineItem: LineItemSchema) => (
-                            <LineItemRow key={`${lineItem.product_id}-${lineItem.variation_id}`} lineItem={lineItem} />
-                        ))}
-                    </tbody>
-                </table>
-            </CardBody>
-        </Card>
+                <thead>
+                    <tr className="group/tr outline-none data-[focus-visible=true]:z-10 data-[focus-visible=true]:outline-2 data-[focus-visible=true]:outline-focus data-[focus-visible=true]:outline-offset-2">
+                        <th className="p-2 group/th px-3 h-10 align-middle bg-default-100 whitespace-nowrap text-foreground-500 text-tiny font-semibold first:rounded-s-lg last:rounded-e-lg data-[sortable=true]:cursor-pointer data-[hover=true]:text-foreground-400 outline-none data-[focus-visible=true]:z-10 data-[focus-visible=true]:outline-2 data-[focus-visible=true]:outline-focus data-[focus-visible=true]:outline-offset-2 text-start">Product</th>
+                        <th className="p-2 group/th px-3 h-10 align-middle bg-default-100 whitespace-nowrap text-foreground-500 text-tiny font-semibold first:rounded-s-lg last:rounded-e-lg data-[sortable=true]:cursor-pointer data-[hover=true]:text-foreground-400 outline-none data-[focus-visible=true]:z-10 data-[focus-visible=true]:outline-2 data-[focus-visible=true]:outline-focus data-[focus-visible=true]:outline-offset-2 text-start">Quantity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {orderedLineItems.map((lineItem: LineItemSchema) => (
+                        <LineItemRow key={`${lineItem.product_id}-${lineItem.variation_id}`} lineItem={lineItem} />
+                    ))}
+                </tbody>
+            </table>
     );
 }
 

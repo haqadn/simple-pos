@@ -6,9 +6,7 @@ import { SelectedCategoryProvider } from "./components/selected-category";
 export default function OrderLayout({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex flex-row h-full -mx-4">
-            <div className="w-96 px-4">
-                {children}
-            </div>
+            {children}
             <div className="flex flex-col h-full flex-1 px-4">
                 <SelectedCategoryProvider>
                     <div className="-m-4 p-4">

@@ -1,12 +1,9 @@
 'use client'
 
-import { Divider, Textarea } from "@heroui/react";
+import { Textarea } from "@heroui/react";
 
 export default function OrderNote() {
     return (
-        <>
-            <Divider className="my-4" />
-            <Textarea placeholder="Order Note" />
-        </>
+        <Textarea className="my-4" placeholder="Order Note" />
     );
 }
