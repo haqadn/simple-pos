@@ -28,6 +28,7 @@ const OrderSchema = z.object({
   status: z.string(),
   line_items: z.array(LineItemSchema),
   shipping_lines: z.array(ShippingLineSchema).default([]),
+  customer_note: z.string().default(""),
 });
 
 export type OrderSchema = z.infer<typeof OrderSchema>;

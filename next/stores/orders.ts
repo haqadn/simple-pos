@@ -21,6 +21,8 @@ function generateOrderQueryKey(context: string, order?: OrderSchema, product?: P
 			return ['orders', order?.id, 'lineItem', product?.product_id, product?.variation_id];
 		case 'service':
 			return ['orders', order?.id, 'service'];
+		case 'note':
+			return ['orders', order?.id, 'note'];
 		case 'order':
 			return ['orders', order?.id];
 		case 'list':
@@ -316,4 +318,59 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | un
 	});
 
 	return [serviceQuery, mutation, serviceIsMutating] as const;
+}
+
+export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | undefined>) => {
+	const queryClient = useQueryClient();
+	const order = orderQuery.data;
+	const orderRootKey = generateOrderQueryKey('order', order);
+	const orderQueryKey = generateOrderQueryKey('detail', order);
+	const noteKey = generateOrderQueryKey('note', order);
+	const noteIsMutating = useIsMutating({ mutationKey: noteKey });
+
+	const noteQuery = useQuery<string>({
+		queryKey: noteKey,
+		queryFn: () => order?.customer_note || '',
+		staleTime: 1000,
+	});
+
+	const updateOrderNote = async (inputOrder?: OrderSchema, note?: string) => {
+		if (!inputOrder || typeof note === 'undefined') {
+			throw new Error('Order and note are required to update order note');
+		}
+
+		const updatedOrder = await OrdersAPI.updateOrder(inputOrder.id.toString(), { customer_note: note });
+		return updatedOrder;
+	};
+
+	const tamedMutationFn = useDebounce(useAvoidParallel(updateOrderNote), 1000);
+
+	const mutation = useMutation({
+		mutationFn: (params: { note: string }) => {
+			if (!order) throw new Error('Order is required');
+			return tamedMutationFn(order, params.note);
+		},
+		mutationKey: noteKey,
+		onMutate: async (params) => {
+			if (!order) return;
+
+			const newOrderQueryData = { ...order, customer_note: params.note };
+			
+			queryClient.setQueryData(orderQueryKey, newOrderQueryData);
+			queryClient.setQueryData(noteKey, params.note);
+		},
+		onError: (err) => {
+			if (err.toString() !== 'newer-call' && err.toString() !== 'debounce') {
+				queryClient.invalidateQueries({ queryKey: orderRootKey });
+				mutation.reset();
+			}
+		},
+		onSuccess: (data: OrderSchema) => {
+			queryClient.setQueryData(orderQueryKey, data);
+			// Also invalidate the orders list to ensure persistence across refreshes
+			queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
+		},
+	});
+
+	return [noteQuery, mutation, noteIsMutating] as const;
 }
