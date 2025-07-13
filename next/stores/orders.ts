@@ -1,6 +1,6 @@
 import { QueryObserverResult, useIsMutating, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import OrdersAPI, { LineItemSchema, ShippingLineSchema } from "@/api/orders";
+import OrdersAPI, { LineItemSchema, ShippingLineSchema, BillingSchema } from "@/api/orders";
 
 import { OrderSchema } from "@/api/orders";
 import { useQuery } from "@tanstack/react-query";
@@ -23,6 +23,8 @@ function generateOrderQueryKey(context: string, order?: OrderSchema, product?: P
 			return ['orders', order?.id, 'service'];
 		case 'note':
 			return ['orders', order?.id, 'note'];
+		case 'customerInfo':
+			return ['orders', order?.id, 'customerInfo'];
 		case 'order':
 			return ['orders', order?.id];
 		case 'list':
@@ -373,4 +375,74 @@ export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | 
 	});
 
 	return [noteQuery, mutation, noteIsMutating] as const;
+}
+
+export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema | undefined>) => {
+	const queryClient = useQueryClient();
+	const order = orderQuery.data;
+	const orderRootKey = generateOrderQueryKey('order', order);
+	const orderQueryKey = generateOrderQueryKey('detail', order);
+	const customerInfoKey = generateOrderQueryKey('customerInfo', order);
+	const customerInfoIsMutating = useIsMutating({ mutationKey: customerInfoKey });
+
+	const customerInfoQuery = useQuery<BillingSchema>({
+		queryKey: customerInfoKey,
+		queryFn: () => order?.billing || {
+			first_name: "",
+			last_name: "",
+			phone: "",
+			address_1: "",
+			address_2: "",
+			city: "",
+			state: "",
+			postcode: "",
+			country: "",
+		},
+		staleTime: 1000,
+	});
+
+	const updateCustomerInfo = async (inputOrder?: OrderSchema, billing?: Partial<BillingSchema>) => {
+		if (!inputOrder || !billing) {
+			throw new Error('Order and billing info are required to update customer info');
+		}
+
+		// Merge with existing billing data to ensure all required fields are present
+		const mergedBilling = { ...inputOrder.billing, ...billing };
+		const updatedOrder = await OrdersAPI.updateOrder(inputOrder.id.toString(), { billing: mergedBilling });
+		return updatedOrder;
+	};
+
+	const tamedMutationFn = useDebounce(useAvoidParallel(updateCustomerInfo), 1000);
+
+	const mutation = useMutation({
+		mutationFn: (params: { billing: Partial<BillingSchema> }) => {
+			if (!order) throw new Error('Order is required');
+			return tamedMutationFn(order, params.billing);
+		},
+		mutationKey: customerInfoKey,
+		onMutate: async (params) => {
+			if (!order) return;
+
+			const newOrderQueryData = { 
+				...order, 
+				billing: { ...order.billing, ...params.billing }
+			};
+			
+			queryClient.setQueryData(orderQueryKey, newOrderQueryData);
+			queryClient.setQueryData(customerInfoKey, newOrderQueryData.billing);
+		},
+		onError: (err) => {
+			if (err.toString() !== 'newer-call' && err.toString() !== 'debounce') {
+				queryClient.invalidateQueries({ queryKey: orderRootKey });
+				mutation.reset();
+			}
+		},
+		onSuccess: (data: OrderSchema) => {
+			queryClient.setQueryData(orderQueryKey, data);
+			// Also invalidate the orders list to ensure persistence across refreshes
+			queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
+		},
+	});
+
+	return [customerInfoQuery, mutation, customerInfoIsMutating] as const;
 }
