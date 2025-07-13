@@ -67,6 +67,7 @@ export default function Sidebar() {
 
     return (
         <>
+            <Button fullWidth variant="light" onPress={newOrder}>+ New Order</Button>
             <Tabs
                 variant="light"
                 selectedKey={pathname} 
@@ -92,7 +93,9 @@ export default function Sidebar() {
                     />
                 ))}
             </Tabs>
-            <Button fullWidth variant="light" onPress={newOrder}>+ New Order</Button>
+            {orders.length > 5 && (
+                <Button fullWidth variant="light" onPress={newOrder}>+ New Order</Button>
+            )}
         </>
     );
 }

@@ -42,7 +42,7 @@ const findOrderLineItems = (order?: OrderSchema, product?: ProductSchema): LineI
 export const useOrdersStore = () => {
 	const ordersQuery = useQuery<OrderSchema[]>({
 		queryKey: generateOrderQueryKey('list'),
-		queryFn: () => OrdersAPI.listOrders({}),
+		queryFn: () => OrdersAPI.listOrders({ 'per_page': '100', 'status': 'pending,processing,on-hold' }),
 		refetchInterval: 60 * 1000,
 		staleTime: 60 * 1000,
 	});

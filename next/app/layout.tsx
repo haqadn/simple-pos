@@ -21,7 +21,7 @@ export default function RootLayout({
         <Providers>
           <div className="flex flex-col h-screen py-4 max-h-screen">
             <div className="flex flex-row flex-1 overflow-y-hidden">
-              <aside className="w-48 px-4">
+              <aside className="w-48 px-4 overflow-y-auto">
                 <Sidebar />
               </aside>
               <main className="flex-1 px-4">
