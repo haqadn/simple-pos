@@ -1,6 +1,6 @@
 import { QueryObserverResult, useIsMutating, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import OrdersAPI, { LineItemSchema, ShippingLineSchema, BillingSchema } from "@/api/orders";
+import OrdersAPI, { LineItemSchema, ShippingLineSchema, BillingSchema, MetaDataSchema } from "@/api/orders";
 
 import { OrderSchema } from "@/api/orders";
 import { useQuery } from "@tanstack/react-query";
@@ -25,6 +25,8 @@ function generateOrderQueryKey(context: string, order?: OrderSchema, product?: P
 			return ['orders', order?.id, 'note'];
 		case 'customerInfo':
 			return ['orders', order?.id, 'customerInfo'];
+		case 'payment':
+			return ['orders', order?.id, 'payment'];
 		case 'order':
 			return ['orders', order?.id];
 		case 'list':
@@ -445,4 +447,106 @@ export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema
 	});
 
 	return [customerInfoQuery, mutation, customerInfoIsMutating] as const;
+}
+
+export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | undefined>) => {
+	const queryClient = useQueryClient();
+	const order = orderQuery.data;
+	const orderRootKey = generateOrderQueryKey('order', order);
+	const orderQueryKey = generateOrderQueryKey('detail', order);
+	const paymentKey = generateOrderQueryKey('payment', order);
+	const paymentIsMutating = useIsMutating({ mutationKey: paymentKey });
+
+	const paymentQuery = useQuery<number>({
+		queryKey: paymentKey,
+		queryFn: () => {
+			// Find payment_received in meta_data
+			const paymentMeta = order?.meta_data?.find(meta => meta.key === 'payment_received');
+			return parseFloat(String(paymentMeta?.value || '0'));
+		},
+		staleTime: 1000,
+	});
+
+	const updatePaymentReceived = async (inputOrder?: OrderSchema, receivedAmount?: number) => {
+		if (!inputOrder || typeof receivedAmount === 'undefined') {
+			throw new Error('Order and received amount are required to update payment');
+		}
+
+		// Create or update the payment_received meta field
+		const existingMetaData = inputOrder.meta_data || [];
+		const existingPaymentMeta = existingMetaData.find(meta => meta.key === 'payment_received');
+		
+		let updatedMetaData: MetaDataSchema[];
+		if (existingPaymentMeta) {
+			// Update existing meta field
+			updatedMetaData = existingMetaData.map(meta => 
+				meta.key === 'payment_received' 
+					? { ...meta, value: receivedAmount.toFixed(2) }
+					: meta
+			);
+		} else {
+			// Add new meta field
+			updatedMetaData = [
+				...existingMetaData,
+				{ key: 'payment_received', value: receivedAmount.toFixed(2) }
+			];
+		}
+
+		const updatedOrder = await OrdersAPI.updateOrder(inputOrder.id.toString(), { 
+			meta_data: updatedMetaData
+		});
+		return updatedOrder;
+	};
+
+	const tamedMutationFn = useDebounce(useAvoidParallel(updatePaymentReceived), 1000);
+
+	const mutation = useMutation({
+		mutationFn: (params: { received: number }) => {
+			if (!order) throw new Error('Order is required');
+			return tamedMutationFn(order, params.received);
+		},
+		mutationKey: paymentKey,
+		onMutate: async (params) => {
+			if (!order) return;
+
+			// Update meta_data optimistically
+			const existingMetaData = order.meta_data || [];
+			const existingPaymentMeta = existingMetaData.find(meta => meta.key === 'payment_received');
+			
+			let updatedMetaData: MetaDataSchema[];
+			if (existingPaymentMeta) {
+				updatedMetaData = existingMetaData.map(meta => 
+					meta.key === 'payment_received' 
+						? { ...meta, value: params.received.toFixed(2) }
+						: meta
+				);
+			} else {
+				updatedMetaData = [
+					...existingMetaData,
+					{ key: 'payment_received', value: params.received.toFixed(2) }
+				];
+			}
+
+			const newOrderQueryData = { 
+				...order, 
+				meta_data: updatedMetaData
+			};
+			
+			queryClient.setQueryData(orderQueryKey, newOrderQueryData);
+			queryClient.setQueryData(paymentKey, params.received);
+		},
+		onError: (err) => {
+			if (err.toString() !== 'newer-call' && err.toString() !== 'debounce') {
+				queryClient.invalidateQueries({ queryKey: orderRootKey });
+				mutation.reset();
+			}
+		},
+		onSuccess: (data: OrderSchema) => {
+			queryClient.setQueryData(orderQueryKey, data);
+			// Also invalidate the orders list to ensure persistence across refreshes
+			queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
+		},
+	});
+
+	return [paymentQuery, mutation, paymentIsMutating] as const;
 }

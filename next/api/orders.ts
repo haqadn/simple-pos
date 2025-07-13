@@ -35,6 +35,12 @@ const BillingSchema = z.object({
   country: z.string().default(""),
 });
 
+const MetaDataSchema = z.object({
+  id: z.number().optional(),
+  key: z.string(),
+  value: z.union([z.string(), z.number(), z.boolean()]),
+});
+
 const OrderSchema = z.object({
   id: z.number(),
   status: z.string(),
@@ -42,12 +48,15 @@ const OrderSchema = z.object({
   shipping_lines: z.array(ShippingLineSchema).default([]),
   customer_note: z.string().default(""),
   billing: BillingSchema.default({}),
+  total: z.string().default("0.00"),
+  meta_data: z.array(MetaDataSchema).default([]),
 });
 
 export type OrderSchema = z.infer<typeof OrderSchema>;
 export type LineItemSchema = z.infer<typeof LineItemSchema>;
 export type ShippingLineSchema = z.infer<typeof ShippingLineSchema>;
 export type BillingSchema = z.infer<typeof BillingSchema>;
+export type MetaDataSchema = z.infer<typeof MetaDataSchema>;
 export type ShippingMethodType = z.infer<typeof ShippingMethodEnum>;
 
 export default class OrdersAPI extends API {
