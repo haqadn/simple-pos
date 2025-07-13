@@ -1,11 +1,12 @@
 import { QueryObserverResult, useIsMutating, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import OrdersAPI, { LineItemSchema } from "@/api/orders";
+import OrdersAPI, { LineItemSchema, ShippingLineSchema } from "@/api/orders";
 
 import { OrderSchema } from "@/api/orders";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { ProductSchema } from "./products";
+import { ServiceMethodSchema, useTablesQuery } from "./service";
 import { useAvoidParallel } from "@/hooks/useAvoidParallel";
 import { useDebounce } from "@/hooks/useDebounce";
 
@@ -18,6 +19,8 @@ function generateOrderQueryKey(context: string, order?: OrderSchema, product?: P
 				return ['orders', order?.id, 'lineItem'];
 			}
 			return ['orders', order?.id, 'lineItem', product?.product_id, product?.variation_id];
+		case 'service':
+			return ['orders', order?.id, 'service'];
 		case 'order':
 			return ['orders', order?.id];
 		case 'list':
@@ -180,4 +183,137 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | u
 	});
 
 	return [ lineItemQuery, mutation, lineItemIsMutating ] as const;
+}
+
+export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | undefined>) => {
+	const queryClient = useQueryClient();
+	const order = orderQuery.data;
+	const orderRootKey = generateOrderQueryKey('order', order);
+	const orderQueryKey = generateOrderQueryKey('detail', order);
+	const serviceKey = generateOrderQueryKey('service', order);
+	const serviceIsMutating = useIsMutating({ mutationKey: serviceKey });
+	
+	// Get tables data for proper slug mapping
+	const { data: tables } = useTablesQuery();
+
+	const serviceQuery = useQuery<ServiceMethodSchema | undefined>({
+		queryKey: serviceKey,
+		queryFn: () => {
+			if (!order?.shipping_lines?.length) return undefined;
+			
+			// Find the active shipping line (not empty/cleared ones)
+			const activeShippingLine = order.shipping_lines.find(line => 
+				line.method_id && 
+				line.method_id !== '' && 
+				(line.method_id === 'pickup_location' || line.method_id === 'flat_rate' || line.method_id === 'free_shipping')
+			);
+			
+			if (!activeShippingLine) return undefined;
+			
+			let slug: string;
+			let title: string;
+			
+			if (activeShippingLine.method_id === 'pickup_location') {
+				// For tables, extract table name from method_title (e.g., "Table (Table One)" -> "Table One")
+				const titleMatch = activeShippingLine.method_title.match(/\(([^)]+)\)/);
+				const extractedTableName = titleMatch ? titleMatch[1] : activeShippingLine.method_title;
+				
+				// Find the table that matches this name to get the correct slug
+				const matchingTable = tables?.find(table => table.title === extractedTableName);
+				
+				if (matchingTable) {
+					slug = matchingTable.slug; // Use the table's slug for proper matching
+					title = matchingTable.title; // Use the table's title
+				} else {
+					// Fallback if table not found
+					slug = extractedTableName;
+					title = extractedTableName;
+				}
+			} else {
+				// For delivery zones, use instance_id
+				slug = activeShippingLine.instance_id;
+				title = activeShippingLine.method_title;
+			}
+			
+			return {
+				slug,
+				title,
+				type: activeShippingLine.method_id === 'pickup_location' ? 'table' : 'takeaway',
+				fee: parseFloat(activeShippingLine.total)
+			} as ServiceMethodSchema;
+		},
+		staleTime: 1000,
+	});
+
+	const updateServiceMethod = async (inputOrder?: OrderSchema, service?: ServiceMethodSchema) => {
+		if (!inputOrder || !service) {
+			throw new Error('Order and service are required to update service method');
+		}
+
+		// Check if there's an existing shipping line we can update
+		const existingShippingLine = inputOrder.shipping_lines.find(line => 
+			line.id && line.method_id && line.method_id !== ''
+		);
+
+		const shippingLine: ShippingLineSchema = {
+			id: existingShippingLine?.id, // Use existing ID if present
+			method_id: service.type === 'table' ? 'pickup_location' : 'flat_rate',
+			instance_id: service.type === 'table' ? '0' : service.slug,
+			method_title: service.type === 'table' ? `Table (${service.title})` : service.title,
+			total: service.fee.toString(),
+			total_tax: '0.00',
+			taxes: []
+		};
+
+		const updatedOrder = await OrdersAPI.updateOrder(inputOrder.id.toString(), { shipping_lines: [shippingLine] });
+		return updatedOrder;
+	};
+
+	const tamedMutationFn = useDebounce(useAvoidParallel(updateServiceMethod), 1000);
+
+	const mutation = useMutation({
+		mutationFn: (params: { service: ServiceMethodSchema }) => {
+			if (!order) throw new Error('Order is required');
+			return tamedMutationFn(order, params.service);
+		},
+		mutationKey: serviceKey,
+		onMutate: async (params) => {
+			if (!order) return;
+
+			const newOrderQueryData = { ...order };
+			
+			// Check if there's an existing shipping line we can update
+			const existingShippingLine = order.shipping_lines.find(line => 
+				line.id && line.method_id && line.method_id !== ''
+			);
+			
+			const newShippingLine: ShippingLineSchema = {
+				id: existingShippingLine?.id, // Use existing ID if present
+				method_id: params.service.type === 'table' ? 'pickup_location' : 'flat_rate',
+				instance_id: params.service.type === 'table' ? '0' : params.service.slug,
+				method_title: params.service.type === 'table' ? `Table (${params.service.title})` : params.service.title,
+				total: params.service.fee.toString(),
+				total_tax: '0.00',
+				taxes: []
+			};
+
+			newOrderQueryData.shipping_lines = [newShippingLine];
+
+			queryClient.setQueryData(orderQueryKey, newOrderQueryData);
+			queryClient.setQueryData(serviceKey, params.service);
+		},
+		onError: (err) => {
+			if (err.toString() !== 'newer-call' && err.toString() !== 'debounce') {
+				queryClient.invalidateQueries({ queryKey: orderRootKey });
+				mutation.reset();
+			}
+		},
+		onSuccess: (data: OrderSchema) => {
+			queryClient.setQueryData(orderQueryKey, data);
+			// Also invalidate the orders list to ensure persistence across refreshes
+			queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
+		},
+	});
+
+	return [serviceQuery, mutation, serviceIsMutating] as const;
 }

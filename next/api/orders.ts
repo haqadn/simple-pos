@@ -9,14 +9,31 @@ const LineItemSchema = z.object({
   quantity: z.number(),
 });
 
+const ShippingMethodEnum = z.enum(["flat_rate", "pickup_location", "free_shipping"]);
+
+const ShippingLineSchema = z.object({
+  id: z.number().optional(),
+  method_id: z.string().refine((val) => val === "" || ShippingMethodEnum.safeParse(val).success, {
+    message: "method_id must be empty string or valid shipping method"
+  }), // Allow empty string or valid enum values
+  instance_id: z.string(), // instance ID from WooCommerce
+  method_title: z.string(), // Display name
+  total: z.string(), // Fee amount as string
+  total_tax: z.string().default("0.00"),
+  taxes: z.array(z.any()).default([]),
+});
+
 const OrderSchema = z.object({
   id: z.number(),
   status: z.string(),
   line_items: z.array(LineItemSchema),
+  shipping_lines: z.array(ShippingLineSchema).default([]),
 });
 
 export type OrderSchema = z.infer<typeof OrderSchema>;
 export type LineItemSchema = z.infer<typeof LineItemSchema>;
+export type ShippingLineSchema = z.infer<typeof ShippingLineSchema>;
+export type ShippingMethodType = z.infer<typeof ShippingMethodEnum>;
 
 export default class OrdersAPI extends API {
   static async saveOrder(order: Partial<OrderSchema>) {
