@@ -21,7 +21,12 @@ export default function Service() {
     }, [currentService?.type]);
 
     return (
-        <Card className="mb-4">
+        <Card 
+            className="mb-4" 
+            classNames={{
+                base: currentService ? '' : 'bg-warning-100',
+            }}
+        >
             <CardBody>
                 <Tabs className="mb-2" fullWidth={true} selectedKey={selectedTab} onSelectionChange={(key) => setSelectedTab(key as string)}>
                     <Tab key="table" title="Table"/>
