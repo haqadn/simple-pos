@@ -20,6 +20,18 @@ export default function Sidebar() {
         return (orderId % 100).toString().padStart(2, '0');
     };
 
+    const getShippingMethodTitle = (order: OrderSchema): string => {
+        if (!order.shipping_lines || order.shipping_lines.length === 0) {
+            return "";
+        }
+        
+        const activeShipping = order.shipping_lines.find(line => 
+            line.method_id && line.method_id !== ''
+        );
+        
+        return activeShipping?.method_title || "";
+    };
+
 
     const orderStateProps : (status: string) => OrderLinkProps = (status: string) => {
         switch (status) {
@@ -62,6 +74,10 @@ export default function Sidebar() {
                 title="Navigation" 
                 isVertical={true}
                 fullWidth={true}
+                classNames={{
+                    tab: "h-16 w-full",
+                    tabContent: "w-full overflow-hidden",
+                }}
             >
                 {orders.map((order: OrderSchema, index: number) => (
                     <Tab
@@ -69,7 +85,10 @@ export default function Sidebar() {
                         { ...orderStateProps( order.status ) }
                         href={`/orders/${order.id}`}
                         as={Link}
-                        title={<>Order {getOrderDisplayId(order.id)} <Kbd>{index + 1}</Kbd></>}
+                        title={<>
+                            <p className="text-xs text-default-500 text-ellipsis overflow-hidden">{getShippingMethodTitle(order)}</p>
+                            <Kbd>{index + 1}</Kbd> Order {getOrderDisplayId(order.id)}
+                        </>}
                     />
                 ))}
             </Tabs>
