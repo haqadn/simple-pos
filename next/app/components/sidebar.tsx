@@ -16,20 +16,8 @@ export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
 
-    // Convert order ID to hash (first 3 chars) with avalanche effect
     const getOrderDisplayId = (orderId: number): string => {
-        // MD5-like hash with avalanche effect for dramatic changes
-        let hash = orderId;
-        
-        // Multiple rounds of scrambling to create avalanche effect
-        hash ^= hash >>> 16;
-        hash = Math.imul(hash, 0x85ebca6b);
-        hash ^= hash >>> 13;
-        hash = Math.imul(hash, 0xc2b2ae35);
-        hash ^= hash >>> 16;
-        
-        // Ensure positive and take 3 hex chars
-        return (Math.abs(hash) & 0xfff).toString(16).padStart(3, '0').toUpperCase();
+        return (orderId % 100).toString().padStart(2, '0');
     };
 
 
