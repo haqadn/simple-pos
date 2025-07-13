@@ -60,11 +60,11 @@ const ProductCard = ({ product }: { product: ProductSchema }) => {
     }
 
     return (
-        <Card isPressable className="h-full w-full max-h-[300px]" onPress={() => addToOrder()}>
+        <Card isPressable className="h-full w-full" onPress={() => addToOrder()}>
             <CardHeader className="flex gap-3">
                 <div className="text-left">
                     <p className="text-xl font-bold">{product.name}</p>
-                    <p className="text-small text-default-500">{product.variation_name}</p>
+                    <p className="text-small text-default-500">{product.variation_name} {product.sku && <Kbd>{product.sku}</Kbd>}</p>
                 </div>
             </CardHeader>
             {product.description && <Divider />}
@@ -77,10 +77,6 @@ const ProductCard = ({ product }: { product: ProductSchema }) => {
                     <div className="text-black/75 text-small flex flex-row flex-start">
                         <div className="flex-1 text-left">Price</div>
                         <div>{formatPrice(product.price)}</div>
-                    </div>
-                    <div className="text-black/75 text-small flex flex-row py-2">
-                        <div className="flex-1 text-left">SKU</div>
-                        <div>{product.sku ? <Kbd>{product.sku}</Kbd> : ''}</div>
                     </div>
                 </div>
             </CardFooter>
