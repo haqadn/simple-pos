@@ -1,6 +1,6 @@
 'use client'
 
-import { NumberInput, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
+import { Input, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import { useCurrentOrder, usePaymentQuery } from "@/stores/orders";
 import { useState, useEffect } from "react";
 
@@ -41,9 +41,15 @@ export default function PaymentCard() {
                 <TableRow>
                     <TableCell>Received</TableCell>
                     <TableCell>
-                        <NumberInput
-                            value={localReceived}
-                            onKeyUp={(e) => handleReceivedChange(Number(e.currentTarget.value))}
+                        <Input
+                            variant="underlined"
+                            step={100}
+                            value={localReceived === 0 ? '' : localReceived.toString()}
+                            onValueChange={(v) => {
+                                if (Number(v) >= 0) {
+                                    handleReceivedChange(Number(v));
+                                }
+                            }}
                             aria-label="Amount received"
                             color={paymentIsMutating ? 'warning' : 'default'}
                         />
