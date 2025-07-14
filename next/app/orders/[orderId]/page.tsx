@@ -10,10 +10,10 @@ export default async function OrderPage({ params }: { params: Promise<{ orderId:
     const { orderId } = await params;
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full w-2/5 min-w-[500]">
             <h2 className="text-xl font-bold mb-4">Order #{orderId}</h2>
             <div className="flex-1 flex flex-row -mx-4 overflow-hidden -m-4 p-4">
-                <div className="w-96 px-4 -mx-4">
+                <div className="w-1/2 px-4 -mx-4">
                     <div className="flex flex-col h-full">
                         <div className="overflow-y-auto">
                             <LineItems />
@@ -22,15 +22,16 @@ export default async function OrderPage({ params }: { params: Promise<{ orderId:
                         <Divider className="mb-1" />
                         <OrderNote />
                         <PaymentCard />
-                        <Buttons />
                     </div>
                 </div>
-                <div className="w-96 px-4">
+                <div className="w-1/2 px-4">
                     <div className="overflow-y-auto h-full -m-4 p-4">
                         <Service />
                         <CustomerInfo />
                     </div>  
                 </div>
+
+                <Buttons />
             </div>
         </div>
     );

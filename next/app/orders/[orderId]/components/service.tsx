@@ -49,7 +49,7 @@ export default function Service() {
             <CardBody>
                 {tables && tables.length > 0 && (
                     <>
-                        <div className="text-sm font-medium text-gray-600 mb-2 mt-1 flex items-center gap-2">
+                        <div className="text-sm bg-default-100 p-3 rounded-lg font-medium text-foreground-500 mb-2 mt-1 flex items-center gap-2">
                             Table
                         </div>
                         <RadioGroup 
@@ -72,7 +72,7 @@ export default function Service() {
                 )}
                 {deliveryZones && deliveryZones.length > 0 && (
                     <>
-                        <div className="text-sm font-medium text-gray-600 mb-2 flex items-center gap-2">
+                        <div className="text-sm bg-default-100 p-3 rounded-lg font-medium text-foreground-500 mb-2 mt-1 flex items-center gap-2">
                             Delivery
                         </div>
                         <RadioGroup 

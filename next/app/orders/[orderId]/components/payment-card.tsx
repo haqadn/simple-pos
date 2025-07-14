@@ -28,6 +28,7 @@ export default function PaymentCard() {
         <Table 
             className="mb-4"
             aria-label="Payment details"
+            hideHeader={true}
         >
             <TableHeader>
                 <TableColumn>Description</TableColumn>
