@@ -371,8 +371,6 @@ export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | 
 		},
 		onSuccess: (data: OrderSchema) => {
 			queryClient.setQueryData(orderQueryKey, data);
-			// Also invalidate the orders list to ensure persistence across refreshes
-			queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
 		},
 	});
 
@@ -441,8 +439,6 @@ export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema
 		},
 		onSuccess: (data: OrderSchema) => {
 			queryClient.setQueryData(orderQueryKey, data);
-			// Also invalidate the orders list to ensure persistence across refreshes
-			queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
 		},
 	});
 
@@ -543,8 +539,6 @@ export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | un
 		},
 		onSuccess: (data: OrderSchema) => {
 			queryClient.setQueryData(orderQueryKey, data);
-			// Also invalidate the orders list to ensure persistence across refreshes
-			queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
 		},
 	});
 
