@@ -11,7 +11,7 @@ export default async function OrderPage({ params }: { params: Promise<{ orderId:
 
     return (
         <div className="flex flex-col h-full w-2/5 min-w-[500]">
-            <h2 className="text-xl font-bold mb-4">Order #{orderId}</h2>
+            <h2 className="text-xl font-bold mb-4 px-4">Order #{orderId}</h2>
             <div className="flex-1 flex flex-row overflow-hidden">
                 <div className="flex flex-col h-full w-1/2 p-4">
                     <LineItems />
