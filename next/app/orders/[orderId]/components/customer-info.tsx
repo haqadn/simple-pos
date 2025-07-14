@@ -1,6 +1,6 @@
 'use client'
 
-import { Input, Textarea } from "@heroui/react";
+import { Card, CardBody, Input, Textarea } from "@heroui/react";
 import { useCurrentOrder, useCustomerInfoQuery } from "@/stores/orders";
 import { useState, useEffect } from "react";
 import { BillingSchema } from "@/api/orders";
@@ -54,28 +54,30 @@ export default function CustomerInfo() {
     const customerAddress = `${localValues.address_1 || ''}${localValues.address_2 ? ', ' + localValues.address_2 : ''}${localValues.city ? ', ' + localValues.city : ''}${localValues.state ? ', ' + localValues.state : ''}${localValues.postcode ? ' ' + localValues.postcode : ''}`;
 
     return (
-        <div className="my-4">
-            <Input 
-                className="mb-4" 
-                label="Customer Name" 
-                value={localName}
-                onValueChange={handleNameChange}
-                color={customerInfoIsMutating ? 'warning' : 'default'}
-            />
-            <Input 
-                className="mb-4" 
-                label="Customer Phone" 
-                value={localValues.phone || ''}
-                onValueChange={(value) => handleFieldChange('phone', value)}
-                color={customerInfoIsMutating ? 'warning' : 'default'}
-            />
-            <Textarea 
-                className="mb-4" 
-                label="Customer Address" 
-                value={customerAddress}
-                onValueChange={(value) => handleFieldChange('address_1', value)}
-                color={customerInfoIsMutating ? 'warning' : 'default'}
-            />
-        </div>
+        <Card className="mb-4">
+            <CardBody>
+                <Input 
+                    className="mb-4" 
+                    label="Customer Name" 
+                    value={localName}
+                    onValueChange={handleNameChange}
+                    color={customerInfoIsMutating ? 'warning' : 'default'}
+                />
+                <Input 
+                    className="mb-4" 
+                    label="Customer Phone" 
+                    value={localValues.phone || ''}
+                    onValueChange={(value) => handleFieldChange('phone', value)}
+                    color={customerInfoIsMutating ? 'warning' : 'default'}
+                />
+                <Textarea 
+                    className="mb-4" 
+                    label="Customer Address" 
+                    value={customerAddress}
+                    onValueChange={(value) => handleFieldChange('address_1', value)}
+                    color={customerInfoIsMutating ? 'warning' : 'default'}
+                />
+            </CardBody>
+        </Card>
     );
 }

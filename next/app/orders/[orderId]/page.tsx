@@ -21,13 +21,13 @@ export default async function OrderPage({ params }: { params: Promise<{ orderId:
                         <div className="flex-1"></div>
                         <Divider className="mb-1" />
                         <OrderNote />
+                        <PaymentCard />
                         <Buttons />
                     </div>
                 </div>
                 <div className="w-96 px-4">
                     <div className="overflow-y-auto h-full -m-4 p-4">
                         <Service />
-                        <PaymentCard />
                         <CustomerInfo />
                     </div>  
                 </div>
