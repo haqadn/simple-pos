@@ -1,46 +1,15 @@
 'use client'
 
-import { Tabs, Tab, Button, Kbd } from "@heroui/react";
+import { Button, Kbd } from "@heroui/react";
 import Link from "next/link"
 import { type OrderSchema } from "@/api/orders";
 import { usePathname, useRouter } from "next/navigation";
-import { useOrdersStore } from "@/stores/orders";
-
-type OrderLinkProps = { 
-    color: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger',
-    variant: 'solid' | 'bordered' | 'light' | 'flat' | 'faded' | 'shadow'
-}
+import { useOrderQuery, useOrdersStore } from "@/stores/orders";
 
 export default function Sidebar() {
     const { ordersQuery: { data: orders, isLoading }, createOrder } = useOrdersStore();
     const pathname = usePathname();
     const router = useRouter();
-
-    const getOrderDisplayId = (orderId: number): string => {
-        return (orderId % 100).toString().padStart(2, '0');
-    };
-
-    const getShippingMethodTitle = (order: OrderSchema): string => {
-        if (!order.shipping_lines || order.shipping_lines.length === 0) {
-            return "";
-        }
-        
-        const activeShipping = order.shipping_lines.find(line => 
-            line.method_id && line.method_id !== ''
-        );
-        
-        return activeShipping?.method_title || "";
-    };
-
-
-    const orderStateProps : (status: string) => OrderLinkProps = (status: string) => {
-        switch (status) {
-            case 'pending':
-                return { color: 'warning', variant: 'bordered' };
-            default:
-                return { color: 'default', variant: 'flat' };
-        }
-    }
 
     const newOrder = async () => {
         try {
@@ -68,34 +37,59 @@ export default function Sidebar() {
     return (
         <>
             <Button fullWidth variant="light" onPress={newOrder}>+ New Order</Button>
-            <Tabs
-                variant="light"
-                selectedKey={pathname} 
-                aria-label="Navigation" 
-                title="Navigation" 
-                isVertical={true}
-                fullWidth={true}
-                classNames={{
-                    tab: "h-16 w-full",
-                    tabContent: "w-full overflow-hidden",
-                }}
-            >
+            <div className="flex flex-col gap-2 mt-4">
                 {orders.map((order: OrderSchema, index: number) => (
-                    <Tab
-                        key={`/orders/${order.id}`}
-                        { ...orderStateProps( order.status ) }
-                        href={`/orders/${order.id}`}
-                        as={Link}
-                        title={<>
-                            <p className="text-xs text-default-500 text-ellipsis overflow-hidden">{getShippingMethodTitle(order)}</p>
-                            <Kbd>{index + 1}</Kbd> Order {getOrderDisplayId(order.id)}
-                        </>}
-                    />
+                    <OrderLink key={`/orders/${order.id}`} order={order} index={index} pathname={pathname} />
                 ))}
-            </Tabs>
+            </div>
             {orders.length > 5 && (
-                <Button fullWidth variant="light" onPress={newOrder}>+ New Order</Button>
+                <Button fullWidth variant="light" onPress={newOrder} className="mt-4">+ New Order</Button>
             )}
         </>
     );
+}
+
+const OrderLink = ({ order, index, pathname }: { order: OrderSchema, index: number, pathname: string }) => {
+    const orderQuery = useOrderQuery(order.id);
+
+    const getOrderDisplayId = (orderId: number): string => {
+        return (orderId % 100).toString().padStart(2, '0');
+    };
+
+    const getShippingMethodTitle = (order: OrderSchema): string => {
+        if (!order.shipping_lines || order.shipping_lines.length === 0) {
+            return "";
+        }
+        
+        const activeShipping = order.shipping_lines.find(line => 
+            line.method_id && line.method_id !== ''
+        );
+        
+        return activeShipping?.method_title || "";
+    };
+
+    const isActive = pathname === `/orders/${order.id}`;
+
+    return (
+        <Link 
+            href={`/orders/${order.id}`}
+            className={`block p-3 rounded-lg transition-colors ${
+                isActive 
+                    ? 'bg-primary-100 text-primary-700 border border-primary-200' 
+                    : 'hover:bg-default-100'
+            }`}
+        >
+            <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                    <p className="text-xs text-default-500 text-ellipsis overflow-hidden">
+                        {getShippingMethodTitle(orderQuery.data || order)}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <Kbd>{index + 1}</Kbd>
+                        <span className="text-sm font-medium">Order {getOrderDisplayId(order.id)}</span>
+                    </div>
+                </div>
+            </div>
+        </Link>
+    )
 }
