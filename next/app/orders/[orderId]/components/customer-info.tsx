@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { BillingSchema } from "@/api/orders";
 
 export default function CustomerInfo() {
-    const { query: orderQuery } = useCurrentOrder();
+    const orderQuery = useCurrentOrder();
     const [customerInfoQuery, customerInfoMutation, customerInfoIsMutating] = useCustomerInfoQuery(orderQuery);
     const [localValues, setLocalValues] = useState<Partial<BillingSchema>>({});
     const [localName, setLocalName] = useState('');

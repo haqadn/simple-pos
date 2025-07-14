@@ -1,11 +1,11 @@
 'use client'
 
-import { Input, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
+import { Input } from "@heroui/react";
 import { useCurrentOrder, usePaymentQuery } from "@/stores/orders";
 import { useState, useEffect } from "react";
 
 export default function PaymentCard() {
-    const { query: orderQuery } = useCurrentOrder();
+    const orderQuery = useCurrentOrder();
     const [paymentQuery, paymentMutation, paymentIsMutating] = usePaymentQuery(orderQuery);
     const [localReceived, setLocalReceived] = useState(0);
 

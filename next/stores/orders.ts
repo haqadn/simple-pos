@@ -69,22 +69,20 @@ export const useOrdersStore = () => {
 	return { ordersQuery, createOrder };
 }
 
-export const useCurrentOrder = () => {
-	const params = useParams();
-	const orderId = params.orderId as string;
-
+export const useOrderQuery = ( orderId: number ) => {
 	const { ordersQuery } = useOrdersStore();
-	const cachedOrder = ordersQuery.data?.find(order => order.id === parseInt(orderId));
+
+	const cachedOrder = ordersQuery.data?.find(order => order.id === orderId);
 
 	const queryKey = generateOrderQueryKey('detail', cachedOrder);
 
-	const query = useQuery<OrderSchema | undefined>({
+	return useQuery<OrderSchema | undefined>({
 		queryKey,
 		queryFn: async () => {
 			if (!orderId) {
 				return undefined;
 			}
-			const order = await OrdersAPI.getOrder(orderId);
+			const order = await OrdersAPI.getOrder(orderId.toString());
 			if (!order) {
 				return undefined;
 			}
@@ -94,7 +92,13 @@ export const useCurrentOrder = () => {
 		staleTime: 60 * 1000,
 	});
 
-	return { query };
+}
+
+export const useCurrentOrder = () => {
+	const params = useParams();
+	const orderId = params.orderId as string;
+
+	return useOrderQuery(parseInt(orderId));
 }
 
 export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | undefined>, product?: ProductSchema) => {

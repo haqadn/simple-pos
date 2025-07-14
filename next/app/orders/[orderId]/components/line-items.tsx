@@ -7,7 +7,7 @@ import { useGetProductById } from "@/stores/products";
 import { useMaintainOrder } from "@/hooks/useMaintainOrder";
 
 export default function LineItems() {
-    const { query: { data: order } } = useCurrentOrder();
+    const { data: order } = useCurrentOrder();
     const lineItems = order?.line_items ?? [];
 
     const orderedLineItems = useMaintainOrder(lineItems, (a, b) => a.product_id === b.product_id && a.variation_id === b.variation_id);
@@ -31,7 +31,7 @@ export default function LineItems() {
 const LineItemRow = ({ lineItem }: { lineItem: LineItemSchema }) => {
     const getProductById = useGetProductById();
     const product = getProductById(lineItem.product_id, lineItem.variation_id);
-    const { query: orderQuery } = useCurrentOrder();
+    const orderQuery = useCurrentOrder();
 
     const [query, mutation, isMutating] = useLineItemQuery(orderQuery, product);
 

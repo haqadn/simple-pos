@@ -5,7 +5,7 @@ import { useCurrentOrder, useOrderNoteQuery } from "@/stores/orders";
 import { useState, useEffect } from "react";
 
 export default function OrderNote() {
-    const { query: orderQuery } = useCurrentOrder();
+    const orderQuery = useCurrentOrder();
     const [noteQuery, noteMutation, noteIsMutating] = useOrderNoteQuery(orderQuery);
     const [localValue, setLocalValue] = useState('');
 

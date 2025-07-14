@@ -45,7 +45,7 @@ export default function Products() {
 }
 
 const ProductCard = ({ product }: { product: ProductSchema }) => {
-    const { query: orderQuery } = useCurrentOrder();
+    const orderQuery = useCurrentOrder();
     const [query, mutation] = useLineItemQuery(orderQuery, product);
 
     const currentQuantity = query.data?.quantity ?? 0;

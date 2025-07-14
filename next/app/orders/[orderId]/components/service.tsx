@@ -5,7 +5,7 @@ import { useCurrentOrder, useServiceQuery } from "@/stores/orders";
 import { Card, CardBody, Radio, RadioGroup } from "@heroui/react";
 
 export default function Service() {
-    const { query: orderQuery } = useCurrentOrder();
+    const orderQuery = useCurrentOrder();
     const [serviceQuery, serviceMutation, isMutating] = useServiceQuery(orderQuery);
     const { data: tables } = useTablesQuery();
     const { data: deliveryZones } = useDeliveryZonesQuery();
