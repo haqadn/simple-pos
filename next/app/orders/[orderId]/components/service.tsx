@@ -58,7 +58,6 @@ export default function Service() {
                             value={currentService?.type === 'table' ? currentService.slug : ''}
                             onValueChange={handleSelectionChange}
                             className="mb-4"
-                            isDisabled={isMutating > 0}
                         >
                             {tables.map((table) => (
                                 <RadioItem 
@@ -81,7 +80,6 @@ export default function Service() {
                             value={currentService?.type === 'takeaway' ? currentService.slug : ''}
                             orientation="horizontal"
                             onValueChange={handleSelectionChange}
-                            isDisabled={isMutating > 0}
                         >
                             {deliveryZones.map((zone) => (
                                 <RadioItem
@@ -107,9 +105,10 @@ function RadioItem( { children, value, disabled, ...props }: { children: React.R
             value={value}
             isDisabled={disabled}
             classNames={{
+                label: "text-xs",
                 base: 
                     "inline-flex flex-1 m-0 bg-content1 hover:bg-content2 items-center justify-between" +
-                    "w-full max-w-full flex-row cursor-pointer rounded-lg gap-4 p-4 border-2 border-transparent" +
+                    "w-full max-w-full flex-row cursor-pointer rounded-lg gap-1 p-2 border-2 border-transparent" +
                     "data-[selected=true]:border-primary data-[disabled=true]:opacity-50 data-[disabled=true]:cursor-not-allowed",
             }}
         >

@@ -13,10 +13,11 @@ export default function LineItems() {
     const orderedLineItems = useMaintainOrder(lineItems, (a, b) => a.product_id === b.product_id && a.variation_id === b.variation_id);
     return (
             <table 
-                    aria-label="Order line items"
-                >
+                className="w-full"
+                aria-label="Order line items"
+            >
                 <thead>
-                    <tr className="group/tr outline-none data-[focus-visible=true]:z-10 data-[focus-visible=true]:outline-2 data-[focus-visible=true]:outline-focus data-[focus-visible=true]:outline-offset-2">
+                    <tr className="w-full group/tr outline-none data-[focus-visible=true]:z-10 data-[focus-visible=true]:outline-2 data-[focus-visible=true]:outline-focus data-[focus-visible=true]:outline-offset-2">
                         <th className="p-2 group/th px-3 h-10 align-middle bg-default-100 whitespace-nowrap text-foreground-500 text-tiny font-semibold first:rounded-s-lg last:rounded-e-lg data-[sortable=true]:cursor-pointer data-[hover=true]:text-foreground-400 outline-none data-[focus-visible=true]:z-10 data-[focus-visible=true]:outline-2 data-[focus-visible=true]:outline-focus data-[focus-visible=true]:outline-offset-2 text-start">Product</th>
                         <th className="p-2 group/th px-3 h-10 align-middle bg-default-100 whitespace-nowrap text-foreground-500 text-tiny font-semibold first:rounded-s-lg last:rounded-e-lg data-[sortable=true]:cursor-pointer data-[hover=true]:text-foreground-400 outline-none data-[focus-visible=true]:z-10 data-[focus-visible=true]:outline-2 data-[focus-visible=true]:outline-focus data-[focus-visible=true]:outline-offset-2 text-start">Quantity</th>
                     </tr>
@@ -43,12 +44,14 @@ const LineItemRow = ({ lineItem }: { lineItem: LineItemSchema }) => {
     
     return (
         <tr key={lineItem.id}>
-            <td className="p-2 w-3/4">
+            <td className="p-1 w-3/4 text-sm">
                 <span>{lineItem.name}</span>
             </td>
-            <td className="p-2 w-1/4">
+            <td className="p-1 w-1/4 text-sm">
                     <NumberInput
                         size="sm"
+                        variant="underlined"
+                        labelPlacement="outside-left"
                         min={0}
                         color={isMutating ? 'warning' : 'default'}
                         value={query.data?.quantity} 
