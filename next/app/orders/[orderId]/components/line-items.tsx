@@ -1,7 +1,7 @@
 'use client'
 
 import { useCurrentOrder, useLineItemQuery } from "@/stores/orders";
-import { NumberInput } from "@heroui/react";
+import { NumberInput, ScrollShadow } from "@heroui/react";
 import { LineItemSchema } from "@/api/orders";
 import { useGetProductById } from "@/stores/products";
 import { useMaintainOrder } from "@/hooks/useMaintainOrder";
@@ -12,16 +12,19 @@ export default function LineItems() {
 
     const orderedLineItems = useMaintainOrder(lineItems, (a, b) => a.product_id === b.product_id && a.variation_id === b.variation_id);
     return (
-            <table 
-                className="w-full"
-                aria-label="Order line items"
-            >
-                <tbody>
-                    {orderedLineItems.map((lineItem: LineItemSchema) => (
-                        <LineItemRow key={`${lineItem.product_id}-${lineItem.variation_id}`} lineItem={lineItem} />
-                    ))}
-                </tbody>
-            </table>
+            <ScrollShadow className="-my-4 py-4">
+                <table 
+                    className="w-full"
+                    aria-label="Order line items"
+                >
+                    <tbody>
+                        {orderedLineItems.map((lineItem: LineItemSchema) => (
+                            <LineItemRow key={`${lineItem.product_id}-${lineItem.variation_id}`} lineItem={lineItem} />
+                        ))}
+                    </tbody>
+                </table>
+            </ScrollShadow>
+
     );
 }
 

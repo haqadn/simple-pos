@@ -25,23 +25,24 @@ export default function PaymentCard() {
     const change = localReceived - total;
 
     return (
-        <Table 
+        <table 
             className="mb-4"
             aria-label="Payment details"
-            hideHeader={true}
         >
-            <TableHeader>
-                <TableColumn>Description</TableColumn>
-                <TableColumn>Amount</TableColumn>
-            </TableHeader>
-            <TableBody>
-                <TableRow>
-                    <TableCell>Total</TableCell>
-                    <TableCell>{total}</TableCell>
-                </TableRow>
-                <TableRow>
-                    <TableCell>Received</TableCell>
-                    <TableCell>
+            <tbody>
+                <tr>
+                    <td className="pr-4 text-sm w-3/5">Total</td>
+                    <td className="text-sm">
+                        <Input
+                            variant="underlined"
+                            value={total.toString()}
+                            isDisabled
+                        />
+                    </td>
+                </tr>
+                <tr>
+                    <td className="pr-4 text-sm w-3/5">Received</td>
+                    <td >
                         <Input
                             variant="underlined"
                             step={100}
@@ -54,13 +55,19 @@ export default function PaymentCard() {
                             aria-label="Amount received"
                             color={paymentIsMutating ? 'warning' : 'default'}
                         />
-                    </TableCell>
-                </TableRow>
-                <TableRow>
-                    <TableCell>Change</TableCell>
-                    <TableCell>{change.toFixed(2)}</TableCell>
-                </TableRow>
-            </TableBody>
-        </Table>
+                    </td>
+                </tr>
+                <tr>
+                    <td className="pr-4 text-sm w-3/5">Change</td>
+                    <td className="text-sm">
+                        <Input
+                            variant="underlined"
+                            value={change.toFixed(2)}
+                            isDisabled
+                        />
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     );
 }

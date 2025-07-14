@@ -33,6 +33,8 @@ export default function OrderNote() {
             value={localValue}
             onValueChange={handleChange}
             color={noteIsMutating ? 'warning' : 'default'}
+            minRows={1}
+            maxRows={3}
         />
     );
 }

@@ -1,12 +1,11 @@
 'use client'
 
-import { ButtonGroup, Button, Divider, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
+import { ButtonGroup, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
 
 export default function Buttons() {
     return (
-        <div className="bg-white">
+        <div className="bg-white w-full">
             <ButtonGroup fullWidth>
-                <Button color="primary">Save</Button>
                 <Button color="default">KOT</Button>
                 <Button color="default">Bill</Button>
                 <Dropdown placement="bottom-end">
