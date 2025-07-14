@@ -59,6 +59,7 @@ export default function CustomerInfo() {
                 <Input 
                     className="mb-4" 
                     label="Customer Name" 
+                    variant="underlined"
                     value={localName}
                     onValueChange={handleNameChange}
                     color={customerInfoIsMutating ? 'warning' : 'default'}
@@ -66,6 +67,7 @@ export default function CustomerInfo() {
                 <Input 
                     className="mb-4" 
                     label="Customer Phone" 
+                    variant="underlined"
                     value={localValues.phone || ''}
                     onValueChange={(value) => handleFieldChange('phone', value)}
                     color={customerInfoIsMutating ? 'warning' : 'default'}
@@ -73,6 +75,7 @@ export default function CustomerInfo() {
                 <Textarea 
                     className="mb-4" 
                     label="Customer Address" 
+                    variant="underlined"
                     value={customerAddress}
                     onValueChange={(value) => handleFieldChange('address_1', value)}
                     color={customerInfoIsMutating ? 'warning' : 'default'}

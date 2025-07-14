@@ -28,6 +28,7 @@ export default function OrderNote() {
     return (
         <Textarea
             className="my-4" 
+            variant="underlined"
             placeholder="Order Note" 
             value={localValue}
             onValueChange={handleChange}
