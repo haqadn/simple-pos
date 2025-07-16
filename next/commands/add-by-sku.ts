@@ -27,14 +27,14 @@ export class AddBySKUCommand extends BaseMultiInputCommand {
         '/add <sku> [quantity]',
         '/add (enters multi-input mode)',
         'Multi-mode: <sku> [quantity]',
-        'Multi-mode: done (to exit)'
+        'Multi-mode: / (to exit)'
       ],
       parameters: [
         {
           name: 'sku',
           type: 'sku',
           required: true,
-          description: 'Product SKU or menu order number'
+          description: 'Product SKU'
         },
         {
           name: 'quantity',
@@ -79,18 +79,8 @@ export class AddBySKUCommand extends BaseMultiInputCommand {
     }
   }
 
-  getMultiModeAutocompleteSuggestions(partialInput: string, multiData?: unknown): CommandSuggestion[] {
+  getMultiModeAutocompleteSuggestions(partialInput: string): CommandSuggestion[] {
     const suggestions: CommandSuggestion[] = [];
-    
-    // Add 'done' suggestion to exit multi-mode
-    if ('done'.startsWith(partialInput.toLowerCase())) {
-      suggestions.push({
-        text: 'done',
-        description: 'Exit add mode',
-        insertText: 'done',
-        type: 'command'
-      });
-    }
 
     // For SKU suggestions, search available products
     const parts = partialInput.trim().split(/\s+/);
@@ -98,16 +88,15 @@ export class AddBySKUCommand extends BaseMultiInputCommand {
       // Suggest product SKUs that match the partial input
       const matchingProducts = this.context.products
         .filter(p => 
-          p.sku?.toLowerCase().startsWith(parts[0].toLowerCase()) ||
-          p.menu_order?.toString().startsWith(parts[0])
+          p.sku?.toLowerCase().startsWith(parts[0].toLowerCase())
         )
         .slice(0, 5); // Limit to 5 suggestions
 
       matchingProducts.forEach(product => {
         suggestions.push({
-          text: product.sku || product.menu_order.toString(),
+          text: product.sku,
           description: `${product.name} - $${product.price}`,
-          insertText: product.sku || product.menu_order.toString(),
+          insertText: product.sku,
           type: 'parameter'
         });
       });
@@ -142,10 +131,9 @@ export class AddBySKUCommand extends BaseMultiInputCommand {
       throw new Error('Command context not set');
     }
 
-    // Find product by SKU or menu_order
+    // Find product by SKU
     const product = this.context.products.find((p: ProductSchema) => 
-      p.sku === sku || 
-      p.menu_order === this.parseInt(sku)
+      p.sku === sku
     );
 
     if (!product) {
@@ -181,15 +169,14 @@ export class AddBySKUCommand extends BaseMultiInputCommand {
       const skuPart = parts[1];
       const matchingProducts = this.context.products
         .filter(p => 
-          p.sku?.toLowerCase().startsWith(skuPart.toLowerCase()) ||
-          p.menu_order?.toString().startsWith(skuPart)
+          p.sku?.toLowerCase().startsWith(skuPart.toLowerCase())
         )
         .slice(0, 5);
 
       const productSuggestions: CommandSuggestion[] = matchingProducts.map(product => ({
-        text: product.sku || product.menu_order.toString(),
+        text: product.sku,
         description: `${product.name} - $${product.price}`,
-        insertText: product.sku || product.menu_order.toString(),
+        insertText: product.sku,
         type: 'parameter'
       }));
 
