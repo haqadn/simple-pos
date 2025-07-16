@@ -153,9 +153,11 @@ export abstract class BaseCommand implements Command {
     // If we're still typing the keyword, suggest command completions
     if (parts.length === 1) {
       const suggestions: CommandSuggestion[] = [];
+      const lowerKeyword = keyword.toLowerCase();
       
+      // Only suggest if it's a partial match, not an exact match
       // Primary keyword
-      if (metadata.keyword.startsWith(keyword.toLowerCase())) {
+      if (metadata.keyword.startsWith(lowerKeyword) && metadata.keyword !== lowerKeyword) {
         suggestions.push({
           text: metadata.keyword,
           description: metadata.description,
@@ -166,7 +168,7 @@ export abstract class BaseCommand implements Command {
 
       // Aliases
       metadata.aliases?.forEach(alias => {
-        if (alias.startsWith(keyword.toLowerCase())) {
+        if (alias.startsWith(lowerKeyword) && alias !== lowerKeyword) {
           suggestions.push({
             text: alias,
             description: `${metadata.description} (alias)`,
@@ -196,31 +198,8 @@ export abstract class BaseCommand implements Command {
    * Get suggestions for a specific parameter type
    */
   protected getParameterSuggestions(param: CommandParameter, partialValue: string): CommandSuggestion[] {
-    switch (param.type) {
-      case 'sku':
-        return [{
-          text: partialValue,
-          description: `Enter ${param.description}`,
-          insertText: partialValue,
-          type: 'parameter'
-        }];
-      
-      case 'number':
-        return [{
-          text: partialValue,
-          description: `Enter ${param.description} (number)`,
-          insertText: partialValue,
-          type: 'parameter'
-        }];
-      
-      default:
-        return [{
-          text: partialValue,
-          description: param.description,
-          insertText: partialValue,
-          type: 'parameter'
-        }];
-    }
+    // Don't show generic parameter hints - only real matches should appear
+    return [];
   }
 
   /**

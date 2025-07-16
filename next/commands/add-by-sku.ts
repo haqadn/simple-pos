@@ -100,16 +100,6 @@ export class AddBySKUCommand extends BaseMultiInputCommand {
           type: 'parameter'
         });
       });
-
-      // If no exact matches, show generic SKU hint
-      if (matchingProducts.length === 0) {
-        suggestions.push({
-          text: partialInput,
-          description: 'Enter product SKU',
-          insertText: partialInput,
-          type: 'parameter'
-        });
-      }
     } else if (parts.length === 2) {
       // Suggest quantities
       const qty = parts[1];

@@ -6,10 +6,11 @@ import { useCommandManager } from '@/hooks/useCommandManager';
 import { useCurrentOrder } from '@/stores/orders';
 import { useProductsQuery, useGetProductById } from '@/stores/products';
 import { CommandContext } from '@/commands/command-manager';
+import { CommandSuggestion } from '@/commands/command';
 
 export default function CommandBar() {
   const [input, setInput] = useState('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<CommandSuggestion[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   
@@ -116,12 +117,20 @@ export default function CommandBar() {
   // Update suggestions when input changes
   useEffect(() => {
     if (input.trim()) {
-      const commandSuggestions = getAutocompleteSuggestions(input);
-      setSuggestions(commandSuggestions.map(s => s.insertText));
+      // If the last character is a space, don't suggest anything
+      if (input.endsWith(' ')) {
+        setSuggestions([]);
+        setSelectedSuggestion(-1);
+      } else {
+        const commandSuggestions = getAutocompleteSuggestions(input);
+        setSuggestions(commandSuggestions);
+        // Auto-select first suggestion if available
+        setSelectedSuggestion(commandSuggestions.length > 0 ? 0 : -1);
+      }
     } else {
       setSuggestions([]);
+      setSelectedSuggestion(-1);
     }
-    setSelectedSuggestion(-1);
   }, [input, getAutocompleteSuggestions]);
 
   // Handle input submission
@@ -180,7 +189,19 @@ export default function CommandBar() {
       case 'Tab':
         e.preventDefault();
         if (selectedSuggestion >= 0 && suggestions[selectedSuggestion]) {
-          setInput(suggestions[selectedSuggestion]);
+          const suggestion = suggestions[selectedSuggestion];
+          
+          // If it's a command suggestion, replace the entire input
+          if (suggestion.type === 'command') {
+            setInput(suggestion.insertText);
+          } else {
+            // For parameters, replace the current word being typed
+            const inputParts = input.split(' ');
+            const lastPartIndex = inputParts.length - 1;
+            inputParts[lastPartIndex] = suggestion.text;
+            setInput(inputParts.join(' '));
+          }
+          
           setSuggestions([]);
           setSelectedSuggestion(-1);
         }
@@ -247,19 +268,31 @@ export default function CommandBar() {
             {suggestions.map((suggestion, index) => (
               <div
                 key={index}
-                className={`px-3 py-2 cursor-pointer text-sm font-mono ${
+                className={`px-3 py-2 cursor-pointer text-sm ${
                   index === selectedSuggestion 
                     ? 'bg-blue-100 text-blue-900' 
                     : 'hover:bg-gray-100'
                 }`}
                 onClick={() => {
-                  setInput(suggestion);
+                  // Same logic as Tab completion
+                  if (suggestion.type === 'command') {
+                    setInput(suggestion.insertText);
+                  } else {
+                    const inputParts = input.split(' ');
+                    const lastPartIndex = inputParts.length - 1;
+                    inputParts[lastPartIndex] = suggestion.text;
+                    setInput(inputParts.join(' '));
+                  }
+                  
                   setSuggestions([]);
                   setSelectedSuggestion(-1);
                   inputRef.current?.focus();
                 }}
               >
-                {suggestion}
+                <div className="font-mono">{suggestion.text}</div>
+                {suggestion.description && (
+                  <div className="text-xs text-gray-500">{suggestion.description}</div>
+                )}
               </div>
             ))}
           </div>
