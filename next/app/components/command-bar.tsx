@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Input } from '@heroui/react';
 import { useCommandManager } from '@/hooks/useCommandManager';
 import { useCurrentOrder } from '@/stores/orders';
@@ -31,7 +31,7 @@ export default function CommandBar() {
   } = useCommandManager();
 
   // Handle adding products to the order
-  const handleAddProduct = async (productId: number, variationId: number, quantity: number) => {
+  const handleAddProduct = useCallback(async (productId: number, variationId: number, quantity: number) => {
     try {
       const product = getProductById(productId, variationId);
       
@@ -89,7 +89,7 @@ export default function CommandBar() {
       console.error('Failed to add product:', error);
       throw error;
     }
-  };
+  }, [orderQuery, getProductById]);
 
   // Create the command context
   const commandContext = useMemo((): CommandContext | null => {
@@ -104,7 +104,7 @@ export default function CommandBar() {
       showMessage: () => {}, // No-op
       showError: () => {} // No-op
     };
-  }, [orderQuery.data, products]);
+  }, [orderQuery.data, products, handleAddProduct]);
 
   // Set up command context when ready
   useEffect(() => {
@@ -215,13 +215,6 @@ export default function CommandBar() {
 
   return (
     <div className="w-full space-y-2">
-      {/* Status indicator */}
-      {multiMode && (
-        <div className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded">
-          Multi-input mode: {activeCommand} (type &quot;/&quot; to exit)
-        </div>
-      )}
-      
       {/* Command input */}
       <form onSubmit={handleSubmit} className="relative">
         <Input
