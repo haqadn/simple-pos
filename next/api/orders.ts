@@ -41,7 +41,7 @@ const MetaDataSchema = z.object({
   value: z.union([z.string(), z.number(), z.boolean()]),
 });
 
-const OrderSchema = z.object({
+export const OrderSchema = z.object({
   id: z.number(),
   status: z.string(),
   line_items: z.array(LineItemSchema),

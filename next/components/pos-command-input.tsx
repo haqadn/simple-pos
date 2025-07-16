@@ -1,23 +1,26 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Input } from '@heroui/react';
+import { Input, Card } from '@heroui/react';
 import { useCommandManager } from '@/hooks/useCommandManager';
 import { useCurrentOrder } from '@/stores/orders';
-import { useProductsQuery, useGetProductById } from '@/stores/products';
+import { useProductsQuery } from '@/stores/products';
 import { CommandContext } from '@/commands/command-manager';
 
-export default function CommandBar() {
+interface POSCommandInputProps {
+  onMessage?: (message: string, type: 'success' | 'error') => void;
+  onAddProduct?: (productId: number, variationId: number, quantity: number) => Promise<void>;
+}
+
+export function POSCommandInput({ onMessage, onAddProduct }: POSCommandInputProps) {
   const [input, setInput] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState(-1);
-  const [messages, setMessages] = useState<Array<{id: number, text: string, type: 'success' | 'error'}>>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   
   // Hooks for data
   const orderQuery = useCurrentOrder();
   const { data: products = [] } = useProductsQuery();
-  const getProductById = useGetProductById();
   
   // Command manager
   const {
@@ -31,93 +34,24 @@ export default function CommandBar() {
     getActiveCommand
   } = useCommandManager();
 
-  const handleMessage = (text: string, type: 'success' | 'error') => {
-    const id = Date.now();
-    setMessages(prev => [...prev, { id, text, type }]);
-    
-    // Auto-remove messages after 3 seconds
-    setTimeout(() => {
-      setMessages(prev => prev.filter(msg => msg.id !== id));
-    }, 3000);
-  };
-
-  // Handle adding products to the order
-  const handleAddProduct = async (productId: number, variationId: number, quantity: number) => {
-    try {
-      const product = getProductById(productId, variationId);
-      
-      if (!product) {
-        throw new Error(`Product not found: ${productId}/${variationId}`);
-      }
-
-      if (!orderQuery.data) {
-        throw new Error('No active order');
-      }
-
-      // Find existing line items for this product
-      const existingLineItems = orderQuery.data.line_items.filter(
-        li => li.product_id === productId && li.variation_id === variationId
-      );
-      
-      // Calculate current quantity
-      const currentQuantity = existingLineItems.reduce((sum, li) => sum + li.quantity, 0);
-      const newQuantity = currentQuantity + quantity;
-
-      // Call the API directly
-      const OrdersAPI = (await import('@/api/orders')).default;
-      
-      // Prepare line items for the update
-      const lineItems = [];
-      
-      // Remove existing items (set quantity to 0)
-      existingLineItems.forEach(li => {
-        if (li.id) {
-          lineItems.push({ ...li, quantity: 0 });
-        }
-      });
-      
-      // Add new item with total quantity
-      if (newQuantity > 0) {
-        lineItems.push({
-          name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
-          product_id: productId,
-          variation_id: variationId,
-          quantity: newQuantity,
-          id: undefined,
-        });
-      }
-      
-      // Update the order
-      await OrdersAPI.updateOrder(orderQuery.data.id.toString(), {
-        line_items: lineItems
-      });
-      
-      // Refetch the order data
-      await orderQuery.refetch();
-      
-      handleMessage(`Added ${quantity}x ${product.name} to order`, 'success');
-      
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      handleMessage(`Failed to add product: ${errorMessage}`, 'error');
-      throw error;
-    }
-  };
-
   // Create the command context
   const commandContext = useMemo((): CommandContext | null => {
-    if (!orderQuery.data || !products.length) {
+    if (!orderQuery.data || !products.length || !onAddProduct) {
       return null;
     }
     
     return {
       currentOrder: orderQuery.data,
       products,
-      updateLineItem: handleAddProduct,
-      showMessage: (message: string) => handleMessage(message, 'success'),
-      showError: (error: string) => handleMessage(error, 'error')
+      updateLineItem: onAddProduct,
+      showMessage: (message: string) => {
+        onMessage?.(message, 'success');
+      },
+      showError: (error: string) => {
+        onMessage?.(error, 'error');
+      }
     };
-  }, [orderQuery.data, products]);
+  }, [orderQuery.data, products, onAddProduct, onMessage]);
 
   // Set up command context when ready
   useEffect(() => {
@@ -153,7 +87,7 @@ export default function CommandBar() {
       }
     } catch (error) {
       console.error('Command execution error:', error);
-      handleMessage(`Command failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+      onMessage?.(`Command failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
     }
   };
 
@@ -213,43 +147,18 @@ export default function CommandBar() {
 
   if (!isReady || !commandContext) {
     return (
-      <Input 
-        classNames={{ 
-          mainWrapper: 'w-full',
-        }} 
-        labelPlacement="outside-left" 
-        label="Command"
-        aria-label="Loading command system..."
-        placeholder="Loading..."
-        disabled
-      />
+      <Card className="p-4">
+        <div className="text-gray-500">Loading command system...</div>
+      </Card>
     );
   }
 
   return (
-    <div className="w-full space-y-2">
-      {/* Messages */}
-      {messages.length > 0 && (
-        <div className="space-y-1">
-          {messages.map(msg => (
-            <div 
-              key={msg.id}
-              className={`text-sm px-2 py-1 rounded ${
-                msg.type === 'success' 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-red-100 text-red-800'
-              }`}
-            >
-              {msg.text}
-            </div>
-          ))}
-        </div>
-      )}
-
+    <Card className="p-4 space-y-2">
       {/* Status indicator */}
       {multiMode && (
         <div className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded">
-          Multi-input mode: {activeCommand} (type &quot;/&quot; to exit)
+          Multi-input mode: {activeCommand} (type '/' to exit)
         </div>
       )}
       
@@ -260,11 +169,6 @@ export default function CommandBar() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          classNames={{ 
-            mainWrapper: 'w-full',
-          }}
-          labelPlacement="outside-left"
-          label="Command"
           placeholder={multiMode ? 
             `Enter ${activeCommand} parameters...` : 
             "Type commands starting with /"
@@ -275,8 +179,9 @@ export default function CommandBar() {
             </span>
           }
           className="font-mono"
+          size="lg"
           autoComplete="off"
-          aria-label="Command input field"
+          variant="bordered"
         />
         
         {/* Autocomplete suggestions */}
@@ -312,6 +217,6 @@ export default function CommandBar() {
           'Commands: /add <sku> [qty] | /add (multi-mode) | ↑↓ for history'
         )}
       </div>
-    </div>
+    </Card>
   );
 }
