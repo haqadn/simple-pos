@@ -11,7 +11,6 @@ export default function CommandBar() {
   const [input, setInput] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState(-1);
-  const [messages, setMessages] = useState<Array<{id: number, text: string, type: 'success' | 'error'}>>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   
   // Hooks for data
@@ -30,16 +29,6 @@ export default function CommandBar() {
     isInMultiMode,
     getActiveCommand
   } = useCommandManager();
-
-  const handleMessage = (text: string, type: 'success' | 'error') => {
-    const id = Date.now();
-    setMessages(prev => [...prev, { id, text, type }]);
-    
-    // Auto-remove messages after 3 seconds
-    setTimeout(() => {
-      setMessages(prev => prev.filter(msg => msg.id !== id));
-    }, 3000);
-  };
 
   // Handle adding products to the order
   const handleAddProduct = async (productId: number, variationId: number, quantity: number) => {
@@ -95,11 +84,9 @@ export default function CommandBar() {
       // Refetch the order data
       await orderQuery.refetch();
       
-      handleMessage(`Added ${quantity}x ${product.name} to order`, 'success');
-      
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      handleMessage(`Failed to add product: ${errorMessage}`, 'error');
+      // Silently fail - no notifications
+      console.error('Failed to add product:', error);
       throw error;
     }
   };
@@ -114,8 +101,8 @@ export default function CommandBar() {
       currentOrder: orderQuery.data,
       products,
       updateLineItem: handleAddProduct,
-      showMessage: (message: string) => handleMessage(message, 'success'),
-      showError: (error: string) => handleMessage(error, 'error')
+      showMessage: () => {}, // No-op
+      showError: () => {} // No-op
     };
   }, [orderQuery.data, products]);
 
@@ -153,7 +140,7 @@ export default function CommandBar() {
       }
     } catch (error) {
       console.error('Command execution error:', error);
-      handleMessage(`Command failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+      // No user notification - silent failure
     }
   };
 
@@ -228,24 +215,6 @@ export default function CommandBar() {
 
   return (
     <div className="w-full space-y-2">
-      {/* Messages */}
-      {messages.length > 0 && (
-        <div className="space-y-1">
-          {messages.map(msg => (
-            <div 
-              key={msg.id}
-              className={`text-sm px-2 py-1 rounded ${
-                msg.type === 'success' 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-red-100 text-red-800'
-              }`}
-            >
-              {msg.text}
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Status indicator */}
       {multiMode && (
         <div className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded">
