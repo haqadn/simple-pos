@@ -1,5 +1,6 @@
 import { BaseMultiInputCommand, CommandMetadata, CommandSuggestion } from './command';
 import { CommandContext } from './command-manager';
+import { formatCurrency } from '@/lib/format';
 
 interface PayCommandData {
   totalPaid: number;
@@ -61,9 +62,9 @@ export class PayCommand extends BaseMultiInputCommand {
     const change = amount - orderTotal;
 
     if (change >= 0) {
-      this.context.showMessage(`Cash: ${amount} | Change: ${change.toFixed(2)}`);
+      this.context.showMessage(`Cash: ${formatCurrency(amount)} | Change: ${formatCurrency(change)}`);
     } else {
-      this.context.showMessage(`Cash: ${amount} | Due: ${Math.abs(change).toFixed(2)}`);
+      this.context.showMessage(`Cash: ${formatCurrency(amount)} | Due: ${formatCurrency(Math.abs(change))}`);
     }
   }
 
@@ -80,7 +81,7 @@ export class PayCommand extends BaseMultiInputCommand {
       const orderTotal = parseFloat(this.context.currentOrder?.total || '0');
       const change = data.totalPaid - orderTotal;
       if (change >= 0) {
-        this.context.showMessage(`Total paid: $${data.totalPaid.toFixed(2)} | Change: $${change.toFixed(2)}`);
+        this.context.showMessage(`Total paid: $${formatCurrency(data.totalPaid)} | Change: $${formatCurrency(change)}`);
       }
     }
   }
@@ -97,9 +98,9 @@ export class PayCommand extends BaseMultiInputCommand {
     // Suggest remaining amount
     if (remaining > 0) {
       suggestions.push({
-        text: remaining.toFixed(2),
+        text: formatCurrency(remaining),
         description: `Remaining balance`,
-        insertText: remaining.toFixed(2),
+        insertText: formatCurrency(remaining),
         type: 'parameter'
       });
     }
@@ -109,7 +110,7 @@ export class PayCommand extends BaseMultiInputCommand {
     roundAmounts.slice(0, 2).forEach(amount => {
       suggestions.push({
         text: amount.toString(),
-        description: `$${amount} (change: $${(amount - remaining).toFixed(2)})`,
+        description: `$${amount} (change: $${formatCurrency(amount - remaining)})`,
         insertText: amount.toString(),
         type: 'parameter'
       });
@@ -132,9 +133,9 @@ export class PayCommand extends BaseMultiInputCommand {
       // Suggest exact amount
       if (remaining > 0) {
         suggestions.push({
-          text: remaining.toFixed(2),
+          text: formatCurrency(remaining),
           description: `Exact amount`,
-          insertText: remaining.toFixed(2),
+          insertText: formatCurrency(remaining),
           type: 'parameter'
         });
       }

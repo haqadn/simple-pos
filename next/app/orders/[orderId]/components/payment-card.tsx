@@ -5,6 +5,7 @@ import { useCurrentOrder, usePaymentQuery } from "@/stores/orders";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import OrdersAPI from "@/api/orders";
+import { formatCurrency } from "@/lib/format";
 
 // Payment methods that can be added
 const ADDITIONAL_METHODS = [
@@ -199,7 +200,7 @@ export default function PaymentCard() {
                                 </Chip>
                             </td>
                             <td className="text-sm text-green-600 text-right">
-                                -{parseFloat(coupon.discount).toFixed(2)}
+                                -{formatCurrency(parseFloat(coupon.discount))}
                             </td>
                         </tr>
                     ))}
@@ -209,7 +210,7 @@ export default function PaymentCard() {
                         <tr>
                             <td className="pr-4 text-sm w-3/5">Discount</td>
                             <td className="text-sm text-green-600 text-right">
-                                -{discountTotal.toFixed(2)}
+                                -{formatCurrency(discountTotal)}
                             </td>
                         </tr>
                     )}
@@ -219,7 +220,7 @@ export default function PaymentCard() {
                         <td className="text-sm">
                             <Input
                                 variant="underlined"
-                                value={total.toFixed(2)}
+                                value={formatCurrency(total)}
                                 isDisabled
                                 classNames={{ input: 'text-right' }}
                             />
@@ -317,7 +318,7 @@ export default function PaymentCard() {
                             <td className="text-sm pt-1">
                                 <Input
                                     variant="underlined"
-                                    value={totalReceived.toFixed(2)}
+                                    value={formatCurrency(totalReceived)}
                                     isDisabled
                                     classNames={{ input: 'text-right font-medium' }}
                                 />
@@ -332,7 +333,7 @@ export default function PaymentCard() {
                         <td className="text-sm">
                             <Input
                                 variant="underlined"
-                                value={Math.abs(change).toFixed(2)}
+                                value={formatCurrency(Math.abs(change))}
                                 isDisabled
                                 classNames={{
                                     input: `text-right ${change >= 0 ? 'text-green-600' : 'text-red-600'}`

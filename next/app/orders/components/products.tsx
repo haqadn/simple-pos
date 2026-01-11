@@ -4,6 +4,7 @@ import { CardHeader, Card, Kbd, Tooltip } from "@heroui/react";
 import { useSelectedCategory } from "./selected-category";
 import { useCurrentOrder, useLineItemQuery } from "@/stores/orders";
 import { useMemo } from "react";
+import { formatCurrency } from "@/lib/format";
 
 export default function Products() {
     const { data: products, isLoading } = useProductsQuery();
@@ -52,7 +53,7 @@ const ProductCard = ({ product }: { product: ProductSchema }) => {
 
     const formatPrice = (price: number) => {
         if (isNaN(price)) return 'N/A';
-        return price.toFixed(2);
+        return formatCurrency(price);
     };
 
     const addToOrder = () => {

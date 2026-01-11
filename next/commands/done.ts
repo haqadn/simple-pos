@@ -1,5 +1,6 @@
 import { BaseCommand, CommandMetadata, CommandSuggestion } from './command';
 import { CommandContext } from './command-manager';
+import { formatCurrency } from '@/lib/format';
 
 /**
  * Done command - complete the order and navigate to next
@@ -42,7 +43,7 @@ export class DoneCommand extends BaseCommand {
     // Check if payment is sufficient
     if (paymentReceived < orderTotal) {
       const remaining = orderTotal - paymentReceived;
-      throw new Error(`Insufficient payment. Due: $${remaining.toFixed(2)}`);
+      throw new Error(`Insufficient payment. Due: $${formatCurrency(remaining)}`);
     }
 
     // Complete the order
@@ -50,7 +51,7 @@ export class DoneCommand extends BaseCommand {
 
     const change = paymentReceived - orderTotal;
     if (change > 0) {
-      this.context.showMessage(`Order completed! Change: $${change.toFixed(2)}`);
+      this.context.showMessage(`Order completed! Change: $${formatCurrency(change)}`);
     } else {
       this.context.showMessage('Order completed!');
     }
