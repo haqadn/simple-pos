@@ -335,7 +335,7 @@ export default function PaymentCard() {
                 </tbody>
             </table>
 
-            {/* Quick payment buttons - add to cash */}
+            {/* Quick payment buttons */}
             {quickPayments.length > 0 && !isPaid && (
                 <div className="flex flex-wrap gap-1 mt-2">
                     {quickPayments.map((qp) => (
@@ -343,9 +343,9 @@ export default function PaymentCard() {
                             key={qp.value}
                             size="sm"
                             variant="flat"
-                            onPress={() => handlePaymentChange('cash', (payments.cash || 0) + qp.value)}
+                            onPress={() => handlePaymentChange('cash', qp.value)}
                         >
-                            +{qp.label}
+                            {qp.label}
                         </Button>
                     ))}
                 </div>
