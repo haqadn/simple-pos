@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from "react";
 import { Button, Kbd } from "@heroui/react";
 import Link from "next/link"
 import { type OrderSchema } from "@/api/orders";
@@ -10,6 +11,24 @@ export default function Sidebar() {
     const { ordersQuery: { data: orders, isLoading }, createOrder } = useOrdersStore();
     const pathname = usePathname();
     const router = useRouter();
+
+    // Keyboard shortcuts: Alt+1-9 to switch orders (works even in input fields)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Require Alt key modifier
+            if (!e.altKey) return;
+
+            // Check for number keys 1-9
+            const num = parseInt(e.key);
+            if (num >= 1 && num <= 9 && orders && orders[num - 1]) {
+                e.preventDefault();
+                router.push(`/orders/${orders[num - 1].id}`);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [orders, router]);
 
     const newOrder = async () => {
         try {
@@ -85,7 +104,7 @@ const OrderLink = ({ order, index, pathname }: { order: OrderSchema, index: numb
                         {getShippingMethodTitle(orderQuery.data || order)}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
-                        <Kbd>{index + 1}</Kbd>
+                        {index < 9 && <Kbd keys={["option"]}>{index + 1}</Kbd>}
                         <span className="text-sm font-medium">Order {getOrderDisplayId(order.id)}</span>
                     </div>
                 </div>
