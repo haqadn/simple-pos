@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Input } from '@heroui/react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCommandManager } from '@/hooks/useCommandManager';
 import { useCurrentOrder } from '@/stores/orders';
 import { useProductsQuery, useGetProductById } from '@/stores/products';
@@ -13,7 +14,8 @@ export default function CommandBar() {
   const [suggestions, setSuggestions] = useState<CommandSuggestion[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
-  
+  const queryClient = useQueryClient();
+
   // Hooks for data
   const orderQuery = useCurrentOrder();
   const { data: products = [] } = useProductsQuery();
@@ -35,7 +37,7 @@ export default function CommandBar() {
   const handleAddProduct = useCallback(async (productId: number, variationId: number, quantity: number, mode: 'set' | 'increment') => {
     try {
       const product = getProductById(productId, variationId);
-      
+
       if (!product) {
         throw new Error(`Product not found: ${productId}/${variationId}`);
       }
@@ -44,28 +46,52 @@ export default function CommandBar() {
         throw new Error('No active order');
       }
 
+      const orderId = orderQuery.data.id;
+      const orderQueryKey = ['orders', orderId, 'detail'];
+
+      // Get fresh order data from cache (not stale React state)
+      const currentOrder = queryClient.getQueryData<typeof orderQuery.data>(orderQueryKey) || orderQuery.data;
+
       // Find existing line items for this product
-      const existingLineItems = orderQuery.data.line_items.filter(
+      const existingLineItems = currentOrder.line_items.filter(
         li => li.product_id === productId && li.variation_id === variationId
       );
-      
+
       // Calculate current quantity
       const currentQuantity = existingLineItems.reduce((sum, li) => sum + li.quantity, 0);
       const newQuantity = mode === 'set' ? quantity : currentQuantity + quantity;
 
-      // Call the API directly
+      // Optimistically update the cache immediately
+      const optimisticOrder = { ...currentOrder };
+      optimisticOrder.line_items = currentOrder.line_items.filter(
+        li => !(li.product_id === productId && li.variation_id === variationId)
+      );
+      if (newQuantity > 0) {
+        optimisticOrder.line_items = [
+          ...optimisticOrder.line_items,
+          {
+            name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
+            product_id: productId,
+            variation_id: variationId,
+            quantity: newQuantity,
+          }
+        ];
+      }
+      queryClient.setQueryData(orderQueryKey, optimisticOrder);
+
+      // Call the API
       const OrdersAPI = (await import('@/api/orders')).default;
-      
+
       // Prepare line items for the update
-      const lineItems = [];
-      
+      const lineItems: Array<{ id?: number; product_id: number; variation_id: number; quantity: number; name: string }> = [];
+
       // Remove existing items (set quantity to 0)
       existingLineItems.forEach(li => {
-        if (li.id) {
-          lineItems.push({ ...li, quantity: 0 });
+        if (li.id && li.name) {
+          lineItems.push({ id: li.id, product_id: li.product_id, variation_id: li.variation_id, name: li.name, quantity: 0 });
         }
       });
-      
+
       // Add new item with total quantity
       if (newQuantity > 0) {
         lineItems.push({
@@ -76,21 +102,31 @@ export default function CommandBar() {
           id: undefined,
         });
       }
-      
-      // Update the order
-      await OrdersAPI.updateOrder(orderQuery.data.id.toString(), {
+
+      // Update the order via API
+      const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), {
         line_items: lineItems
       });
-      
-      // Refetch the order data
-      await orderQuery.refetch();
-      
+
+      // Update cache with server response
+      queryClient.setQueryData(orderQueryKey, updatedOrder);
+
+      // Invalidate line item queries to sync UI
+      await queryClient.invalidateQueries({
+        queryKey: ['orders', orderId, 'lineItem']
+      });
+
     } catch (error) {
-      // Silently fail - no notifications
+      // On error, invalidate to refetch correct state
+      if (orderQuery.data?.id) {
+        queryClient.invalidateQueries({
+          queryKey: ['orders', orderQuery.data.id]
+        });
+      }
       console.error('Failed to add product:', error);
       throw error;
     }
-  }, [orderQuery, getProductById]);
+  }, [orderQuery, getProductById, queryClient]);
 
   // Create the command context
   const commandContext = useMemo((): CommandContext | null => {
