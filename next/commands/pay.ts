@@ -61,9 +61,9 @@ export class PayCommand extends BaseMultiInputCommand {
     const change = amount - orderTotal;
 
     if (change >= 0) {
-      this.context.showMessage(`Payment: $${amount.toFixed(2)} | Change: $${change.toFixed(2)}`);
+      this.context.showMessage(`Cash: ${amount} | Change: ${change.toFixed(2)}`);
     } else {
-      this.context.showMessage(`Payment: $${amount.toFixed(2)} | Due: $${Math.abs(change).toFixed(2)}`);
+      this.context.showMessage(`Cash: ${amount} | Due: ${Math.abs(change).toFixed(2)}`);
     }
   }
 

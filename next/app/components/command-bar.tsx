@@ -192,8 +192,11 @@ export default function CommandBar() {
 
     const currentOrder = queryClient.getQueryData<OrderSchema>(orderQueryKey) || orderQuery.data;
 
-    // Update meta_data with payment_received
-    const metaData = currentOrder.meta_data.filter(m => m.key !== 'payment_received');
+    // Update meta_data with both split_payments (for UI) and payment_received (for legacy)
+    const metaData = currentOrder.meta_data.filter(
+      m => m.key !== 'payment_received' && m.key !== 'split_payments'
+    );
+    metaData.push({ key: 'split_payments', value: JSON.stringify({ cash: amount }) });
     metaData.push({ key: 'payment_received', value: amount.toString() });
 
     // Optimistic update
