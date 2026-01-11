@@ -4,162 +4,182 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Simple POS is a WooCommerce-based Point of Sale system with the following components:
+Simple POS is a WooCommerce-based Point of Sale system:
 
-- **WordPress Plugin** (`simple-pos.php`) - Helper plugin extending WooCommerce with POS-specific functionality
-- **Vue.js Frontend** (`/front-end/`) - Legacy implementation (95% complete, production-ready)
-- **Next.js Frontend** (`/next/`) - **Current mission: React rewrite (15% complete)**
+- **WordPress Plugin** (`simple-pos.php`) - Backend extending WooCommerce with POS-specific REST endpoints
+- **Next.js Frontend** (`/next/`) - React-based POS interface (active development)
+- **Vue.js Frontend** (`/front-end/`) - Legacy reference implementation (do not modify, reference only)
 
-The ultimate goal is to package the Next.js frontend into an Electron app for Windows once core functionality is complete.
-
-## Current Mission: Complete React Implementation
-
-The primary focus is completing the React/Next.js rewrite in the `/next/` directory to achieve feature parity with the Vue.js version.
+The ultimate goal is to package the Next.js frontend into an Electron app for Windows.
 
 ## Development Commands
 
-### Next.js Frontend (Primary Development Target)
 ```bash
 cd next
 npm install
-npm run dev          # Development server with Turbopack and debugging
+npm run dev          # Development server with Turbopack
 npm run build        # Production build
 npm run lint         # Next.js linting
 ```
 
-### Vue.js Frontend (Reference Implementation)
-```bash
-cd front-end
-npm install
-npm run dev          # Development server
-npm run build        # Production build for WordPress plugin
-npm run lint         # ESLint with auto-fix
-npm run type-check   # TypeScript checking
-```
-
-### WordPress Backend
+### WordPress Backend (for API testing)
 ```bash
 cp .env.example .env
 composer install
-cd front-end && npm install && npm run build  # Build Vue.js version for plugin
 docker-compose up -d
 ```
 
-After setup, visit `http://localhost`, activate the plugin and WooCommerce, then create a page with shortcode `[simple-pos]`.
+## Architecture
 
-## Architecture Overview
-
-### WordPress Plugin Integration
-- **Purpose**: Extends WooCommerce with POS-specific REST endpoints
-- **Key Features**: Customer search, pickup locations, order processing
-- **Location**: Root `simple-pos.php` + `/endpoints/` directory
-- **Integration**: Uses WooCommerce REST API with custom endpoints
-
-### Next.js Frontend (Current Development)
+### Technology Stack
 - **Framework**: Next.js 15 with React 19
-- **State Management**: Zustand (to replace Pinia from Vue version)
-- **Data Fetching**: TanStack React Query
+- **State Management**: TanStack React Query (server state) + Zustand (client state - planned)
 - **UI Framework**: HeroUI + Tailwind CSS
 - **Type Safety**: TypeScript + Zod validation
-- **Icons**: Hugeicons React components
+- **Icons**: Hugeicons React
 
-### Vue.js Frontend (Reference Implementation)
-- **State Management**: Pinia stores with reactive cart management
-- **API Layer**: Axios client with WooCommerce REST API
-- **UI Framework**: Vue 3 + Vuetify
-- **Command System**: Text-based POS commands for fast operation
-- **Multi-Cart**: Table-based cart management
+### Design Principles
+- **SOLID principles** - Single responsibility, interface segregation
+- **Command Pattern** - All POS operations implemented as commands
+- **Repository Pattern** - API layer abstracts data access
+- **Optimistic Updates** - Immediate UI feedback with background sync
+- **Debounced Mutations** - Prevent excessive API calls
 
-## Key Development Patterns to Implement
+### Directory Structure
+```
+/next/
+├── api/                    # API client layer (Repository pattern)
+│   ├── api.ts              # Base Axios client with auth
+│   ├── orders.ts           # Order operations + Zod schemas
+│   ├── products.ts         # Product catalog
+│   ├── customers.ts        # Customer management
+│   ├── coupons.ts          # Coupon operations
+│   └── shipping.ts         # Shipping methods
+├── stores/                 # State management (TanStack Query hooks)
+│   ├── orders.ts           # Order queries and mutations
+│   ├── products.ts         # Product catalog queries
+│   └── service.ts          # Table/delivery service queries
+├── commands/               # Command pattern implementation
+│   ├── command.ts          # Base interfaces and classes
+│   ├── command-registry.ts # Command registration and routing
+│   ├── command-manager.ts  # Execution coordination
+│   └── [command].ts        # Individual command implementations
+├── hooks/                  # Custom React hooks
+├── components/             # Shared UI components
+└── app/                    # Next.js App Router pages
+    ├── components/         # App-level components
+    └── orders/             # Order management pages
+```
 
-### Multi-Cart Management System
-The Vue.js version uses a sophisticated cart management pattern that needs to be replicated:
-- Dynamic cart stores for multiple tables/locations
-- Cart switching and persistence
-- Auto-save functionality with dirty state tracking
+## Command System Architecture
 
-### Command-Driven POS Interface
-Critical feature for fast operation:
-- Text-based command input (add-by-sku, clear, pay, done, etc.)
-- Command parsing and validation
-- History and auto-completion
+The command system is the core interaction pattern for fast POS operation.
 
-### API Integration Patterns
-- WooCommerce REST API integration
-- Authentication via WP Nonce or Consumer Key/Secret
-- Error handling and retry logic
-- Optimistic updates for better UX
+### Command Interface
+```typescript
+interface Command {
+  getMetadata(): CommandMetadata;
+  matches(keyword: string): boolean;
+  execute(args: string[]): Promise<void>;
+  getAutocompleteSuggestions(partialInput: string): CommandSuggestion[];
+}
+```
 
-## Priority Implementation Order
+### Multi-Input Mode
+Commands can enter a persistent input mode for rapid entry:
+- `/item` enters item mode with `item>` prompt
+- Type `SKU [quantity]` repeatedly without command prefix
+- `/` exits multi-input mode
 
-Based on TODO.md analysis, focus on:
+### Commands
 
-### Phase 1 - Core POS Infrastructure
-1. **Command System** - Text-based command input and parsing
-2. **Cart Management** - Multi-cart store with Zustand
-3. **Product Catalog** - Product search and display
-4. **Basic Order Flow** - Add items, calculate totals, complete orders
+| Command | Aliases | Status | Description |
+|---------|---------|--------|-------------|
+| `item` | `i` | ✅ | Set or increment line item quantity by SKU |
+| `clear` | `cl` | ❌ | Clear current order |
+| `pay` | `p` | ❌ | Record payment amount |
+| `done` | `dn` | ❌ | Complete order (checkout) |
+| `coupon` | `c` | ❌ | Apply discount codes |
+| `print` | `pr` | ❌ | Print receipts/KOT |
+| `customer-info` | `ci` | ❌ | Add customer details |
+| `last-order` | `last` | ❌ | View last completed order |
+| `drawer` | `cash` | ❌ | Open cash drawer |
+| `manage-stock` | `stock` | ❌ | Update inventory |
 
-### Phase 2 - Essential POS Features
-5. **Payment Processing** - Multiple payment methods
-6. **Customer Management** - Search and add customer info
-7. **Order Persistence** - Save/load orders via API
-8. **Print System** - Receipts and KOT (Kitchen Order Tickets)
+### Item Command Behavior
+- `/item SKU` - Increment quantity by 1
+- `/item SKU 5` - Set quantity to 5
+- `/item SKU 0` - Remove item from order
 
-### Phase 3 - Advanced Features
-9. **Settings Management** - Configuration interface
-10. **Reporting** - Sales analytics and reports
-11. **Offline Support** - Local storage and sync
+## API Integration
 
-## API Endpoints
+### Authentication
+- **Development**: WP Nonce (same-origin)
+- **Production**: Consumer Key/Secret
 
-The WordPress plugin provides these custom endpoints:
-- `/wp-json/wc/v3/customers` (enhanced customer search)
-- `/wp-json/wc/v3/shipping_methods/local_pickup` (pickup locations)
-- Standard WooCommerce REST API for products, orders, etc.
+### Key Endpoints
+- `GET/POST /wp-json/wc/v3/orders` - Order CRUD
+- `GET /wp-json/wc/v3/products` - Product catalog
+- `GET /wp-json/wc/v3/customers` - Customer search
+- `GET /wp-json/wc/v3/coupons` - Coupon lookup
+- `GET /wp-json/wc/v3/shipping_methods/local_pickup` - Table locations
 
-## Configuration
+### Order Update Pattern
+WooCommerce requires specific handling for line items:
+1. Set existing line item quantity to 0 (marks for deletion)
+2. Add new line item with desired quantity
+3. Send deletions before additions in array order
 
-### Authentication Methods
-1. **WP Nonce** (development) - Set `method: 'nonce'`
-2. **Consumer Key/Secret** (production) - Set `method: 'key'`
+## Implementation Status
 
-### Key Config Areas
-- API authentication setup
-- Table/location mapping
-- Printer configuration
-- Category settings for KOT filtering
+See `/next/FEATURES.md` for detailed feature documentation.
 
-## Reference Architecture (Vue.js)
+### Complete
+- API client layer with Zod validation
+- Order queries with optimistic updates
+- Product catalog with variations
+- Command infrastructure (registry, manager, base classes)
+- Item command with multi-input mode
+- Multi-order management (URL-based routing)
+- Service/table selection
+- Customer info and notes
+- Payment tracking via meta_data
 
-### Store Structure (`/front-end/src/stores/`)
-- `cart.ts` - Dynamic multi-cart management
-- `catalog.ts` - Product catalog and search
-- `alerts.ts` - Global notifications
-- `print.ts` - Printing and receipt management
+### In Progress
+- Additional command implementations
 
-### Command System (`/front-end/src/commands/`)
-Essential commands to replicate:
-- `add-by-sku.ts`, `pay.ts`, `clear.ts`, `done.ts`
-- `select-cart.ts`, `open-order.ts`, `customer-info.ts`
+### Not Started
+- Printing system
+- Settings management
+- Offline support
+- Reporting
 
-## Next.js Implementation Status
+## Vue.js Reference
 
-**Current Progress (~15%)**:
-- ✅ Basic project setup with Next.js 15
-- ✅ TanStack Query integration
-- ✅ Basic product catalog
-- ✅ HeroUI + Tailwind setup
+The `/front-end/` directory contains the legacy Vue.js implementation. Use it as a reference for:
+- Feature behavior and business logic
+- Command implementations
+- Print system architecture
+- KOT change detection logic
 
-**Immediate Next Steps**:
-1. Implement command input system
-2. Create Zustand cart management stores
-3. Build main POS interface layout
-4. Add essential POS commands
+**Do not modify Vue.js code** - it's reference only.
 
-## Future Electron Packaging
+## Key Patterns to Follow
 
-Once the Next.js implementation reaches feature parity:
-- Package frontend as Electron app for Windows
-- Consider cross-platform builds (macOS, Linux)
-- Implement proper app packaging and distribution
+### Adding a New Command
+1. Create file in `/next/commands/[command-name].ts`
+2. Extend `BaseCommand` or `BaseMultiInputCommand`
+3. Implement `getMetadata()`, `execute()`, `getAutocompleteSuggestions()`
+4. Register in `command-registry.ts`
+
+### Adding State Management
+1. Create hook in `/next/stores/[domain].ts`
+2. Use TanStack Query for server state
+3. Implement optimistic updates in `onMutate`
+4. Use `useDebounce` and `useAvoidParallel` for mutations
+
+### Component Structure
+1. Server components for data fetching where possible
+2. Client components for interactivity
+3. Use HeroUI components for consistent styling
+4. Follow existing patterns in `/next/app/orders/`

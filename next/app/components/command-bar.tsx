@@ -32,7 +32,7 @@ export default function CommandBar() {
   } = useCommandManager();
 
   // Handle adding products to the order
-  const handleAddProduct = useCallback(async (productId: number, variationId: number, quantity: number) => {
+  const handleAddProduct = useCallback(async (productId: number, variationId: number, quantity: number, mode: 'set' | 'increment') => {
     try {
       const product = getProductById(productId, variationId);
       
@@ -51,7 +51,7 @@ export default function CommandBar() {
       
       // Calculate current quantity
       const currentQuantity = existingLineItems.reduce((sum, li) => sum + li.quantity, 0);
-      const newQuantity = currentQuantity + quantity;
+      const newQuantity = mode === 'set' ? quantity : currentQuantity + quantity;
 
       // Call the API directly
       const OrdersAPI = (await import('@/api/orders')).default;

@@ -1,6 +1,6 @@
 import { CommandRegistry, CommandExecutionResult } from './command-registry';
 import { CommandState, CommandSuggestion } from './command';
-import { AddBySKUCommand } from './add-by-sku';
+import { ItemCommand } from './item';
 
 import { OrderSchema } from '@/api/orders';
 import { ProductSchema } from '@/stores/products';
@@ -16,7 +16,7 @@ export interface CommandContext {
   products: ProductSchema[];
   
   // Order manipulation functions
-  updateLineItem: (productId: number, variationId: number, quantity: number) => Promise<void>;
+  updateLineItem: (productId: number, variationId: number, quantity: number, mode: 'set' | 'increment') => Promise<void>;
   
   // UI feedback functions
   showMessage: (message: string) => void;
@@ -149,9 +149,9 @@ export class CommandManager {
    * Register default commands
    */
   private registerDefaultCommands(): void {
-    // Register the add command
-    const addCommand = new AddBySKUCommand();
-    this.registry.registerCommand(addCommand);
+    // Register the item command
+    const itemCommand = new ItemCommand();
+    this.registry.registerCommand(itemCommand);
 
     // Future commands would be registered here:
     // this.registry.registerCommand(new PayCommand());
@@ -167,7 +167,7 @@ export class CommandManager {
 
     // Update all commands that need context
     this.registry.getAllCommands().forEach(command => {
-      if (command instanceof AddBySKUCommand) {
+      if (command instanceof ItemCommand) {
         command.setContext(this.context!);
       }
       // Add other command types here as they're implemented

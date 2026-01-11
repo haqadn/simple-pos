@@ -2,11 +2,11 @@ import { BaseMultiInputCommand, CommandMetadata, CommandSuggestion } from './com
 import { CommandContext } from './command-manager';
 import { ProductSchema } from '@/stores/products';
 
-interface AddCommandData {
-  itemsAdded: number;
+interface ItemCommandData {
+  itemsModified: number;
 }
 
-export class AddBySKUCommand extends BaseMultiInputCommand {
+export class ItemCommand extends BaseMultiInputCommand {
   private context?: CommandContext;
 
   constructor(context?: CommandContext) {
@@ -20,12 +20,12 @@ export class AddBySKUCommand extends BaseMultiInputCommand {
 
   getMetadata(): CommandMetadata {
     return {
-      keyword: 'add',
-      aliases: ['a'],
-      description: 'Add products to order by SKU',
+      keyword: 'item',
+      aliases: ['i'],
+      description: 'Set or increment line item quantity by SKU',
       usage: [
-        '/add <sku> [quantity]',
-        '/add (enters multi-input mode)',
+        '/item <sku> [quantity]',
+        '/item (enters multi-input mode)',
         'Multi-mode: <sku> [quantity]',
         'Multi-mode: / (to exit)'
       ],
@@ -40,7 +40,7 @@ export class AddBySKUCommand extends BaseMultiInputCommand {
           name: 'quantity',
           type: 'number',
           required: false,
-          description: 'Quantity to add (default: 1)'
+          description: 'Set quantity to this value (omit to increment by 1)'
         }
       ]
     };
@@ -52,30 +52,33 @@ export class AddBySKUCommand extends BaseMultiInputCommand {
     }
 
     if (args.length === 0) {
-      throw new Error('SKU is required. Usage: /add <sku> [quantity]');
+      throw new Error('SKU is required. Usage: /item <sku> [quantity]');
     }
 
     const sku = args[0];
-    const quantity = args.length > 1 ? this.parseInt(args[1]) : 1;
+    const hasQuantity = args.length > 1;
+    const quantity = hasQuantity ? this.parseInt(args[1]) : 1;
 
     if (quantity === null || quantity <= 0) {
       throw new Error('Quantity must be a positive number');
     }
 
-    await this.addProductToOrder(sku, quantity);
+    // If quantity is provided, set to that quantity. Otherwise, increment by 1
+    const mode = hasQuantity ? 'set' : 'increment';
+    await this.addProductToOrder(sku, quantity, mode);
   }
 
   async enterMultiMode(): Promise<{ prompt: string; data?: unknown }> {
     return {
-      prompt: 'add>',
-      data: { itemsAdded: 0 } as AddCommandData
+      prompt: 'item>',
+      data: { itemsModified: 0 } as ItemCommandData
     };
   }
 
   async exitMultiMode(currentData?: unknown): Promise<void> {
-    const data = currentData as AddCommandData;
-    if (data?.itemsAdded && data.itemsAdded > 0 && this.context) {
-      this.context.showMessage(`Added ${data.itemsAdded} items to order`);
+    const data = currentData as ItemCommandData;
+    if (data?.itemsModified && data.itemsModified > 0 && this.context) {
+      this.context.showMessage(`Modified ${data.itemsModified} items`);
     }
   }
 
@@ -116,7 +119,7 @@ export class AddBySKUCommand extends BaseMultiInputCommand {
     return suggestions;
   }
 
-  private async addProductToOrder(sku: string, quantity: number): Promise<void> {
+  private async addProductToOrder(sku: string, quantity: number, mode: 'set' | 'increment'): Promise<void> {
     if (!this.context) {
       throw new Error('Command context not set');
     }
@@ -139,10 +142,12 @@ export class AddBySKUCommand extends BaseMultiInputCommand {
       await this.context.updateLineItem(
         product.product_id, 
         product.variation_id || 0, 
-        quantity
+        quantity,
+        mode
       );
       
-      this.context.showMessage(`Added ${quantity}x ${product.name} to order`);
+      const action = mode === 'set' ? 'Set' : 'Added';
+      this.context.showMessage(`${action} ${product.name} to ${quantity}`);
     } catch (error) {
       this.context.showError(`Failed to add product: ${error instanceof Error ? error.message : 'Unknown error'}`);
       throw error;
