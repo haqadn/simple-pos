@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Input } from '@heroui/react';
+import { Input, Kbd } from '@heroui/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCommandManager } from '@/hooks/useCommandManager';
@@ -480,11 +480,14 @@ export default function CommandBar() {
       </form>
       
       {/* Help text */}
-      <div className="text-xs text-gray-400">
+      <div className="text-xs text-gray-400 flex items-center gap-2">
         {multiMode ? (
           `Multi-input mode: Type ${activeCommand} parameters, or "/" to exit`
         ) : (
-          '/item, /clear, /pay, /done, /coupon, /print | ↑↓ history'
+          <>
+            <span>/item, /clear, /pay, /done, /coupon, /print | ↑↓ history</span>
+            <Kbd className="text-[10px]">Esc</Kbd>
+          </>
         )}
       </div>
     </div>

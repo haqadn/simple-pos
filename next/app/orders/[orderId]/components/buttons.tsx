@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from "react";
-import { ButtonGroup, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
+import { ButtonGroup, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Kbd } from "@heroui/react";
 import { useCurrentOrder } from "@/stores/orders";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -84,6 +84,10 @@ export default function Buttons() {
     }, [orderQuery.data, queryClient, router]);
 
     const hasItems = (orderQuery.data?.line_items?.length ?? 0) > 0;
+    const total = parseFloat(orderQuery.data?.total || '0');
+    const paymentMeta = orderQuery.data?.meta_data?.find(m => m.key === 'payment_received');
+    const received = paymentMeta ? parseFloat(String(paymentMeta.value)) : 0;
+    const isPaid = received >= total && total > 0;
 
     return (
         <ButtonGroup fullWidth radius="lg" className="shadow-sm">
@@ -95,7 +99,10 @@ export default function Buttons() {
                 isDisabled={!hasItems}
                 className="font-semibold"
             >
-                KOT
+                <span className="flex items-center gap-1">
+                    KOT
+                    <Kbd keys={["ctrl"]} className="bg-warning-200 text-warning-800 text-[10px]">K</Kbd>
+                </span>
             </Button>
             <Button
                 color="success"
@@ -105,7 +112,28 @@ export default function Buttons() {
                 isDisabled={!hasItems}
                 className="font-semibold"
             >
-                Bill
+                <span className="flex items-center gap-1">
+                    Bill
+                    <Kbd keys={["ctrl"]} className="bg-success-200 text-success-800 text-[10px]">P</Kbd>
+                </span>
+            </Button>
+            <Button
+                color="primary"
+                variant={isPaid ? "solid" : "flat"}
+                onPress={async () => {
+                    if (!isPaid || !orderQuery.data) return;
+                    const orderId = orderQuery.data.id;
+                    await OrdersAPI.updateOrder(orderId.toString(), { status: 'completed' });
+                    await queryClient.invalidateQueries({ queryKey: ['orders'] });
+                    router.push('/');
+                }}
+                isDisabled={!isPaid}
+                className="font-semibold"
+            >
+                <span className="flex items-center gap-1">
+                    Done
+                    <Kbd keys={["ctrl"]} className="bg-primary-200 text-primary-800 text-[10px]">↵</Kbd>
+                </span>
             </Button>
             <Dropdown placement="top-end">
                 <DropdownTrigger>

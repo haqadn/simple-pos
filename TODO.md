@@ -113,8 +113,14 @@ All essential POS commands are implemented:
 
 ### Keyboard Shortcuts
 - [x] Ctrl+1-9 for order switching (with sidebar auto-scroll)
-- [x] Escape to clear input (first clears suggestions, second clears input)
+- [x] Escape to focus command bar (or clear input if already focused)
 - [x] Enter to submit
+- [x] Ctrl+N for new order
+- [x] Alt+1-9 to select service (tables then delivery zones)
+- [x] Ctrl+K to print KOT
+- [x] Ctrl+P to print Bill
+- [x] Ctrl+D to open drawer
+- [x] Ctrl+Enter to complete order (done)
 
 ### Settings Management
 - [ ] API configuration UI

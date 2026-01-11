@@ -73,15 +73,17 @@ export default function Sidebar() {
 
     return (
         <>
-            <Button fullWidth variant="light" onPress={newOrder}>+ New Order</Button>
+            <Button fullWidth variant="light" onPress={newOrder}>
+                <span className="flex items-center gap-2">
+                    + New Order
+                    <Kbd keys={["ctrl"]}>N</Kbd>
+                </span>
+            </Button>
             <div className="flex flex-col gap-2 mt-4">
                 {orders.map((order: OrderSchema, index: number) => (
                     <OrderLink key={`/orders/${order.id}`} order={order} index={index} pathname={pathname} />
                 ))}
             </div>
-            {orders.length > 5 && (
-                <Button fullWidth variant="light" onPress={newOrder} className="mt-4">+ New Order</Button>
-            )}
         </>
     );
 }
