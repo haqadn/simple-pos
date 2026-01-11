@@ -3,6 +3,52 @@ import { CommandManager, CommandContext } from '@/commands/command-manager';
 import { CommandState, CommandSuggestion } from '@/commands/command';
 import { CommandExecutionResult } from '@/commands/command-registry';
 
+const COMMAND_STATE_KEY = 'pos-command-state';
+
+/**
+ * Load persisted command state from localStorage
+ */
+function loadPersistedState(): CommandState | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const saved = localStorage.getItem(COMMAND_STATE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Only restore multi-mode state, not data
+      if (parsed.mode === 'multi' && parsed.activeCommand) {
+        return {
+          mode: 'multi',
+          activeCommand: parsed.activeCommand,
+          prompt: parsed.prompt,
+        };
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load command state:', e);
+  }
+  return null;
+}
+
+/**
+ * Persist command state to localStorage
+ */
+function persistState(state: CommandState): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (state.mode === 'multi') {
+      localStorage.setItem(COMMAND_STATE_KEY, JSON.stringify({
+        mode: state.mode,
+        activeCommand: state.activeCommand,
+        prompt: state.prompt,
+      }));
+    } else {
+      localStorage.removeItem(COMMAND_STATE_KEY);
+    }
+  } catch (e) {
+    console.error('Failed to persist command state:', e);
+  }
+}
+
 /**
  * Hook to manage the command system
  */
@@ -11,18 +57,24 @@ export function useCommandManager() {
   const [state, setState] = useState<CommandState>({ mode: 'normal' });
   const [isReady, setIsReady] = useState(false);
 
-  // Initialize command manager
+  // Initialize command manager with persisted state
   useEffect(() => {
     if (!managerRef.current) {
-      managerRef.current = new CommandManager();
+      const savedState = loadPersistedState();
+      managerRef.current = new CommandManager(savedState || undefined);
+      if (savedState) {
+        setState(savedState);
+      }
       setIsReady(true);
     }
   }, []);
 
-  // Update state when command manager state changes
+  // Update state when command manager state changes and persist it
   const updateState = useCallback(() => {
     if (managerRef.current) {
-      setState(managerRef.current.getState());
+      const newState = managerRef.current.getState();
+      setState(newState);
+      persistState(newState);
     }
   }, []);
 

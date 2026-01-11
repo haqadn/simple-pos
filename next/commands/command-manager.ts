@@ -56,9 +56,14 @@ export class CommandManager {
   private history: string[] = [];
   private historyIndex = -1;
 
-  constructor() {
+  constructor(initialState?: CommandState) {
     this.registry = new CommandRegistry();
     this.registerDefaultCommands();
+
+    // Restore persisted state if provided
+    if (initialState) {
+      this.state = initialState;
+    }
   }
 
   /**
