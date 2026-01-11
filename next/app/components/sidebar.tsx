@@ -12,17 +12,23 @@ export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
 
-    // Keyboard shortcuts: Alt+1-9 to switch orders (works even in input fields)
+    // Keyboard shortcuts: Ctrl+1-9 to switch orders (works even in input fields)
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Require Alt key modifier
-            if (!e.altKey) return;
+            // Require Ctrl key modifier
+            if (!e.ctrlKey) return;
 
             // Check for number keys 1-9
             const num = parseInt(e.key);
             if (num >= 1 && num <= 9 && orders && orders[num - 1]) {
                 e.preventDefault();
                 router.push(`/orders/${orders[num - 1].id}`);
+
+                // Scroll the order link into view
+                setTimeout(() => {
+                    const orderLink = document.querySelector(`a[href="/orders/${orders[num - 1].id}"]`);
+                    orderLink?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
             }
         };
 
@@ -104,7 +110,7 @@ const OrderLink = ({ order, index, pathname }: { order: OrderSchema, index: numb
                         {getShippingMethodTitle(orderQuery.data || order)}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
-                        {index < 9 && <Kbd keys={["option"]}>{index + 1}</Kbd>}
+                        {index < 9 && <Kbd keys={["ctrl"]}>{index + 1}</Kbd>}
                         <span className="text-sm font-medium">Order {getOrderDisplayId(order.id)}</span>
                     </div>
                 </div>
