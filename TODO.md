@@ -57,9 +57,8 @@ All essential POS commands are implemented:
 
 ### Payment UI
 - [x] Payment card showing total, received, change
-- [x] Quick payment buttons (BDT denominations: exact, 100, 200, 500, 1000)
-- [ ] Payment method selection
-- [ ] Split payment visualization
+- [x] Quick payment buttons (BDT denominations)
+- [x] Split payment with multiple methods (Cash always visible, add bKash/Nagad/Card via dropdown)
 
 ### Order Summary
 - [x] Better order total display
@@ -114,7 +113,7 @@ All essential POS commands are implemented:
 
 ### Keyboard Shortcuts
 - [x] Ctrl+1-9 for order switching (with sidebar auto-scroll)
-- [ ] Escape to clear input
+- [x] Escape to clear input (first clears suggestions, second clears input)
 - [x] Enter to submit
 
 ### Settings Management

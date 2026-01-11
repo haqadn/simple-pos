@@ -381,8 +381,15 @@ export default function CommandBar() {
         break;
 
       case 'Escape':
-        setSuggestions([]);
-        setSelectedSuggestion(-1);
+        e.preventDefault();
+        if (suggestions.length > 0) {
+          // First press: clear suggestions
+          setSuggestions([]);
+          setSelectedSuggestion(-1);
+        } else if (input.trim()) {
+          // Second press: clear input
+          setInput('');
+        }
         break;
     }
   };
