@@ -17,6 +17,7 @@ export default function CommandBar() {
   const [suggestions, setSuggestions] = useState<CommandSuggestion[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -344,6 +345,25 @@ export default function CommandBar() {
     }
   }, [input, getAutocompleteSuggestions]);
 
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestions.length > 0 &&
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setSuggestions([]);
+        setSelectedSuggestion(-1);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [suggestions.length]);
+
   // Handle input submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -482,7 +502,7 @@ export default function CommandBar() {
         
         {/* Autocomplete suggestions */}
         {suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto mt-1">
+          <div ref={suggestionsRef} className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto mt-1">
             {suggestions.map((suggestion, index) => (
               <div
                 key={index}
