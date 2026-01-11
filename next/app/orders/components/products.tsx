@@ -110,7 +110,7 @@ const ProductCard = ({ product }: { product: ProductSchema }) => {
     );
 
     // Wrap with badge if in order
-    const card = currentQuantity > 0 ? (
+    const cardWithBadge = currentQuantity > 0 ? (
         <Badge
             content={currentQuantity}
             color="primary"
@@ -135,10 +135,12 @@ const ProductCard = ({ product }: { product: ProductSchema }) => {
                 delay={300}
                 closeDelay={0}
             >
-                {card}
+                <div className="h-full w-full">
+                    {cardWithBadge}
+                </div>
             </Tooltip>
         );
     }
 
-    return card;
+    return cardWithBadge;
 }
