@@ -153,24 +153,32 @@ export default function PaymentCard() {
         m => !activeAdditionalMethods.has(m.key)
     );
 
-    // Quick payment amounts (BDT denominations)
+    // Quick payment amounts (BDT denominations) - based on total, not remaining
     const quickPayments = useMemo(() => {
-        const remaining = total - totalReceived;
-        if (remaining <= 0) return [];
+        if (total <= 0 || isPaid) return [];
 
         const amounts: { label: string; value: number }[] = [];
-        amounts.push({ label: 'Exact', value: remaining });
 
-        const roundTo100 = Math.ceil(remaining / 100) * 100;
-        const roundTo500 = Math.ceil(remaining / 500) * 500;
-        const roundTo1000 = Math.ceil(remaining / 1000) * 1000;
+        // "Exact" pays the full total
+        amounts.push({ label: 'Exact', value: total });
 
-        if (roundTo100 > remaining) amounts.push({ label: `${roundTo100}`, value: roundTo100 });
-        if (roundTo500 > remaining && roundTo500 !== roundTo100) amounts.push({ label: `${roundTo500}`, value: roundTo500 });
-        if (roundTo1000 > remaining && roundTo1000 !== roundTo500) amounts.push({ label: `${roundTo1000}`, value: roundTo1000 });
+        // Round up to common denominations
+        const roundTo100 = Math.ceil(total / 100) * 100;
+        const roundTo500 = Math.ceil(total / 500) * 500;
+        const roundTo1000 = Math.ceil(total / 1000) * 1000;
+
+        if (roundTo100 > total && !amounts.some(a => a.value === roundTo100)) {
+            amounts.push({ label: `${roundTo100}`, value: roundTo100 });
+        }
+        if (roundTo500 > total && !amounts.some(a => a.value === roundTo500)) {
+            amounts.push({ label: `${roundTo500}`, value: roundTo500 });
+        }
+        if (roundTo1000 > total && !amounts.some(a => a.value === roundTo1000)) {
+            amounts.push({ label: `${roundTo1000}`, value: roundTo1000 });
+        }
 
         return amounts.slice(0, 4);
-    }, [total, totalReceived]);
+    }, [total, isPaid]);
 
     return (
         <div className="mb-4">
