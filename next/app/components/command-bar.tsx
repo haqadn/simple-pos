@@ -486,9 +486,9 @@ export default function CommandBar() {
           }}
           labelPlacement="outside-left"
           label="Command"
-          placeholder={multiMode ? 
-            `Enter ${activeCommand} parameters...` : 
-            "Type commands starting with /"
+          placeholder={multiMode ?
+            `Enter ${activeCommand} parameters...` :
+            "Type SKU to add items, / for commands"
           }
           startContent={
             <span className="text-gray-500 font-mono text-sm min-w-fit">
@@ -543,8 +543,8 @@ export default function CommandBar() {
           `Multi-input mode: Type ${activeCommand} parameters, or "/" to exit`
         ) : (
           <>
-            <span>/item, /clear, /pay, /done, /coupon, /print | ↑↓ history</span>
-            <Kbd className="text-[10px]">Esc</Kbd>
+            <span>SKU [qty] | /pay /done /clear | ↑↓ history</span>
+            <Kbd className="text-[10px]">Tab</Kbd>
           </>
         )}
       </div>

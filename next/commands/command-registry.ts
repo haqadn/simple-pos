@@ -52,10 +52,18 @@ export class CommandRegistry {
   }
 
   /**
+   * Detect input type based on prefix
+   */
+  private detectInputType(input: string): 'command' | 'item' {
+    if (input.startsWith('/')) return 'command';
+    return 'item';
+  }
+
+  /**
    * Process user input and execute commands or handle multi-input mode
    */
   async processInput(
-    input: string, 
+    input: string,
     currentState: CommandState
   ): Promise<CommandExecutionResult> {
     const trimmedInput = input.trim();
@@ -66,26 +74,59 @@ export class CommandRegistry {
         return await this.exitMultiMode(currentState);
       }
 
-      // Handle commands (start with /)
-      if (CommandUtils.isCommand(trimmedInput)) {
-        return await this.executeCommand(trimmedInput, currentState);
-      }
-
-      // Handle multi-input mode
+      // Handle multi-input mode first (stays in current command context)
       if (currentState.mode === 'multi') {
+        // Allow switching to commands from multi-mode
+        if (this.detectInputType(trimmedInput) === 'command') {
+          return await this.executeCommand(trimmedInput, currentState);
+        }
+        // Otherwise process as multi-input
         return await this.handleMultiInput(trimmedInput, currentState);
       }
 
-      // Not a command and not in multi-mode
-      return {
-        success: false,
-        error: 'Invalid input. Commands must start with /'
-      };
+      // Route based on input type
+      const inputType = this.detectInputType(trimmedInput);
+
+      if (inputType === 'command') {
+        return await this.executeCommand(trimmedInput, currentState);
+      }
+
+      // Default: item entry
+      return await this.handleItemEntry(trimmedInput, currentState);
 
     } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  /**
+   * Handle default item entry (no prefix)
+   */
+  private async handleItemEntry(
+    input: string,
+    currentState: CommandState
+  ): Promise<CommandExecutionResult> {
+    const itemCommand = this.getCommand('item');
+    if (!itemCommand) {
+      return { success: false, error: 'Item command not registered' };
+    }
+
+    const args = input.trim().split(/\s+/);
+
+    try {
+      await itemCommand.execute(args);
+      return {
+        success: true,
+        message: `Added: ${args[0]}`,
+        newState: currentState
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to add item'
       };
     }
   }
@@ -206,7 +247,7 @@ export class CommandRegistry {
    * Get autocomplete suggestions for partial input
    */
   getAutocompleteSuggestions(
-    partialInput: string, 
+    partialInput: string,
     currentState: CommandState
   ): CommandSuggestion[] {
     const trimmedInput = partialInput.trim();
@@ -219,23 +260,31 @@ export class CommandRegistry {
       }
     }
 
-    // For commands (starting with /)
-    if (CommandUtils.isCommand(trimmedInput)) {
+    // Route based on input type
+    if (this.detectInputType(trimmedInput) === 'command') {
       return this.getCommandSuggestions(trimmedInput);
     }
 
-    // For non-commands, suggest starting with /
+    // Default: show product SKU suggestions
     if (trimmedInput.length > 0) {
-      return [{
-        text: '/' + trimmedInput,
-        description: 'Commands must start with /',
-        insertText: '/' + trimmedInput,
-        type: 'command'
-      }];
+      return this.getProductSuggestions(trimmedInput);
     }
 
-    // Empty input - suggest all commands
+    // Empty input - show hint
     return this.getAllCommandSuggestions();
+  }
+
+  /**
+   * Get product SKU suggestions for item entry
+   */
+  private getProductSuggestions(partialSku: string): CommandSuggestion[] {
+    const itemCommand = this.getCommand('item');
+    if (!itemCommand || !CommandUtils.isMultiInputCommand(itemCommand)) {
+      return [];
+    }
+
+    // Reuse ItemCommand's product matching logic
+    return itemCommand.getMultiModeAutocompleteSuggestions(partialSku);
   }
 
   /**
