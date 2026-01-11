@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useCommandManager } from '@/hooks/useCommandManager';
 import { useCurrentOrder, useOrdersStore } from '@/stores/orders';
 import { useProductsQuery, useGetProductById } from '@/stores/products';
+import { usePrintStore, PrintJobData } from '@/stores/print';
 import { CommandContext } from '@/commands/command-manager';
 import { CommandSuggestion } from '@/commands/command';
 import OrdersAPI, { OrderSchema } from '@/api/orders';
@@ -238,25 +239,62 @@ export default function CommandBar() {
     queryClient.setQueryData(orderQueryKey, updatedOrder);
   }, [orderQuery, queryClient]);
 
-  // Print (placeholder - will integrate with print system later)
+  // Print - uses print store queue
+  const printStore = usePrintStore();
+
   const handlePrint = useCallback(async (type: 'bill' | 'kot') => {
     if (!orderQuery.data) throw new Error('No active order');
 
-    // For now, just log - print system will be implemented separately
-    console.log(`Print ${type} for order ${orderQuery.data.id}`);
+    const order = orderQuery.data;
+    const orderId = order.id;
 
-    // TODO: Integrate with actual print system
-    // For now, mark as printed in meta_data
-    const orderId = orderQuery.data.id;
+    // Build print data based on type
+    const printData: PrintJobData = {
+      orderId,
+      orderReference: orderId.toString(),
+      cartName: order.meta_data.find(m => m.key === 'service_slug')?.value?.toString() || 'Order',
+      orderTime: order.date_created,
+      customerNote: order.customer_note,
+      customer: {
+        name: `${order.billing.first_name} ${order.billing.last_name}`.trim(),
+        phone: order.billing.phone,
+      },
+    };
+
+    if (type === 'bill') {
+      // Bill data
+      printData.items = order.line_items.map(item => ({
+        id: item.id || 0,
+        name: item.name,
+        quantity: item.quantity,
+        price: parseFloat(item.price?.toString() || '0'),
+      }));
+      printData.total = parseFloat(order.total);
+      printData.discountTotal = parseFloat(order.discount_total || '0');
+      const paymentMeta = order.meta_data.find(m => m.key === 'payment_received');
+      printData.payment = paymentMeta ? parseFloat(paymentMeta.value?.toString() || '0') : 0;
+    } else {
+      // KOT data - get items that need to go to kitchen
+      printData.kotItems = order.line_items.map(item => ({
+        id: item.id || 0,
+        name: item.name,
+        quantity: item.quantity,
+        previousQuantity: undefined, // TODO: Track previous quantities
+      }));
+    }
+
+    // Queue the print job
+    await printStore.push(type, printData);
+
+    // Mark as printed in meta_data
     const metaKey = type === 'bill' ? 'last_bill_print' : 'last_kot_print';
-
     await OrdersAPI.updateOrder(orderId.toString(), {
       meta_data: [
-        ...orderQuery.data.meta_data.filter(m => m.key !== metaKey),
+        ...order.meta_data.filter(m => m.key !== metaKey),
         { key: metaKey, value: new Date().toISOString() }
       ]
     });
-  }, [orderQuery]);
+  }, [orderQuery, printStore]);
 
   // Create the command context
   const commandContext = useMemo((): CommandContext | null => {

@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {useRouter} from "next/navigation";
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { GlobalShortcutsProvider } from '@/components/global-shortcuts-provider'
+import { ThermalPrint } from '@/components/print'
 
 
 export function Providers({children}: { children: React.ReactNode }) {
@@ -19,6 +20,7 @@ export function Providers({children}: { children: React.ReactNode }) {
         <GlobalShortcutsProvider>
           {children}
         </GlobalShortcutsProvider>
+        <ThermalPrint />
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
     </HeroUIProvider>
