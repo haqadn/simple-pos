@@ -48,7 +48,7 @@ const LineItemRow = ({ lineItem }: { lineItem: LineItemSchema }) => {
     }
 
     return (
-        <tr key={lineItem.id}>
+        <tr>
             <td className="p-1 w-3/4 text-sm truncate">
                 <span title={lineItem.name}>{lineItem.name}</span>
             </td>
