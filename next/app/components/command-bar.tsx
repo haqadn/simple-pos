@@ -8,7 +8,7 @@ import { useCommandManager } from '@/hooks/useCommandManager';
 import { useCurrentOrder, useOrdersStore } from '@/stores/orders';
 import { useProductsQuery, useGetProductById } from '@/stores/products';
 import { usePrintStore, PrintJobData } from '@/stores/print';
-import { CommandContext } from '@/commands/command-manager';
+import { CommandContext, CustomerData } from '@/commands/command-manager';
 import { CommandSuggestion } from '@/commands/command';
 import OrdersAPI, { OrderSchema } from '@/api/orders';
 
@@ -300,6 +300,59 @@ export default function CommandBar() {
     });
   }, [orderQuery, printStore]);
 
+  // Set customer note
+  const handleSetNote = useCallback(async (note: string) => {
+    if (!orderQuery.data) throw new Error('No active order');
+
+    const orderId = orderQuery.data.id;
+    const orderQueryKey = ['orders', orderId, 'detail'];
+    const noteQueryKey = ['orders', orderId, 'note'];
+
+    const currentOrder = queryClient.getQueryData<OrderSchema>(orderQueryKey) || orderQuery.data;
+
+    // Optimistic update
+    queryClient.setQueryData(orderQueryKey, { ...currentOrder, customer_note: note });
+    queryClient.setQueryData(noteQueryKey, note);
+
+    // API call
+    const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), { customer_note: note });
+    queryClient.setQueryData(orderQueryKey, updatedOrder);
+    queryClient.setQueryData(noteQueryKey, updatedOrder.customer_note);
+  }, [orderQuery, queryClient]);
+
+  // Set customer info
+  const handleSetCustomer = useCallback(async (customer: CustomerData) => {
+    if (!orderQuery.data) throw new Error('No active order');
+
+    const orderId = orderQuery.data.id;
+    const orderQueryKey = ['orders', orderId, 'detail'];
+    const customerInfoKey = ['orders', orderId, 'customerInfo'];
+
+    const currentOrder = queryClient.getQueryData<OrderSchema>(orderQueryKey) || orderQuery.data;
+
+    // Parse name into first and last
+    const nameParts = customer.name.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    const billing = {
+      ...currentOrder.billing,
+      first_name: firstName,
+      last_name: lastName,
+      phone: customer.phone,
+      ...(customer.address && { address_1: customer.address })
+    };
+
+    // Optimistic update
+    queryClient.setQueryData(orderQueryKey, { ...currentOrder, billing });
+    queryClient.setQueryData(customerInfoKey, billing);
+
+    // API call
+    const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), { billing });
+    queryClient.setQueryData(orderQueryKey, updatedOrder);
+    queryClient.setQueryData(customerInfoKey, updatedOrder.billing);
+  }, [orderQuery, queryClient]);
+
   // Create the command context
   const commandContext = useMemo((): CommandContext | null => {
     if (!orderQuery.data || !products.length) {
@@ -317,10 +370,12 @@ export default function CommandBar() {
       applyCoupon: handleApplyCoupon,
       removeCoupon: handleRemoveCoupon,
       print: handlePrint,
+      setNote: handleSetNote,
+      setCustomer: handleSetCustomer,
       showMessage: (msg) => console.log('[Command]', msg),
       showError: (err) => console.error('[Command Error]', err)
     };
-  }, [orderQuery.data, products, handleAddProduct, handleClearOrder, handleCompleteOrder, handleSetPayment, getPaymentReceived, handleApplyCoupon, handleRemoveCoupon, handlePrint]);
+  }, [orderQuery.data, products, handleAddProduct, handleClearOrder, handleCompleteOrder, handleSetPayment, getPaymentReceived, handleApplyCoupon, handleRemoveCoupon, handlePrint, handleSetNote, handleSetCustomer]);
 
   // Set up command context when ready
   useEffect(() => {

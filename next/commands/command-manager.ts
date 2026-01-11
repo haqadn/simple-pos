@@ -6,6 +6,9 @@ import { PayCommand } from './pay';
 import { DoneCommand } from './done';
 import { CouponCommand } from './coupon';
 import { PrintCommand } from './print';
+import { NoteCommand } from './note';
+import { CustomerCommand, CustomerData } from './customer';
+export type { CustomerData };
 
 import { OrderSchema } from '@/api/orders';
 import { ProductSchema } from '@/stores/products';
@@ -37,6 +40,10 @@ export interface CommandContext {
 
   // Print operations
   print: (type: 'bill' | 'kot') => Promise<void>;
+
+  // Customer operations
+  setNote: (note: string) => Promise<void>;
+  setCustomer: (customer: CustomerData) => Promise<void>;
 
   // Navigation
   navigateToNextOrder?: () => void;
@@ -183,6 +190,8 @@ export class CommandManager {
     this.registry.registerCommand(new DoneCommand());
     this.registry.registerCommand(new CouponCommand());
     this.registry.registerCommand(new PrintCommand());
+    this.registry.registerCommand(new NoteCommand());
+    this.registry.registerCommand(new CustomerCommand());
   }
 
   /**
