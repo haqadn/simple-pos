@@ -199,15 +199,12 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 			// Check if order was already saved
 			const alreadySavedId = getSavedOrderId();
 			if (alreadySavedId) {
-				const patchLineItems: LineItemSchema[] = [{
-					name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
-					product_id: product.product_id,
-					variation_id: product.variation_id,
-					quantity: quantity,
-				}];
-				const updatedOrder = await OrdersAPI.updateOrder(alreadySavedId.toString(), { line_items: patchLineItems });
+				// Item was already included in the initial save via draftData.line_items
+				// Just invalidate to refresh UI and return the order
 				await queryClient.invalidateQueries({ queryKey: ['orders', alreadySavedId] });
-				return updatedOrder;
+				const order = await OrdersAPI.getOrder(alreadySavedId.toString());
+				if (!order) throw new Error('Failed to get saved order');
+				return order;
 			}
 
 			// Try to acquire the lock (synchronous check)
@@ -219,57 +216,44 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 				if (existingPromise) {
 					const savedOrder = await existingPromise;
 					if (savedOrder) {
-						// Apply this mutation to the already-saved order
-						const patchLineItems: LineItemSchema[] = [{
-							name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
-							product_id: product.product_id,
-							variation_id: product.variation_id,
-							quantity: quantity,
-						}];
-						const updatedOrder = await OrdersAPI.updateOrder(savedOrder.id.toString(), { line_items: patchLineItems });
+						// Item was already included in the initial save via draftData.line_items
 						await queryClient.invalidateQueries({ queryKey: ['orders', savedOrder.id] });
-						return updatedOrder;
+						return savedOrder;
 					}
 				}
 				// Check again if saved while we were waiting
 				const savedId = getSavedOrderId();
 				if (savedId) {
-					const patchLineItems: LineItemSchema[] = [{
-						name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
-						product_id: product.product_id,
-						variation_id: product.variation_id,
-						quantity: quantity,
-					}];
-					const updatedOrder = await OrdersAPI.updateOrder(savedId.toString(), { line_items: patchLineItems });
-					// Invalidate query to refresh UI
+					// Item was already included in the initial save
 					await queryClient.invalidateQueries({ queryKey: ['orders', savedId] });
-					return updatedOrder;
+					const order = await OrdersAPI.getOrder(savedId.toString());
+					if (!order) throw new Error('Failed to get saved order');
+					return order;
 				}
 				throw new Error('Failed to get saved order');
 			}
 
 			// We have the lock - create the order
-			try {
+			// Set promise immediately to avoid race condition where other mutations
+			// check getSavePromise() before it's set
+			const savePromise = (async () => {
 				const draftData = getDraftData();
-				const newLineItem: LineItemSchema = {
-					name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
-					product_id: product.product_id,
-					variation_id: product.variation_id,
-					quantity: quantity,
-				};
-
-				// Build line items for the new order
-				const lineItems = quantity > 0 ? [newLineItem] : [];
-
-				// Create and store the save promise
-				const saveOperation = OrdersAPI.saveOrder({
-					...draftData,
+				// Only include line_items - let other mutations handle their own data
+				// This prevents double-setting shipping_lines, notes, etc.
+				const savedOrder = await OrdersAPI.saveOrder({
 					status: 'pending',
-					line_items: lineItems,
+					line_items: draftData.line_items,
+					customer_note: draftData.customer_note,
+					billing: draftData.billing,
+					meta_data: draftData.meta_data,
+					// Don't include shipping_lines - service mutation will handle it
 				});
-				setSavePromise(saveOperation);
+				return savedOrder;
+			})();
+			setSavePromise(savePromise);
 
-				const savedOrder = await saveOperation;
+			try {
+				const savedOrder = await savePromise;
 
 				if (savedOrder) {
 					setSavedOrderId(savedOrder.id);
@@ -475,6 +459,9 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			const alreadySavedId = getSavedOrderId();
 			if (alreadySavedId) {
 				const updatedOrder = await OrdersAPI.updateOrder(alreadySavedId.toString(), { shipping_lines: [shippingLine] });
+				// Set query data directly and invalidate to ensure UI updates
+				const orderKey = generateOrderQueryKey('detail', updatedOrder);
+				queryClient.setQueryData(orderKey, updatedOrder);
 				await queryClient.invalidateQueries({ queryKey: ['orders', alreadySavedId] });
 				return updatedOrder;
 			}
@@ -489,6 +476,9 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 					const savedOrder = await existingPromise;
 					if (savedOrder) {
 						const updatedOrder = await OrdersAPI.updateOrder(savedOrder.id.toString(), { shipping_lines: [shippingLine] });
+						// Set query data directly and invalidate to ensure UI updates
+						const orderKey = generateOrderQueryKey('detail', updatedOrder);
+						queryClient.setQueryData(orderKey, updatedOrder);
 						await queryClient.invalidateQueries({ queryKey: ['orders', savedOrder.id] });
 						return updatedOrder;
 					}
@@ -497,6 +487,9 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 				const savedId = getSavedOrderId();
 				if (savedId) {
 					const updatedOrder = await OrdersAPI.updateOrder(savedId.toString(), { shipping_lines: [shippingLine] });
+					// Set query data directly and invalidate to ensure UI updates
+					const orderKey = generateOrderQueryKey('detail', updatedOrder);
+					queryClient.setQueryData(orderKey, updatedOrder);
 					await queryClient.invalidateQueries({ queryKey: ['orders', savedId] });
 					return updatedOrder;
 				}
@@ -504,16 +497,24 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			}
 
 			// We have the lock - create the order
-			try {
+			// Set promise immediately to avoid race condition
+			const savePromise = (async () => {
 				const draftData = getDraftData();
-				const saveOperation = OrdersAPI.saveOrder({
-					...draftData,
+				// Only include shipping_lines - let other mutations handle their own data
+				const savedOrder = await OrdersAPI.saveOrder({
 					status: 'pending',
+					line_items: draftData.line_items,
 					shipping_lines: [shippingLine],
+					customer_note: draftData.customer_note,
+					billing: draftData.billing,
+					meta_data: draftData.meta_data,
 				});
-				setSavePromise(saveOperation);
+				return savedOrder;
+			})();
+			setSavePromise(savePromise);
 
-				const savedOrder = await saveOperation;
+			try {
+				const savedOrder = await savePromise;
 
 				if (savedOrder) {
 					setSavedOrderId(savedOrder.id);
