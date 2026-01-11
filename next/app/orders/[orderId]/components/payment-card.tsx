@@ -49,29 +49,33 @@ export default function PaymentCard() {
     const change = localReceived - total;
     const isPaid = localReceived >= total && total > 0;
 
-    // Quick payment amounts
+    // Quick payment amounts (BDT denominations: 100, 200, 500, 1000)
     const quickPayments = useMemo(() => {
         const amounts: { label: string; value: number }[] = [];
 
         if (total > 0) {
             amounts.push({ label: 'Exact', value: total });
 
-            const roundTo10 = Math.ceil(total / 10) * 10;
-            const roundTo50 = Math.ceil(total / 50) * 50;
             const roundTo100 = Math.ceil(total / 100) * 100;
+            const roundTo200 = Math.ceil(total / 200) * 200;
+            const roundTo500 = Math.ceil(total / 500) * 500;
+            const roundTo1000 = Math.ceil(total / 1000) * 1000;
 
-            if (roundTo10 > total && !amounts.some(a => a.value === roundTo10)) {
-                amounts.push({ label: `${roundTo10}`, value: roundTo10 });
-            }
-            if (roundTo50 > total && !amounts.some(a => a.value === roundTo50)) {
-                amounts.push({ label: `${roundTo50}`, value: roundTo50 });
-            }
             if (roundTo100 > total && !amounts.some(a => a.value === roundTo100)) {
                 amounts.push({ label: `${roundTo100}`, value: roundTo100 });
             }
+            if (roundTo200 > total && !amounts.some(a => a.value === roundTo200)) {
+                amounts.push({ label: `${roundTo200}`, value: roundTo200 });
+            }
+            if (roundTo500 > total && !amounts.some(a => a.value === roundTo500)) {
+                amounts.push({ label: `${roundTo500}`, value: roundTo500 });
+            }
+            if (roundTo1000 > total && !amounts.some(a => a.value === roundTo1000)) {
+                amounts.push({ label: `${roundTo1000}`, value: roundTo1000 });
+            }
         }
 
-        return amounts.slice(0, 4);
+        return amounts.slice(0, 5);
     }, [total]);
 
     return (
