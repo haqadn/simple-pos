@@ -389,6 +389,23 @@ export default function CommandBar() {
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Forward Ctrl/Alt shortcuts to window so global handler can process them
+    if (e.ctrlKey || e.altKey || e.metaKey) {
+      e.preventDefault(); // Prevent special characters from being typed
+      // Dispatch a new event to window since HeroUI Input blocks propagation
+      const event = new KeyboardEvent('keydown', {
+        key: e.key,
+        code: e.nativeEvent.code,
+        ctrlKey: e.ctrlKey,
+        altKey: e.altKey,
+        metaKey: e.metaKey,
+        shiftKey: e.shiftKey,
+        bubbles: true,
+      });
+      window.dispatchEvent(event);
+      return;
+    }
+
     switch (e.key) {
       case 'ArrowUp':
         e.preventDefault();
@@ -442,14 +459,19 @@ export default function CommandBar() {
         break;
 
       case 'Escape':
-        e.preventDefault();
         if (suggestions.length > 0) {
           // First press: clear suggestions
+          e.preventDefault();
           setSuggestions([]);
           setSelectedSuggestion(-1);
         } else if (input.trim()) {
           // Second press: clear input
+          e.preventDefault();
           setInput('');
+        } else {
+          // Third press: blur the input
+          e.preventDefault();
+          inputRef.current?.blur();
         }
         break;
     }
