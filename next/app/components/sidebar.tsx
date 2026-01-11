@@ -105,11 +105,11 @@ const OrderLink = ({ order, index, pathname }: { order: OrderSchema, index: numb
     const isActive = pathname === `/orders/${order.id}`;
 
     return (
-        <Link 
+        <Link
             href={`/orders/${order.id}`}
             className={`block p-3 rounded-lg transition-colors ${
-                isActive 
-                    ? 'bg-primary-100 text-primary-700 border border-primary-200' 
+                isActive
+                    ? 'bg-primary-100 text-primary-700 border border-primary-200'
                     : 'hover:bg-default-100'
             }`}
         >
