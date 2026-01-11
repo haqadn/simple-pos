@@ -220,7 +220,31 @@ export default function PaymentCard() {
 
                     {/* Cash payment - always visible */}
                     <tr>
-                        <td className="pr-4 text-sm w-3/5">Cash</td>
+                        <td className="pr-4 text-sm w-3/5">
+                            <span className="flex items-center gap-2">
+                                Cash
+                                {/* Add payment method dropdown - inline with Cash */}
+                                {availableMethods.length > 0 && total > 0 && (
+                                    <Dropdown>
+                                        <DropdownTrigger>
+                                            <button className="text-xs text-gray-400 hover:text-primary">
+                                                +
+                                            </button>
+                                        </DropdownTrigger>
+                                        <DropdownMenu
+                                            aria-label="Add payment method"
+                                            onAction={(key) => handleAddMethod(key as PaymentMethodKey)}
+                                        >
+                                            {availableMethods.map(method => (
+                                                <DropdownItem key={method.key}>
+                                                    {method.label}
+                                                </DropdownItem>
+                                            ))}
+                                        </DropdownMenu>
+                                    </Dropdown>
+                                )}
+                            </span>
+                        </td>
                         <td>
                             <Input
                                 variant="underlined"
@@ -278,36 +302,11 @@ export default function PaymentCard() {
                         )
                     )}
 
-                    {/* Add payment method dropdown */}
-                    {availableMethods.length > 0 && (
-                        <tr>
-                            <td colSpan={2} className="pt-1">
-                                <Dropdown>
-                                    <DropdownTrigger>
-                                        <Button size="sm" variant="light" className="text-xs">
-                                            + Add payment method
-                                        </Button>
-                                    </DropdownTrigger>
-                                    <DropdownMenu
-                                        aria-label="Add payment method"
-                                        onAction={(key) => handleAddMethod(key as PaymentMethodKey)}
-                                    >
-                                        {availableMethods.map(method => (
-                                            <DropdownItem key={method.key}>
-                                                {method.label}
-                                            </DropdownItem>
-                                        ))}
-                                    </DropdownMenu>
-                                </Dropdown>
-                            </td>
-                        </tr>
-                    )}
-
-                    {/* Separator when there are multiple payment methods */}
+                    {/* Total received - only when using multiple payment methods */}
                     {activeAdditionalMethods.size > 0 && (
                         <tr>
-                            <td className="pr-4 text-sm w-3/5 pt-2 font-medium">Received</td>
-                            <td className="text-sm pt-2">
+                            <td className="pr-4 text-sm w-3/5 pt-1 font-medium">Received</td>
+                            <td className="text-sm pt-1">
                                 <Input
                                     variant="underlined"
                                     value={totalReceived.toFixed(2)}
