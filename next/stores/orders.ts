@@ -112,6 +112,7 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | u
 
 	const lineItemQuery = useQuery<LineItemSchema | undefined>({
 		queryKey: lineItemKey,
+		enabled: !!order && !!product,
 		queryFn: () => findOrderLineItems(order, product)[0] ?? null,
 		staleTime: 1000,
 	});
@@ -208,6 +209,7 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | un
 
 	const serviceQuery = useQuery<ServiceMethodSchema | undefined>({
 		queryKey: serviceKey,
+		enabled: !!order,
 		queryFn: () => {
 			if (!order?.shipping_lines?.length) return undefined;
 			
@@ -336,6 +338,7 @@ export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | 
 
 	const noteQuery = useQuery<string>({
 		queryKey: noteKey,
+		enabled: !!order,
 		queryFn: () => order?.customer_note || '',
 		staleTime: 1000,
 	});
@@ -389,6 +392,7 @@ export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema
 
 	const customerInfoQuery = useQuery<BillingSchema>({
 		queryKey: customerInfoKey,
+		enabled: !!order,
 		queryFn: () => order?.billing || {
 			first_name: "",
 			last_name: "",
@@ -457,6 +461,7 @@ export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | un
 
 	const paymentQuery = useQuery<number>({
 		queryKey: paymentKey,
+		enabled: !!order,
 		queryFn: () => {
 			// Find payment_received in meta_data
 			const paymentMeta = order?.meta_data?.find(meta => meta.key === 'payment_received');
