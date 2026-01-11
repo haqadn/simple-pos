@@ -103,7 +103,7 @@ export default function Buttons() {
             >
                 <span className="flex items-center gap-1">
                     KOT
-                    <Kbd keys={["ctrl"]} className="bg-warning-200 text-warning-800 text-[10px]">K</Kbd>
+                    <Kbd keys={["ctrl"]} className="bg-white/80 text-warning-700 text-[10px] shadow-none">K</Kbd>
                 </span>
             </Button>
             <Button
@@ -116,7 +116,7 @@ export default function Buttons() {
             >
                 <span className="flex items-center gap-1">
                     Bill
-                    <Kbd keys={["ctrl"]} className="bg-success-200 text-success-800 text-[10px]">P</Kbd>
+                    <Kbd keys={["ctrl"]} className="bg-white/80 text-success-700 text-[10px] shadow-none">P</Kbd>
                 </span>
             </Button>
             <Button
@@ -134,7 +134,7 @@ export default function Buttons() {
             >
                 <span className="flex items-center gap-1">
                     Done
-                    <Kbd keys={["ctrl"]} className="bg-primary-200 text-primary-800 text-[10px]">↵</Kbd>
+                    <Kbd keys={["ctrl"]} className="bg-white/80 text-primary-700 text-[10px] shadow-none">↵</Kbd>
                 </span>
             </Button>
             <Dropdown placement="top-end" isDisabled={isDraft}>
