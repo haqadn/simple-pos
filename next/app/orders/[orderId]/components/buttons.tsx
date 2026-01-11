@@ -6,6 +6,7 @@ import { useCurrentOrder } from "@/stores/orders";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import OrdersAPI from "@/api/orders";
+import { DRAFT_ORDER_ID } from "@/stores/draft-order";
 
 export default function Buttons() {
     const orderQuery = useCurrentOrder();
@@ -83,6 +84,7 @@ export default function Buttons() {
         }
     }, [orderQuery.data, queryClient, router]);
 
+    const isDraft = orderQuery.data?.id === DRAFT_ORDER_ID;
     const hasItems = (orderQuery.data?.line_items?.length ?? 0) > 0;
     const total = parseFloat(orderQuery.data?.total || '0');
     const paymentMeta = orderQuery.data?.meta_data?.find(m => m.key === 'payment_received');
@@ -96,7 +98,7 @@ export default function Buttons() {
                 variant="flat"
                 onPress={handlePrintKot}
                 isLoading={isPrintingKot}
-                isDisabled={!hasItems}
+                isDisabled={isDraft || !hasItems}
                 className="font-semibold"
             >
                 <span className="flex items-center gap-1">
@@ -109,7 +111,7 @@ export default function Buttons() {
                 variant="flat"
                 onPress={handlePrintBill}
                 isLoading={isPrintingBill}
-                isDisabled={!hasItems}
+                isDisabled={isDraft || !hasItems}
                 className="font-semibold"
             >
                 <span className="flex items-center gap-1">
@@ -127,7 +129,7 @@ export default function Buttons() {
                     await queryClient.invalidateQueries({ queryKey: ['orders'] });
                     router.push('/');
                 }}
-                isDisabled={!isPaid}
+                isDisabled={isDraft || !isPaid}
                 className="font-semibold"
             >
                 <span className="flex items-center gap-1">
@@ -135,12 +137,13 @@ export default function Buttons() {
                     <Kbd keys={["ctrl"]} className="bg-primary-200 text-primary-800 text-[10px]">↵</Kbd>
                 </span>
             </Button>
-            <Dropdown placement="top-end">
+            <Dropdown placement="top-end" isDisabled={isDraft}>
                 <DropdownTrigger>
                     <Button
                         color="danger"
                         variant="flat"
                         isLoading={isCancelling}
+                        isDisabled={isDraft}
                         className="font-semibold"
                     >
                         Cancel
