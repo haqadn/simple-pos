@@ -4,11 +4,13 @@ import OrdersAPI, { LineItemSchema, ShippingLineSchema, BillingSchema, MetaDataS
 
 import { OrderSchema } from "@/api/orders";
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ProductSchema } from "./products";
 import { ServiceMethodSchema, useTablesQuery } from "./service";
 import { useAvoidParallel } from "@/hooks/useAvoidParallel";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useDraftOrderStore, DRAFT_ORDER_ID } from "./draft-order";
+import { useCallback } from "react";
 
 function generateOrderQueryKey(context: string, order?: OrderSchema, product?: ProductSchema) {
 	switch (context) {
@@ -96,19 +98,89 @@ export const useOrderQuery = ( orderId: number ) => {
 
 export const useCurrentOrder = () => {
 	const params = useParams();
-	const orderId = params.orderId as string;
+	const orderId = params?.orderId as string | undefined;
+	const draftOrder = useDraftOrderStore((state) => state.draftOrder);
 
-	return useOrderQuery(parseInt(orderId));
+	// For draft orders (new), return draft data from store
+	const isDraft = orderId === 'new';
+
+	// Use DRAFT_ORDER_ID for new orders or undefined orderId
+	const queryOrderId = isDraft || !orderId ? DRAFT_ORDER_ID : parseInt(orderId);
+	const orderQuery = useOrderQuery(queryOrderId);
+
+	// If it's a draft order, override the query data with draft store data
+	if (isDraft || !orderId) {
+		// Cast to match the expected QueryObserverResult type
+		return {
+			...orderQuery,
+			data: draftOrder,
+			isLoading: false,
+			isPending: false,
+			isSuccess: true,
+			isError: false,
+			status: 'success',
+			error: null,
+		} as typeof orderQuery;
+	}
+
+	return orderQuery;
+}
+
+export const useIsDraftOrder = () => {
+	const params = useParams();
+	const orderId = params.orderId as string;
+	return orderId === 'new';
+}
+
+// Hook to save draft order to database and navigate to the real order
+export const useSaveDraftOrder = () => {
+	const router = useRouter();
+	const queryClient = useQueryClient();
+	const getDraftData = useDraftOrderStore((state) => state.getDraftData);
+	const resetDraft = useDraftOrderStore((state) => state.resetDraft);
+
+	const saveDraft = useCallback(async (additionalData?: Partial<OrderSchema>) => {
+		const draftData = getDraftData();
+		const orderData = { ...draftData, ...additionalData, status: 'pending' };
+
+		try {
+			const savedOrder = await OrdersAPI.saveOrder(orderData);
+			if (savedOrder) {
+				await queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
+				resetDraft();
+				router.replace(`/orders/${savedOrder.id}`);
+				return savedOrder;
+			}
+		} catch (error) {
+			console.error('Failed to save draft order:', error);
+			throw error;
+		}
+		return null;
+	}, [getDraftData, resetDraft, queryClient, router]);
+
+	return saveDraft;
 }
 
 export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | null>, product?: ProductSchema) => {
 	const queryClient = useQueryClient();
-	const order = orderQuery.data;
+	const router = useRouter();
+	const order = orderQuery.data ?? undefined;
 	const orderRootKey = generateOrderQueryKey( 'order', order );
 	const orderQueryKey = generateOrderQueryKey( 'detail', order );
 	const lineItemKey = generateOrderQueryKey('lineItem', order, product);
 	const lineItemIsMutating = useIsMutating({ mutationKey: lineItemKey });
 	const lineItemsAreMutating = useIsMutating({ mutationKey: generateOrderQueryKey('lineItem', order) });
+
+	// Draft order support
+	const getDraftData = useDraftOrderStore((state) => state.getDraftData);
+	const draftOrder = useDraftOrderStore((state) => state.draftOrder);
+	const updateDraftLineItems = useDraftOrderStore((state) => state.updateDraftLineItems);
+	const getSavePromise = useDraftOrderStore((state) => state.getSavePromise);
+	const setSavePromise = useDraftOrderStore((state) => state.setSavePromise);
+	const getSavedOrderId = useDraftOrderStore((state) => state.getSavedOrderId);
+	const setSavedOrderId = useDraftOrderStore((state) => state.setSavedOrderId);
+	const acquireSaveLock = useDraftOrderStore((state) => state.acquireSaveLock);
+	const releaseSaveLock = useDraftOrderStore((state) => state.releaseSaveLock);
 
 	const lineItemQuery = useQuery<LineItemSchema | null>({
 		queryKey: lineItemKey,
@@ -121,7 +193,98 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 		if ( !inputOrder || !product || typeof quantity === 'undefined' ) {
 			throw new Error('Order, product, quantity are required to update line item quantity');
 		}
-		
+
+		// Handle draft order - save to database first
+		if (inputOrder.id === DRAFT_ORDER_ID) {
+			// Check if order was already saved
+			const alreadySavedId = getSavedOrderId();
+			if (alreadySavedId) {
+				const patchLineItems: LineItemSchema[] = [{
+					name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
+					product_id: product.product_id,
+					variation_id: product.variation_id,
+					quantity: quantity,
+				}];
+				const updatedOrder = await OrdersAPI.updateOrder(alreadySavedId.toString(), { line_items: patchLineItems });
+				await queryClient.invalidateQueries({ queryKey: ['orders', alreadySavedId] });
+				return updatedOrder;
+			}
+
+			// Try to acquire the lock (synchronous check)
+			const gotLock = acquireSaveLock();
+
+			if (!gotLock) {
+				// Another save is in progress, wait for it
+				const existingPromise = getSavePromise();
+				if (existingPromise) {
+					const savedOrder = await existingPromise;
+					if (savedOrder) {
+						// Apply this mutation to the already-saved order
+						const patchLineItems: LineItemSchema[] = [{
+							name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
+							product_id: product.product_id,
+							variation_id: product.variation_id,
+							quantity: quantity,
+						}];
+						const updatedOrder = await OrdersAPI.updateOrder(savedOrder.id.toString(), { line_items: patchLineItems });
+						await queryClient.invalidateQueries({ queryKey: ['orders', savedOrder.id] });
+						return updatedOrder;
+					}
+				}
+				// Check again if saved while we were waiting
+				const savedId = getSavedOrderId();
+				if (savedId) {
+					const patchLineItems: LineItemSchema[] = [{
+						name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
+						product_id: product.product_id,
+						variation_id: product.variation_id,
+						quantity: quantity,
+					}];
+					const updatedOrder = await OrdersAPI.updateOrder(savedId.toString(), { line_items: patchLineItems });
+					// Invalidate query to refresh UI
+					await queryClient.invalidateQueries({ queryKey: ['orders', savedId] });
+					return updatedOrder;
+				}
+				throw new Error('Failed to get saved order');
+			}
+
+			// We have the lock - create the order
+			try {
+				const draftData = getDraftData();
+				const newLineItem: LineItemSchema = {
+					name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
+					product_id: product.product_id,
+					variation_id: product.variation_id,
+					quantity: quantity,
+				};
+
+				// Build line items for the new order
+				const lineItems = quantity > 0 ? [newLineItem] : [];
+
+				// Create and store the save promise
+				const saveOperation = OrdersAPI.saveOrder({
+					...draftData,
+					status: 'pending',
+					line_items: lineItems,
+				});
+				setSavePromise(saveOperation);
+
+				const savedOrder = await saveOperation;
+
+				if (savedOrder) {
+					setSavedOrderId(savedOrder.id);
+					await queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
+					// Don't reset draft here - other mutations may still need savedOrderId
+					// The draft will be reset when user navigates to a new order
+					router.replace(`/orders/${savedOrder.id}`);
+					return savedOrder;
+				}
+				throw new Error('Failed to save draft order');
+			} finally {
+				releaseSaveLock();
+			}
+		}
+
 		const patchLineItems: LineItemSchema[] = [];
 		const existingLineItems = findOrderLineItems(inputOrder, product);
 		existingLineItems.forEach(li => {
@@ -160,8 +323,6 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 				return;
 			}
 
-			const newOrderQueryData = { ...order };
-			
 			const newLineItem: LineItemSchema = {
 				product_id: product.product_id,
 				variation_id: product.variation_id,
@@ -169,9 +330,28 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 				name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
 			};
 
+			// For draft orders, update the Zustand store for immediate UI feedback
+			if (order.id === DRAFT_ORDER_ID) {
+				const currentLineItems = [...draftOrder.line_items];
+				const existingIdx = currentLineItems.findIndex(
+					li => li.product_id === newLineItem.product_id && li.variation_id === newLineItem.variation_id
+				);
+				if (existingIdx >= 0) {
+					if (params.quantity > 0) {
+						currentLineItems[existingIdx] = { ...currentLineItems[existingIdx], quantity: params.quantity };
+					} else {
+						currentLineItems.splice(existingIdx, 1);
+					}
+				} else if (params.quantity > 0) {
+					currentLineItems.push(newLineItem);
+				}
+				updateDraftLineItems(currentLineItems);
+			}
+
+			// Also update React Query cache
+			const newOrderQueryData = { ...order };
 			const existingLineItem = newOrderQueryData.line_items.find(lineItem => lineItem.product_id === newLineItem.product_id && lineItem.variation_id === newLineItem.variation_id);
 			if ( existingLineItem ) {
-				// Updating newOrderQuery data by reference
 				existingLineItem.quantity = params.quantity;
 			} else if ( params.quantity > 0 ) {
 				newOrderQueryData.line_items = [ ...newOrderQueryData.line_items, newLineItem ];
@@ -187,8 +367,15 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 			}
 		},
 		onSuccess: (data: OrderSchema) => {
-			if (lineItemsAreMutating <= 1) {
-				queryClient.setQueryData(orderQueryKey, data);
+			// Use the order ID from returned data to ensure we update the correct cache
+			// (important when draft order was saved and ID changed from 0 to real ID)
+			const actualOrderKey = generateOrderQueryKey('detail', data);
+
+			// If order ID changed (draft was saved), always invalidate to ensure fresh data
+			if (order && data.id !== order.id) {
+				queryClient.invalidateQueries({ queryKey: ['orders', data.id] });
+			} else if (lineItemsAreMutating <= 1) {
+				queryClient.setQueryData(actualOrderKey, data);
 			}
 		},
 	});
@@ -198,12 +385,23 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 
 export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | null>) => {
 	const queryClient = useQueryClient();
-	const order = orderQuery.data;
+	const router = useRouter();
+	const order = orderQuery.data ?? undefined;
 	const orderRootKey = generateOrderQueryKey('order', order);
 	const orderQueryKey = generateOrderQueryKey('detail', order);
 	const serviceKey = generateOrderQueryKey('service', order);
 	const serviceIsMutating = useIsMutating({ mutationKey: serviceKey });
-	
+
+	// Draft order support
+	const getDraftData = useDraftOrderStore((state) => state.getDraftData);
+	const updateDraftShippingLines = useDraftOrderStore((state) => state.updateDraftShippingLines);
+	const getSavePromise = useDraftOrderStore((state) => state.getSavePromise);
+	const setSavePromise = useDraftOrderStore((state) => state.setSavePromise);
+	const getSavedOrderId = useDraftOrderStore((state) => state.getSavedOrderId);
+	const setSavedOrderId = useDraftOrderStore((state) => state.setSavedOrderId);
+	const acquireSaveLock = useDraftOrderStore((state) => state.acquireSaveLock);
+	const releaseSaveLock = useDraftOrderStore((state) => state.releaseSaveLock);
+
 	// Get tables data for proper slug mapping
 	const { data: tables } = useTablesQuery();
 
@@ -262,13 +460,7 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			throw new Error('Order and service are required to update service method');
 		}
 
-		// Check if there's an existing shipping line we can update
-		const existingShippingLine = inputOrder.shipping_lines.find(line => 
-			line.id && line.method_id && line.method_id !== ''
-		);
-
 		const shippingLine: ShippingLineSchema = {
-			id: existingShippingLine?.id, // Use existing ID if present
 			method_id: service.type === 'table' ? 'pickup_location' : 'flat_rate',
 			instance_id: service.type === 'table' ? '0' : service.slug,
 			method_title: service.type === 'table' ? `Table (${service.title})` : service.title,
@@ -276,6 +468,71 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			total_tax: '0.00',
 			taxes: []
 		};
+
+		// Handle draft order - save to database first
+		if (inputOrder.id === DRAFT_ORDER_ID) {
+			// Check if order was already saved
+			const alreadySavedId = getSavedOrderId();
+			if (alreadySavedId) {
+				const updatedOrder = await OrdersAPI.updateOrder(alreadySavedId.toString(), { shipping_lines: [shippingLine] });
+				await queryClient.invalidateQueries({ queryKey: ['orders', alreadySavedId] });
+				return updatedOrder;
+			}
+
+			// Try to acquire the lock (synchronous check)
+			const gotLock = acquireSaveLock();
+
+			if (!gotLock) {
+				// Another save is in progress, wait for it
+				const existingPromise = getSavePromise();
+				if (existingPromise) {
+					const savedOrder = await existingPromise;
+					if (savedOrder) {
+						const updatedOrder = await OrdersAPI.updateOrder(savedOrder.id.toString(), { shipping_lines: [shippingLine] });
+						await queryClient.invalidateQueries({ queryKey: ['orders', savedOrder.id] });
+						return updatedOrder;
+					}
+				}
+				// Check again if saved while we were waiting
+				const savedId = getSavedOrderId();
+				if (savedId) {
+					const updatedOrder = await OrdersAPI.updateOrder(savedId.toString(), { shipping_lines: [shippingLine] });
+					await queryClient.invalidateQueries({ queryKey: ['orders', savedId] });
+					return updatedOrder;
+				}
+				throw new Error('Failed to get saved order');
+			}
+
+			// We have the lock - create the order
+			try {
+				const draftData = getDraftData();
+				const saveOperation = OrdersAPI.saveOrder({
+					...draftData,
+					status: 'pending',
+					shipping_lines: [shippingLine],
+				});
+				setSavePromise(saveOperation);
+
+				const savedOrder = await saveOperation;
+
+				if (savedOrder) {
+					setSavedOrderId(savedOrder.id);
+					await queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
+					router.replace(`/orders/${savedOrder.id}`);
+					return savedOrder;
+				}
+				throw new Error('Failed to save draft order');
+			} finally {
+				releaseSaveLock();
+			}
+		}
+
+		// Check if there's an existing shipping line we can update
+		const existingShippingLine = inputOrder.shipping_lines.find(line =>
+			line.id && line.method_id && line.method_id !== ''
+		);
+
+		shippingLine.id = existingShippingLine?.id;
 
 		const updatedOrder = await OrdersAPI.updateOrder(inputOrder.id.toString(), { shipping_lines: [shippingLine] });
 		return updatedOrder;
@@ -292,13 +549,11 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 		onMutate: async (params) => {
 			if (!order) return;
 
-			const newOrderQueryData = { ...order };
-			
 			// Check if there's an existing shipping line we can update
-			const existingShippingLine = order.shipping_lines.find(line => 
+			const existingShippingLine = order.shipping_lines.find(line =>
 				line.id && line.method_id && line.method_id !== ''
 			);
-			
+
 			const newShippingLine: ShippingLineSchema = {
 				id: existingShippingLine?.id, // Use existing ID if present
 				method_id: params.service.type === 'table' ? 'pickup_location' : 'flat_rate',
@@ -309,6 +564,13 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 				taxes: []
 			};
 
+			// For draft orders, update the Zustand store for immediate UI feedback
+			if (order.id === DRAFT_ORDER_ID) {
+				updateDraftShippingLines([newShippingLine]);
+			}
+
+			// Also update React Query cache
+			const newOrderQueryData = { ...order };
 			newOrderQueryData.shipping_lines = [newShippingLine];
 
 			queryClient.setQueryData(orderQueryKey, newOrderQueryData);
@@ -321,7 +583,15 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			}
 		},
 		onSuccess: (data: OrderSchema) => {
-			queryClient.setQueryData(orderQueryKey, data);
+			// Use the order ID from returned data to ensure we update the correct cache
+			const actualOrderKey = generateOrderQueryKey('detail', data);
+
+			// If order ID changed (draft was saved), invalidate to ensure fresh data
+			if (order && data.id !== order.id) {
+				queryClient.invalidateQueries({ queryKey: ['orders', data.id] });
+			} else {
+				queryClient.setQueryData(actualOrderKey, data);
+			}
 		},
 	});
 
@@ -330,11 +600,16 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 
 export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | null>) => {
 	const queryClient = useQueryClient();
-	const order = orderQuery.data;
+	const router = useRouter();
+	const order = orderQuery.data ?? undefined;
 	const orderRootKey = generateOrderQueryKey('order', order);
 	const orderQueryKey = generateOrderQueryKey('detail', order);
 	const noteKey = generateOrderQueryKey('note', order);
 	const noteIsMutating = useIsMutating({ mutationKey: noteKey });
+
+	// Draft order support
+	const getDraftData = useDraftOrderStore((state) => state.getDraftData);
+	const resetDraft = useDraftOrderStore((state) => state.resetDraft);
 
 	const noteQuery = useQuery<string>({
 		queryKey: noteKey,
@@ -346,6 +621,25 @@ export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | 
 	const updateOrderNote = async (inputOrder?: OrderSchema, note?: string) => {
 		if (!inputOrder || typeof note === 'undefined') {
 			throw new Error('Order and note are required to update order note');
+		}
+
+		// Handle draft order - save to database first
+		if (inputOrder.id === DRAFT_ORDER_ID) {
+			const draftData = getDraftData();
+
+			const savedOrder = await OrdersAPI.saveOrder({
+				...draftData,
+				status: 'pending',
+				customer_note: note,
+			});
+
+			if (savedOrder) {
+				await queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
+				resetDraft();
+				router.replace(`/orders/${savedOrder.id}`);
+				return savedOrder;
+			}
+			throw new Error('Failed to save draft order');
 		}
 
 		const updatedOrder = await OrdersAPI.updateOrder(inputOrder.id.toString(), { customer_note: note });
@@ -384,11 +678,16 @@ export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | 
 
 export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema | null>) => {
 	const queryClient = useQueryClient();
-	const order = orderQuery.data;
+	const router = useRouter();
+	const order = orderQuery.data ?? undefined;
 	const orderRootKey = generateOrderQueryKey('order', order);
 	const orderQueryKey = generateOrderQueryKey('detail', order);
 	const customerInfoKey = generateOrderQueryKey('customerInfo', order);
 	const customerInfoIsMutating = useIsMutating({ mutationKey: customerInfoKey });
+
+	// Draft order support
+	const getDraftData = useDraftOrderStore((state) => state.getDraftData);
+	const resetDraft = useDraftOrderStore((state) => state.resetDraft);
 
 	const customerInfoQuery = useQuery<BillingSchema>({
 		queryKey: customerInfoKey,
@@ -414,6 +713,26 @@ export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema
 
 		// Merge with existing billing data to ensure all required fields are present
 		const mergedBilling = { ...inputOrder.billing, ...billing };
+
+		// Handle draft order - save to database first
+		if (inputOrder.id === DRAFT_ORDER_ID) {
+			const draftData = getDraftData();
+
+			const savedOrder = await OrdersAPI.saveOrder({
+				...draftData,
+				status: 'pending',
+				billing: mergedBilling,
+			});
+
+			if (savedOrder) {
+				await queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
+				resetDraft();
+				router.replace(`/orders/${savedOrder.id}`);
+				return savedOrder;
+			}
+			throw new Error('Failed to save draft order');
+		}
+
 		const updatedOrder = await OrdersAPI.updateOrder(inputOrder.id.toString(), { billing: mergedBilling });
 		return updatedOrder;
 	};
@@ -453,11 +772,16 @@ export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema
 
 export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | null>) => {
 	const queryClient = useQueryClient();
-	const order = orderQuery.data;
+	const router = useRouter();
+	const order = orderQuery.data ?? undefined;
 	const orderRootKey = generateOrderQueryKey('order', order);
 	const orderQueryKey = generateOrderQueryKey('detail', order);
 	const paymentKey = generateOrderQueryKey('payment', order);
 	const paymentIsMutating = useIsMutating({ mutationKey: paymentKey });
+
+	// Draft order support
+	const getDraftData = useDraftOrderStore((state) => state.getDraftData);
+	const resetDraft = useDraftOrderStore((state) => state.resetDraft);
 
 	const paymentQuery = useQuery<number>({
 		queryKey: paymentKey,
@@ -478,12 +802,12 @@ export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 		// Create or update the payment_received meta field
 		const existingMetaData = inputOrder.meta_data || [];
 		const existingPaymentMeta = existingMetaData.find(meta => meta.key === 'payment_received');
-		
+
 		let updatedMetaData: MetaDataSchema[];
 		if (existingPaymentMeta) {
 			// Update existing meta field
-			updatedMetaData = existingMetaData.map(meta => 
-				meta.key === 'payment_received' 
+			updatedMetaData = existingMetaData.map(meta =>
+				meta.key === 'payment_received'
 					? { ...meta, value: receivedAmount.toFixed(2) }
 					: meta
 			);
@@ -495,7 +819,26 @@ export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			];
 		}
 
-		const updatedOrder = await OrdersAPI.updateOrder(inputOrder.id.toString(), { 
+		// Handle draft order - save to database first
+		if (inputOrder.id === DRAFT_ORDER_ID) {
+			const draftData = getDraftData();
+
+			const savedOrder = await OrdersAPI.saveOrder({
+				...draftData,
+				status: 'pending',
+				meta_data: updatedMetaData,
+			});
+
+			if (savedOrder) {
+				await queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
+				resetDraft();
+				router.replace(`/orders/${savedOrder.id}`);
+				return savedOrder;
+			}
+			throw new Error('Failed to save draft order');
+		}
+
+		const updatedOrder = await OrdersAPI.updateOrder(inputOrder.id.toString(), {
 			meta_data: updatedMetaData
 		});
 		return updatedOrder;

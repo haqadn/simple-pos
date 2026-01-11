@@ -6,9 +6,11 @@ import Link from "next/link"
 import { type OrderSchema } from "@/api/orders";
 import { usePathname, useRouter } from "next/navigation";
 import { useOrderQuery, useOrdersStore } from "@/stores/orders";
+import { useDraftOrderStore } from "@/stores/draft-order";
 
 export default function Sidebar() {
-    const { ordersQuery: { data: orders, isLoading }, createOrder } = useOrdersStore();
+    const { ordersQuery: { data: orders, isLoading } } = useOrdersStore();
+    const resetDraft = useDraftOrderStore((state) => state.resetDraft);
     const pathname = usePathname();
     const router = useRouter();
 
@@ -48,27 +50,14 @@ export default function Sidebar() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [orders, router]);
 
-    const newOrder = async () => {
-        try {
-            const order = await createOrder();
-            if (order) {
-                router.push(`/orders/${ order.id }`);
-            }
-        } catch (error) {
-            alert(`Failed to create order: ${error}`);
-        }
+    const newOrder = () => {
+        // Reset draft and navigate to new order page (order only saved to DB when modified)
+        resetDraft();
+        router.push('/orders/new');
     }
 
     if (isLoading) {
         return <div>Loading...</div>;
-    }
-
-    if ( ! orders || orders.length === 0 ) {
-        return (
-            <div className="my-4">
-                <p>No orders found</p>
-            </div>
-        );
     }
 
     return (
@@ -79,11 +68,17 @@ export default function Sidebar() {
                     <Kbd keys={["ctrl"]}>N</Kbd>
                 </span>
             </Button>
-            <div className="flex flex-col gap-2 mt-4">
-                {orders.map((order: OrderSchema, index: number) => (
-                    <OrderLink key={`/orders/${order.id}`} order={order} index={index} pathname={pathname} />
-                ))}
-            </div>
+            {(!orders || orders.length === 0) ? (
+                <div className="my-4">
+                    <p className="text-default-400 text-sm">No pending orders</p>
+                </div>
+            ) : (
+                <div className="flex flex-col gap-2 mt-4">
+                    {orders.map((order: OrderSchema, index: number) => (
+                        <OrderLink key={`/orders/${order.id}`} order={order} index={index} pathname={pathname} />
+                    ))}
+                </div>
+            )}
         </>
     );
 }

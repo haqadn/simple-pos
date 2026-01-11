@@ -2,7 +2,8 @@
 
 import { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useOrdersStore, useCurrentOrder } from '@/stores/orders';
+import { useCurrentOrder } from '@/stores/orders';
+import { useDraftOrderStore } from '@/stores/draft-order';
 import OrdersAPI from '@/api/orders';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -16,20 +17,15 @@ interface ShortcutHandlers {
 
 export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
     const router = useRouter();
-    const { createOrder } = useOrdersStore();
+    const resetDraft = useDraftOrderStore((state) => state.resetDraft);
     const orderQuery = useCurrentOrder();
     const queryClient = useQueryClient();
 
-    const handleNewOrder = useCallback(async () => {
-        try {
-            const order = await createOrder();
-            if (order) {
-                router.push(`/orders/${order.id}`);
-            }
-        } catch (error) {
-            console.error('Failed to create order:', error);
-        }
-    }, [createOrder, router]);
+    const handleNewOrder = useCallback(() => {
+        // Reset draft and navigate to new order page (order only saved to DB when modified)
+        resetDraft();
+        router.push('/orders/new');
+    }, [resetDraft, router]);
 
     const handlePrintKot = useCallback(async () => {
         if (!orderQuery.data) return;
