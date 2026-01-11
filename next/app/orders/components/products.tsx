@@ -1,10 +1,12 @@
 'use client'
 import { ProductSchema, useProductsQuery } from "@/stores/products";
-import { CardHeader, Card, Kbd, Tooltip } from "@heroui/react";
+import { CardHeader, Card, Kbd, Tooltip, Badge } from "@heroui/react";
 import { useSelectedCategory } from "./selected-category";
 import { useCurrentOrder, useLineItemQuery } from "@/stores/orders";
 import { useMemo } from "react";
 import { formatCurrency } from "@/lib/format";
+
+const LOW_STOCK_THRESHOLD = 5;
 
 export default function Products() {
     const { data: products, isLoading } = useProductsQuery();
@@ -62,10 +64,33 @@ const ProductCard = ({ product }: { product: ProductSchema }) => {
 
     const hasDescription = !!product.description;
 
-    const card = (
-        <Card isPressable className="h-full w-full" onPress={() => addToOrder()}>
+    // Stock status
+    const isOutOfStock = product.stock_status === 'outofstock';
+    const stockQty = product.stock_quantity;
+    const lowStockThreshold = product.low_stock_amount ?? LOW_STOCK_THRESHOLD;
+    const isLowStock = product.manage_stock && stockQty !== null && stockQty > 0 && stockQty <= lowStockThreshold;
+
+    // Card border/style based on status
+    const cardClassName = [
+        "h-full w-full",
+        currentQuantity > 0 && "ring-2 ring-primary",
+    ].filter(Boolean).join(" ");
+
+    const cardContent = (
+        <Card
+            isPressable
+            className={cardClassName}
+            onPress={() => addToOrder()}
+        >
             <CardHeader className="flex-col items-start gap-0 p-3 text-left">
-                <p className="text-sm font-semibold leading-snug line-clamp-2 text-left w-full">{product.name}</p>
+                <div className="flex items-start justify-between w-full gap-2">
+                    <p className="text-sm font-semibold leading-snug line-clamp-2 text-left flex-1">{product.name}</p>
+                    {(isLowStock || isOutOfStock) && (
+                        <span className={`text-[10px] font-medium whitespace-nowrap ${isOutOfStock ? 'text-danger-600' : 'text-warning-600'}`}>
+                            {isOutOfStock ? 'Out' : `${stockQty} left`}
+                        </span>
+                    )}
+                </div>
                 {product.variation_name && (
                     <span className="text-xs text-default-400 mt-0.5">{product.variation_name}</span>
                 )}
@@ -83,6 +108,19 @@ const ProductCard = ({ product }: { product: ProductSchema }) => {
             </CardHeader>
         </Card>
     );
+
+    // Wrap with badge if in order
+    const card = currentQuantity > 0 ? (
+        <Badge
+            content={currentQuantity}
+            color="primary"
+            size="lg"
+            placement="top-right"
+            classNames={{ base: "w-full h-full" }}
+        >
+            {cardContent}
+        </Badge>
+    ) : cardContent;
 
     if (hasDescription) {
         return (

@@ -22,6 +22,11 @@ export const ServerSideProductSchema = z.object({
   description: z.string(),
   categories: z.array(ProductCategorySchema.pick({ id: true, name: true })),
   variations: z.array(z.number()).optional(),
+  // Stock fields
+  stock_status: z.enum(['instock', 'outofstock', 'onbackorder']).default('instock'),
+  stock_quantity: z.number().nullable().default(null),
+  manage_stock: z.boolean().default(false),
+  low_stock_amount: z.number().nullable().default(null),
 });
 
 export type ServerSideProductSchema = z.infer<typeof ServerSideProductSchema>;
