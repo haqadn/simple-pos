@@ -30,14 +30,19 @@ The command system provides a CLI-like interface for rapid POS operations. Opera
 
 ### Architecture
 
-**Status: ✅ Infrastructure Complete | ⚠️ Commands Partially Implemented**
+**Status: ✅ Core Commands Complete**
 
 ```
 /next/commands/
 ├── command.ts           # Base interfaces and abstract classes
 ├── command-registry.ts  # Command registration and routing
 ├── command-manager.ts   # Execution coordination and state
-└── item.ts              # ✅ Implemented
+├── item.ts              # ✅ Implemented
+├── clear.ts             # ✅ Implemented
+├── pay.ts               # ✅ Implemented
+├── done.ts              # ✅ Implemented
+├── coupon.ts            # ✅ Implemented
+└── print.ts             # ✅ Implemented
 ```
 
 ### Design Pattern: Command Pattern
@@ -92,11 +97,11 @@ interface MultiInputCommand extends Command {
 | Command | Aliases | Status | Description |
 |---------|---------|--------|-------------|
 | `item` | `i` | ✅ Complete | Set or increment line item quantity by SKU |
-| `clear` | `cl` | ❌ Not Started | Clear current order |
-| `pay` | `p` | ❌ Not Started | Record payment amount |
-| `done` | `dn` | ❌ Not Started | Complete order (checkout) |
-| `coupon` | `discount`, `c` | ❌ Not Started | Apply coupon code |
-| `print` | `pr` | ❌ Not Started | Print receipt or KOT |
+| `clear` | `cl` | ✅ Complete | Clear current order |
+| `pay` | `p` | ✅ Complete | Record payment amount |
+| `done` | `dn`, `d` | ✅ Complete | Complete order (checkout) |
+| `coupon` | `discount`, `c` | ✅ Complete | Apply coupon code |
+| `print` | `pr` | ✅ Complete | Print receipt or KOT |
 | `customer-info` | `customer`, `ci` | ❌ Not Started | Add customer details |
 | `last-order` | `last` | ❌ Not Started | View last completed order |
 | `drawer` | `cash` | ❌ Not Started | Open cash drawer |
@@ -125,6 +130,80 @@ item> /             # Exit multi-input mode
 ```
 
 **Autocomplete**: Suggests matching SKUs based on partial input.
+
+### Clear Command (Implemented)
+
+**File**: `/next/commands/clear.ts`
+
+**Usage**:
+- `/clear` - Clear all items from current order (with confirmation)
+- `/clear confirm` - Clear immediately without confirmation
+
+**Behavior**:
+- Removes all line items from the current order
+- Shows confirmation message with number of items cleared
+
+### Pay Command (Implemented)
+
+**File**: `/next/commands/pay.ts`
+
+**Usage**:
+- `/pay 50` - Record $50 payment
+- `/pay` - Enter multi-input mode for multiple payments
+
+**Behavior**:
+- Records payment amount in order meta_data
+- Shows running total of payments and remaining balance
+- Supports split payments via multi-input mode
+
+**Multi-input mode**:
+```
+pay> 50           # Record $50 payment
+pay> 25           # Record additional $25 payment
+pay> /            # Exit multi-input mode
+```
+
+### Done Command (Implemented)
+
+**File**: `/next/commands/done.ts`
+
+**Usage**:
+- `/done` - Complete order and navigate to next
+
+**Behavior**:
+- Validates order has items
+- Validates payment is sufficient (payment >= total)
+- Marks order as `completed` status
+- Calculates and displays change if overpaid
+- Navigates to next pending order or home
+
+### Coupon Command (Implemented)
+
+**File**: `/next/commands/coupon.ts`
+
+**Usage**:
+- `/coupon CODE` - Apply coupon code
+- `/coupon remove` - Remove applied coupon
+
+**Behavior**:
+- Sends coupon to WooCommerce for validation
+- Updates order total with discount
+- Shows confirmation message
+
+### Print Command (Implemented)
+
+**File**: `/next/commands/print.ts`
+
+**Usage**:
+- `/print bill` - Print customer receipt
+- `/print kot` - Print kitchen order ticket
+
+**Behavior**:
+- Validates order has items
+- Sends print job to configured printer
+- Records print timestamp in order meta_data
+
+**Note**: Actual printing requires printer system integration (placeholder implementation).
 
 ---
 
@@ -553,13 +632,14 @@ Coupons can be applied to orders for discounts. WooCommerce handles validation a
 
 ### Architecture
 
-**Status: ❌ Not Implemented**
+**Status: ✅ Command Implemented**
 
 ```
 /next/api/coupons.ts      # API client (exists)
+/next/commands/coupon.ts  # ✅ Coupon command
 ```
 
-### Planned Flow
+### Coupon Flow
 
 ```
 User enters code
@@ -608,9 +688,13 @@ The POS supports thermal printer output for receipts and kitchen orders.
 
 ### Architecture
 
-**Status: ❌ Not Implemented**
+**Status: ⚠️ Command Implemented | Printer Integration Pending**
 
-### Planned Design
+```
+/next/commands/print.ts   # ✅ Print command (placeholder)
+```
+
+### Design
 
 ```typescript
 interface PrintJob {
@@ -760,25 +844,25 @@ Sales reports and analytics for business insights.
 
 ## Implementation Priority
 
-### Phase 1: Core POS (Current Focus)
+### Phase 1: Core POS ✅ Complete
 
 1. ✅ Command infrastructure
 2. ✅ Item command (set/increment line items)
 3. ✅ Multi-order management (URL-based)
-4. ⬜ Clear command
-5. ⬜ Pay command
-6. ⬜ Done command (checkout)
+4. ✅ Clear command
+5. ✅ Pay command
+6. ✅ Done command (checkout)
 
-### Phase 2: Business Features
+### Phase 2: Business Features (Current Focus)
 
-7. ⬜ Coupon command
+7. ✅ Coupon command
 8. ⬜ Customer search
 9. ⬜ Last order command
 
 ### Phase 3: Operations
 
-10. ⬜ Print system
-11. ⬜ KOT tracking
+10. ✅ Print command (placeholder - needs printer integration)
+11. ⬜ KOT tracking & change detection
 12. ⬜ Settings management
 13. ⬜ Drawer command
 

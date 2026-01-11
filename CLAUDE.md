@@ -96,11 +96,11 @@ Commands can enter a persistent input mode for rapid entry:
 | Command | Aliases | Status | Description |
 |---------|---------|--------|-------------|
 | `item` | `i` | ✅ | Set or increment line item quantity by SKU |
-| `clear` | `cl` | ❌ | Clear current order |
-| `pay` | `p` | ❌ | Record payment amount |
-| `done` | `dn` | ❌ | Complete order (checkout) |
-| `coupon` | `c` | ❌ | Apply discount codes |
-| `print` | `pr` | ❌ | Print receipts/KOT |
+| `clear` | `cl` | ✅ | Clear current order |
+| `pay` | `p` | ✅ | Record payment amount |
+| `done` | `dn`, `d` | ✅ | Complete order (checkout) |
+| `coupon` | `c`, `discount` | ✅ | Apply/remove discount codes |
+| `print` | `pr` | ✅ | Print receipts/KOT |
 | `customer-info` | `ci` | ❌ | Add customer details |
 | `last-order` | `last` | ❌ | View last completed order |
 | `drawer` | `cash` | ❌ | Open cash drawer |

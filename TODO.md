@@ -2,7 +2,7 @@
 
 ## Project Status
 
-- **Next.js Frontend**: ~35% complete - Core infrastructure done, commands needed
+- **Next.js Frontend**: ~50% complete - Core commands done, UI polish needed
 - **Vue.js Frontend**: Legacy reference only (do not modify)
 - **Goal**: Feature parity with Vue.js, then Electron packaging for Windows
 
@@ -16,6 +16,11 @@ See `/next/FEATURES.md` for detailed feature documentation.
 
 - **Command Infrastructure** - Base classes, registry, manager, history, autocomplete
 - **Item Command** (`/item`, `/i`) - Set/increment line items by SKU with multi-input mode
+- **Clear Command** (`/clear`, `/cl`) - Clear all items from current order
+- **Pay Command** (`/pay`, `/p`) - Record payment with multi-input mode for split payments
+- **Done Command** (`/done`, `/dn`, `/d`) - Complete order with payment validation
+- **Coupon Command** (`/coupon`, `/c`, `/discount`) - Apply/remove discount codes
+- **Print Command** (`/print`, `/pr`) - Print bill or KOT (placeholder for printer integration)
 - **Multi-Order Management** - URL-based order switching via sidebar
 - **API Layer** - Orders, products, customers, coupons, shipping with Zod validation
 - **Order Queries** - TanStack Query with optimistic updates and debouncing
@@ -28,59 +33,42 @@ See `/next/FEATURES.md` for detailed feature documentation.
 
 ### In Progress
 
-- Additional command implementations
+- Payment UI (card showing total, received, change)
+- Printer integration
 
 ---
 
-## Phase 1: Core Commands (Current Focus)
+## Phase 1: Core Commands ✅ Complete
 
-### Essential Commands Needed
+All essential POS commands are implemented:
 
-| Command | Aliases | Priority | Description |
-|---------|---------|----------|-------------|
-| `clear` | `cl` | High | Clear all items from current order |
-| `pay` | `p` | High | Record payment amount received |
-| `done` | `dn` | High | Complete order (set status, trigger print) |
-| `coupon` | `c` | Medium | Apply/remove discount codes |
-| `customer-info` | `ci` | Medium | Set customer billing info via command |
-| `last-order` | `last` | Low | View/reprint last completed order |
-| `drawer` | `cash` | Low | Open cash drawer |
-| `manage-stock` | `stock` | Low | Update product inventory |
-
-### Implementation Pattern
-
-Each command should:
-1. Extend `BaseCommand` or `BaseMultiInputCommand`
-2. Implement `getMetadata()`, `execute()`, `getAutocompleteSuggestions()`
-3. Register in `command-manager.ts`
-4. Use `CommandContext` for data access and mutations
-
-Reference: `/next/commands/item.ts` for working example.
+| Command | Aliases | Status | Description |
+|---------|---------|--------|-------------|
+| `item` | `i` | ✅ Done | Set/increment line items by SKU |
+| `clear` | `cl` | ✅ Done | Clear all items from order |
+| `pay` | `p` | ✅ Done | Record payment amount |
+| `done` | `dn`, `d` | ✅ Done | Complete order |
+| `coupon` | `c`, `discount` | ✅ Done | Apply/remove discount codes |
+| `print` | `pr` | ✅ Done | Print bill or KOT |
 
 ---
 
-## Phase 2: Payment & Checkout
-
-### Pay Command
-- [ ] Record payment amount via `/pay <amount>`
-- [ ] Multi-input mode for split payments
-- [ ] Show change due calculation
-- [ ] Support multiple payment methods (cash, card)
-- [ ] By default, cash is present. Allow adding rows for each configured payment methods
-
-### Done Command
-- [ ] Validate payment >= order total
-- [ ] Update order status to completed
-- [ ] Navigate to next pending order or create new
+## Phase 2: UI Improvements (Current Focus)
 
 ### Payment UI
 - [ ] Payment card showing total, received, change
 - [ ] Quick payment buttons (exact, round up)
 - [ ] Payment method selection
+- [ ] Split payment visualization
+
+### Order Summary
+- [ ] Better order total display
+- [ ] Applied discounts visible
+- [ ] Service type indicator
 
 ---
 
-## Phase 3: Printing System
+## Phase 3: Printing System Integration
 
 ### Print Infrastructure
 - [ ] Print store/queue for managing jobs
@@ -91,43 +79,44 @@ Reference: `/next/commands/item.ts` for working example.
 ### Bill Printing
 - [ ] Receipt format with items, totals, payment
 - [ ] Business info header
-- [ ] Print via `/print bill`
+- [ ] Connect to `/print bill` command
 
 ### KOT (Kitchen Order Ticket)
 - [ ] Track previous KOT state per order
 - [ ] Detect changes (new items, quantity changes)
 - [ ] Category filtering (skip drinks, retail)
-- [ ] Print via `/print kot` or manual trigger
+- [ ] Connect to `/print kot` command
 
 ---
 
-## Phase 4: Additional Features
+## Phase 4: Additional Commands
+
+| Command | Aliases | Priority | Description |
+|---------|---------|----------|-------------|
+| `customer-info` | `ci` | Medium | Set customer billing info via command |
+| `last-order` | `last` | Low | View/reprint last completed order |
+| `drawer` | `cash` | Low | Open cash drawer |
+| `manage-stock` | `stock` | Low | Update product inventory |
+
+---
+
+## Phase 5: Polish & Advanced
 
 ### Customer Search
 - [ ] Autocomplete customer lookup
 - [ ] Customer creation
 - [ ] Attach customer to order
 
-### Coupon System
-- [ ] Validate coupon codes via API
-- [ ] Apply to order (`coupon_lines`)
-- [ ] Show discount in totals
-- [ ] Remove coupon
+### Keyboard Shortcuts
+- [ ] Number keys (1-9) for order switching
+- [ ] Escape to clear input
+- [ ] Enter to submit
 
 ### Settings Management
 - [ ] API configuration UI
 - [ ] Printer setup
 - [ ] Table configuration
 - [ ] KOT skip categories
-
----
-
-## Phase 5: Polish & Advanced
-
-### Keyboard Shortcuts
-- [ ] Number keys (1-9) for order switching
-- [ ] Escape to clear input
-- [ ] Enter to submit
 
 ### Offline Support
 - [ ] Local order queue
@@ -147,7 +136,12 @@ Reference: `/next/commands/item.ts` for working example.
 - `/next/commands/command.ts` - Base interfaces
 - `/next/commands/command-registry.ts` - Command routing
 - `/next/commands/command-manager.ts` - Execution coordination
-- `/next/commands/item.ts` - Reference implementation
+- `/next/commands/item.ts` - Line item management
+- `/next/commands/clear.ts` - Clear order
+- `/next/commands/pay.ts` - Payment recording
+- `/next/commands/done.ts` - Order completion
+- `/next/commands/coupon.ts` - Discount codes
+- `/next/commands/print.ts` - Printing (placeholder)
 
 ### Stores
 - `/next/stores/orders.ts` - Order queries and mutations
@@ -164,49 +158,3 @@ Reference: `/next/commands/item.ts` for working example.
 - `/next/api/products.ts` - Product fetching
 - `/next/api/customers.ts` - Customer operations
 - `/next/api/coupons.ts` - Coupon validation
-
----
-
-## Quick Start for New Commands
-
-```typescript
-// /next/commands/clear.ts
-import { BaseCommand, CommandMetadata } from './command';
-import { CommandContext } from './command-manager';
-
-export class ClearCommand extends BaseCommand {
-  private context?: CommandContext;
-
-  setContext(context: CommandContext) {
-    this.context = context;
-  }
-
-  getMetadata(): CommandMetadata {
-    return {
-      keyword: 'clear',
-      aliases: ['cl'],
-      description: 'Clear all items from current order',
-      usage: ['/clear'],
-      parameters: []
-    };
-  }
-
-  async execute(args: string[]): Promise<void> {
-    // Implementation here
-  }
-}
-```
-
-Then register in `command-manager.ts`:
-```typescript
-import { ClearCommand } from './clear';
-
-// In registerDefaultCommands():
-const clearCommand = new ClearCommand();
-this.registry.registerCommand(clearCommand);
-
-// In updateCommandContexts():
-if (command instanceof ClearCommand) {
-  command.setContext(this.context!);
-}
-```

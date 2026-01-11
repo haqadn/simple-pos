@@ -1,6 +1,11 @@
 import { CommandRegistry, CommandExecutionResult } from './command-registry';
 import { CommandState, CommandSuggestion } from './command';
 import { ItemCommand } from './item';
+import { ClearCommand } from './clear';
+import { PayCommand } from './pay';
+import { DoneCommand } from './done';
+import { CouponCommand } from './coupon';
+import { PrintCommand } from './print';
 
 import { OrderSchema } from '@/api/orders';
 import { ProductSchema } from '@/stores/products';
@@ -11,13 +16,31 @@ import { ProductSchema } from '@/stores/products';
 export interface CommandContext {
   // Order data
   currentOrder?: OrderSchema;
-  
-  // Product data  
+
+  // Product data
   products: ProductSchema[];
-  
-  // Order manipulation functions
+
+  // Line item operations
   updateLineItem: (productId: number, variationId: number, quantity: number, mode: 'set' | 'increment') => Promise<void>;
-  
+
+  // Order operations
+  clearOrder: () => Promise<void>;
+  completeOrder: () => Promise<void>;
+
+  // Payment operations
+  setPayment: (amount: number) => Promise<void>;
+  getPaymentReceived?: () => number;
+
+  // Coupon operations
+  applyCoupon: (code: string) => Promise<void>;
+  removeCoupon: () => Promise<void>;
+
+  // Print operations
+  print: (type: 'bill' | 'kot') => Promise<void>;
+
+  // Navigation
+  navigateToNextOrder?: () => void;
+
   // UI feedback functions
   showMessage: (message: string) => void;
   showError: (error: string) => void;
@@ -149,14 +172,12 @@ export class CommandManager {
    * Register default commands
    */
   private registerDefaultCommands(): void {
-    // Register the item command
-    const itemCommand = new ItemCommand();
-    this.registry.registerCommand(itemCommand);
-
-    // Future commands would be registered here:
-    // this.registry.registerCommand(new PayCommand());
-    // this.registry.registerCommand(new ClearCommand());
-    // this.registry.registerCommand(new DoneCommand());
+    this.registry.registerCommand(new ItemCommand());
+    this.registry.registerCommand(new ClearCommand());
+    this.registry.registerCommand(new PayCommand());
+    this.registry.registerCommand(new DoneCommand());
+    this.registry.registerCommand(new CouponCommand());
+    this.registry.registerCommand(new PrintCommand());
   }
 
   /**
@@ -167,10 +188,9 @@ export class CommandManager {
 
     // Update all commands that need context
     this.registry.getAllCommands().forEach(command => {
-      if (command instanceof ItemCommand) {
-        command.setContext(this.context!);
+      if ('setContext' in command && typeof command.setContext === 'function') {
+        (command as { setContext: (ctx: CommandContext) => void }).setContext(this.context!);
       }
-      // Add other command types here as they're implemented
     });
   }
 

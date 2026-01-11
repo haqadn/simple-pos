@@ -3,11 +3,13 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Input } from '@heroui/react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { useCommandManager } from '@/hooks/useCommandManager';
-import { useCurrentOrder } from '@/stores/orders';
+import { useCurrentOrder, useOrdersStore } from '@/stores/orders';
 import { useProductsQuery, useGetProductById } from '@/stores/products';
 import { CommandContext } from '@/commands/command-manager';
 import { CommandSuggestion } from '@/commands/command';
+import OrdersAPI, { OrderSchema } from '@/api/orders';
 
 export default function CommandBar() {
   const [input, setInput] = useState('');
@@ -15,10 +17,12 @@ export default function CommandBar() {
   const [selectedSuggestion, setSelectedSuggestion] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   // Hooks for data
   const orderQuery = useCurrentOrder();
   const { data: products = [] } = useProductsQuery();
+  const { ordersQuery } = useOrdersStore();
   const getProductById = useGetProductById();
   
   // Command manager
@@ -128,20 +132,153 @@ export default function CommandBar() {
     }
   }, [orderQuery, getProductById, queryClient]);
 
+  // Clear all items from order
+  const handleClearOrder = useCallback(async () => {
+    if (!orderQuery.data) throw new Error('No active order');
+
+    const orderId = orderQuery.data.id;
+    const orderQueryKey = ['orders', orderId, 'detail'];
+
+    // Get fresh data
+    const currentOrder = queryClient.getQueryData<OrderSchema>(orderQueryKey) || orderQuery.data;
+
+    // Mark all existing items for deletion
+    const lineItems = currentOrder.line_items
+      .filter(li => li.id)
+      .map(li => ({ id: li.id, product_id: li.product_id, variation_id: li.variation_id, name: li.name || '', quantity: 0 }));
+
+    if (lineItems.length === 0) return;
+
+    // Optimistic update
+    queryClient.setQueryData(orderQueryKey, { ...currentOrder, line_items: [] });
+
+    // API call
+    const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), { line_items: lineItems });
+    queryClient.setQueryData(orderQueryKey, updatedOrder);
+
+    await queryClient.invalidateQueries({ queryKey: ['orders', orderId, 'lineItem'] });
+  }, [orderQuery, queryClient]);
+
+  // Complete the order
+  const handleCompleteOrder = useCallback(async () => {
+    if (!orderQuery.data) throw new Error('No active order');
+
+    const orderId = orderQuery.data.id;
+
+    // Update order status to completed
+    await OrdersAPI.updateOrder(orderId.toString(), { status: 'completed' });
+
+    // Invalidate queries
+    await queryClient.invalidateQueries({ queryKey: ['orders'] });
+
+    // Navigate to next pending order or home
+    const orders = ordersQuery.data || [];
+    const nextOrder = orders.find(o => o.id !== orderId && o.status === 'pending');
+    if (nextOrder) {
+      router.push(`/orders/${nextOrder.id}`);
+    } else {
+      router.push('/');
+    }
+  }, [orderQuery, queryClient, ordersQuery, router]);
+
+  // Set payment amount
+  const handleSetPayment = useCallback(async (amount: number) => {
+    if (!orderQuery.data) throw new Error('No active order');
+
+    const orderId = orderQuery.data.id;
+    const orderQueryKey = ['orders', orderId, 'detail'];
+
+    const currentOrder = queryClient.getQueryData<OrderSchema>(orderQueryKey) || orderQuery.data;
+
+    // Update meta_data with payment_received
+    const metaData = currentOrder.meta_data.filter(m => m.key !== 'payment_received');
+    metaData.push({ key: 'payment_received', value: amount.toString() });
+
+    // Optimistic update
+    queryClient.setQueryData(orderQueryKey, { ...currentOrder, meta_data: metaData });
+
+    // API call
+    const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), { meta_data: metaData });
+    queryClient.setQueryData(orderQueryKey, updatedOrder);
+  }, [orderQuery, queryClient]);
+
+  // Get current payment received
+  const getPaymentReceived = useCallback((): number => {
+    if (!orderQuery.data) return 0;
+    const paymentMeta = orderQuery.data.meta_data.find(m => m.key === 'payment_received');
+    return paymentMeta ? parseFloat(String(paymentMeta.value)) : 0;
+  }, [orderQuery.data]);
+
+  // Apply coupon
+  const handleApplyCoupon = useCallback(async (code: string) => {
+    if (!orderQuery.data) throw new Error('No active order');
+
+    const orderId = orderQuery.data.id;
+
+    // WooCommerce expects coupon_lines array
+    const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), {
+      coupon_lines: [{ code }]
+    } as Partial<OrderSchema>);
+
+    const orderQueryKey = ['orders', orderId, 'detail'];
+    queryClient.setQueryData(orderQueryKey, updatedOrder);
+  }, [orderQuery, queryClient]);
+
+  // Remove coupon
+  const handleRemoveCoupon = useCallback(async () => {
+    if (!orderQuery.data) throw new Error('No active order');
+
+    const orderId = orderQuery.data.id;
+
+    const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), {
+      coupon_lines: []
+    } as Partial<OrderSchema>);
+
+    const orderQueryKey = ['orders', orderId, 'detail'];
+    queryClient.setQueryData(orderQueryKey, updatedOrder);
+  }, [orderQuery, queryClient]);
+
+  // Print (placeholder - will integrate with print system later)
+  const handlePrint = useCallback(async (type: 'bill' | 'kot') => {
+    if (!orderQuery.data) throw new Error('No active order');
+
+    // For now, just log - print system will be implemented separately
+    console.log(`Print ${type} for order ${orderQuery.data.id}`);
+
+    // TODO: Integrate with actual print system
+    // For now, mark as printed in meta_data
+    const orderId = orderQuery.data.id;
+    const metaKey = type === 'bill' ? 'last_bill_print' : 'last_kot_print';
+
+    await OrdersAPI.updateOrder(orderId.toString(), {
+      meta_data: [
+        ...orderQuery.data.meta_data.filter(m => m.key !== metaKey),
+        { key: metaKey, value: new Date().toISOString() }
+      ]
+    });
+  }, [orderQuery]);
+
   // Create the command context
   const commandContext = useMemo((): CommandContext | null => {
     if (!orderQuery.data || !products.length) {
       return null;
     }
-    
+
     return {
       currentOrder: orderQuery.data,
       products,
       updateLineItem: handleAddProduct,
-      showMessage: () => {}, // No-op
-      showError: () => {} // No-op
+      clearOrder: handleClearOrder,
+      completeOrder: handleCompleteOrder,
+      setPayment: handleSetPayment,
+      getPaymentReceived,
+      applyCoupon: handleApplyCoupon,
+      removeCoupon: handleRemoveCoupon,
+      print: handlePrint,
+      showMessage: (msg) => console.log('[Command]', msg),
+      showError: (err) => console.error('[Command Error]', err)
     };
-  }, [orderQuery.data, products, handleAddProduct]);
+  }, [orderQuery.data, products, handleAddProduct, handleClearOrder, handleCompleteOrder, handleSetPayment, getPaymentReceived, handleApplyCoupon, handleRemoveCoupon, handlePrint]);
 
   // Set up command context when ready
   useEffect(() => {
@@ -338,9 +475,9 @@ export default function CommandBar() {
       {/* Help text */}
       <div className="text-xs text-gray-400">
         {multiMode ? (
-          `Multi-input mode: Type ${activeCommand} parameters, or &quot;/&quot; to exit`
+          `Multi-input mode: Type ${activeCommand} parameters, or "/" to exit`
         ) : (
-          'Commands: /add <sku> [qty] | /add (multi-mode) | ↑↓ for history'
+          '/item, /clear, /pay, /done, /coupon, /print | ↑↓ history'
         )}
       </div>
     </div>
