@@ -2,7 +2,7 @@
 
 ## Project Status
 
-- **Next.js Frontend**: ~50% complete - Core commands done, UI polish needed
+- **Next.js Frontend**: ~60% complete - Core commands done, UI polish in progress
 - **Vue.js Frontend**: Legacy reference only (do not modify)
 - **Goal**: Feature parity with Vue.js, then Electron packaging for Windows
 
@@ -21,19 +21,24 @@ See `/next/FEATURES.md` for detailed feature documentation.
 - **Done Command** (`/done`, `/dn`, `/d`) - Complete order with payment validation
 - **Coupon Command** (`/coupon`, `/c`, `/discount`) - Apply/remove discount codes
 - **Print Command** (`/print`, `/pr`) - Print bill or KOT (placeholder for printer integration)
+- **Note Command** (`/note`, `/n`) - Add customer note to order
+- **Customer Command** (`/customer`, `/cust`, `/cu`) - Set customer billing info (name, phone, address)
 - **Multi-Order Management** - URL-based order switching via sidebar
 - **API Layer** - Orders, products, customers, coupons, shipping with Zod validation
 - **Order Queries** - TanStack Query with optimistic updates and debouncing
-- **Product Catalog** - Products with variation flattening, categories
+- **Product Catalog** - Products with variation flattening, categories, stock status
 - **Line Item Management** - Add/update/remove with optimistic cache updates
 - **Service Selection** - Table/takeaway selection
 - **Customer Info** - Billing info attached to orders
-- **Payment Tracking** - Payment received via order meta_data
+- **Payment Tracking** - Payment received via order meta_data with split payment support
 - **Order Notes** - Customer notes on orders
+- **Payment UI** - Total, received, change display with quick payment buttons
+- **Split Payments** - Multiple payment methods (Cash, bKash, Nagad, Card)
+- **Product Card Indicators** - Visual indicators for low stock, out of stock, in-cart quantity
 
 ### In Progress
 
-- Payment UI (card showing total, received, change)
+- Simplified command interface (SKU entry without /item prefix)
 - Printer integration
 
 ---
@@ -50,25 +55,34 @@ All essential POS commands are implemented:
 | `done` | `dn`, `d` | ✅ Done | Complete order |
 | `coupon` | `c`, `discount` | ✅ Done | Apply/remove discount codes |
 | `print` | `pr` | ✅ Done | Print bill or KOT |
+| `note` | `n` | ✅ Done | Add customer note |
+| `customer` | `cust`, `cu` | ✅ Done | Set customer info |
 
 ---
 
-## Phase 2: UI Improvements (Current Focus)
+## Phase 2: UI Improvements ✅ Complete
 
-### Payment UI
+### Payment UI ✅
 - [x] Payment card showing total, received, change
 - [x] Quick payment buttons (BDT denominations)
 - [x] Split payment with multiple methods (Cash always visible, add bKash/Nagad/Card via dropdown)
+- [x] Coupon display with remove button
 
-### Order Summary
+### Order Summary ✅
 - [x] Better order total display
 - [x] Applied discounts visible (coupon code shown in payment card)
 - [x] Service type indicator (shown in sidebar and service card)
 
-### Action Buttons
+### Action Buttons ✅
 - [x] KOT button (prints kitchen order ticket)
 - [x] Bill button (prints receipt)
 - [x] Cancel button with confirmation dropdown
+
+### Product Cards ✅
+- [x] Visual indicator when product is in cart (badge with quantity)
+- [x] Low stock warning indicator
+- [x] Out of stock indicator
+- [x] Tooltip with product description
 
 ---
 
@@ -93,11 +107,31 @@ All essential POS commands are implemented:
 
 ---
 
+## Phase 3.5: Simplified Command Interface (In Progress)
+
+Streamline input so users can add items without command prefixes.
+
+### New Input Patterns
+| Input | Action |
+|-------|--------|
+| `BURGER` | Add 1 burger by SKU |
+| `BURGER 3` | Add 3 burgers |
+| `@T5` or `@table5` | Switch to table 5 |
+| `@123` | Switch to order #123 |
+| `/pay 50` | Record payment |
+| `/done` | Complete order |
+
+### Implementation Tasks
+- [ ] Input type detection (SKU vs `/command`)
+- [ ] Default to product search when no prefix
+- [ ] Update autocomplete to show products by default
+
+---
+
 ## Phase 4: Additional Commands
 
 | Command | Aliases | Priority | Description |
 |---------|---------|----------|-------------|
-| `customer-info` | `ci` | Medium | Set customer billing info via command |
 | `last-order` | `last` | Low | View/reprint last completed order |
 | `drawer` | `cash` | Low | Open cash drawer |
 | `manage-stock` | `stock` | Low | Update product inventory |
@@ -152,6 +186,11 @@ All essential POS commands are implemented:
 - `/next/commands/done.ts` - Order completion
 - `/next/commands/coupon.ts` - Discount codes
 - `/next/commands/print.ts` - Printing (placeholder)
+- `/next/commands/note.ts` - Customer notes
+- `/next/commands/customer.ts` - Customer info
+
+### Utilities
+- `/next/lib/format.ts` - Currency formatting (no decimal if whole number)
 
 ### Stores
 - `/next/stores/orders.ts` - Order queries and mutations

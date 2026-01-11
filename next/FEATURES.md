@@ -42,7 +42,9 @@ The command system provides a CLI-like interface for rapid POS operations. Opera
 ├── pay.ts               # ✅ Implemented
 ├── done.ts              # ✅ Implemented
 ├── coupon.ts            # ✅ Implemented
-└── print.ts             # ✅ Implemented
+├── print.ts             # ✅ Implemented
+├── note.ts              # ✅ Implemented
+└── customer.ts          # ✅ Implemented
 ```
 
 ### Design Pattern: Command Pattern
@@ -102,7 +104,8 @@ interface MultiInputCommand extends Command {
 | `done` | `dn`, `d` | ✅ Complete | Complete order (checkout) |
 | `coupon` | `discount`, `c` | ✅ Complete | Apply coupon code |
 | `print` | `pr` | ✅ Complete | Print receipt or KOT |
-| `customer-info` | `customer`, `ci` | ❌ Not Started | Add customer details |
+| `note` | `n` | ✅ Complete | Add customer note |
+| `customer` | `cust`, `cu` | ✅ Complete | Set customer billing info |
 | `last-order` | `last` | ❌ Not Started | View last completed order |
 | `drawer` | `cash` | ❌ Not Started | Open cash drawer |
 | `manage-stock` | `stock` | ❌ Not Started | Update product inventory |
@@ -204,6 +207,31 @@ pay> /            # Exit multi-input mode
 - Records print timestamp in order meta_data
 
 **Note**: Actual printing requires printer system integration (placeholder implementation).
+
+### Note Command (Implemented)
+
+**File**: `/next/commands/note.ts`
+
+**Usage**:
+- `/note Any text here` - Set customer note on order
+
+**Behavior**:
+- Sets the `customer_note` field on the order
+- Updates UI immediately via optimistic update
+- Supports spaces in the note text
+
+### Customer Command (Implemented)
+
+**File**: `/next/commands/customer.ts`
+
+**Usage**:
+- `/customer Name, Phone` - Set customer name and phone
+- `/customer Name, Phone, Address` - Set name, phone and address
+
+**Behavior**:
+- Parses comma-separated values
+- Updates order billing information
+- Requires at least name and phone
 
 ---
 
@@ -325,9 +353,18 @@ const ProductSchema = z.object({
   parent_id: z.number().optional(),
   categories: z.array(CategorySchema),
   stock_quantity: z.number().nullable(),
-  stock_status: z.string(),
+  stock_status: z.enum(['instock', 'outofstock', 'onbackorder']),
+  manage_stock: z.boolean(),
+  low_stock_amount: z.number().nullable(),
 });
 ```
+
+### Product Card Visual Indicators
+
+Product cards show visual indicators for:
+- **In cart**: Badge with quantity, ring highlight
+- **Low stock**: Warning text showing quantity remaining
+- **Out of stock**: "Out" label (card still pressable)
 
 ### Variation Flattening
 
@@ -482,14 +519,15 @@ mutation.mutate({
 ## 6. Payment Processing
 
 ### Overview
-Payments are tracked via order meta_data. The system records the amount received from the customer.
+Payments are tracked via order meta_data. The system records the amount received from the customer, supporting split payments across multiple methods.
 
 ### Architecture
 
-**Status: ✅ Basic Implementation | ⚠️ UI Incomplete**
+**Status: ✅ Complete**
 
 ```
-/next/stores/orders.ts    # usePaymentQuery hook
+/next/stores/orders.ts                      # usePaymentQuery hook
+/next/app/orders/[orderId]/components/payment-card.tsx  # Payment UI
 ```
 
 ### Payment Tracking
@@ -513,12 +551,31 @@ Payment Received: $50.00
 Change Due:       $5.00
 ```
 
-### Missing Features
+### Split Payments
 
-- [ ] Multiple payment methods (cash, card, split)
-- [ ] Payment validation (amount >= total for completion)
-- [ ] Change calculation display
-- [ ] Payment method recording
+The system supports split payments across multiple methods:
+- **Cash** - Always visible
+- **bKash** - Add via dropdown
+- **Nagad** - Add via dropdown
+- **Card** - Add via dropdown
+
+Split payment data is stored in order meta_data as `split_payments` JSON.
+
+### Quick Payment Buttons
+
+Quick payment buttons are shown for common amounts:
+- Exact amount (pays total)
+- Rounded to nearest 100
+- Rounded to nearest 500
+- Rounded to nearest 1000
+
+### Features
+
+- [x] Multiple payment methods (cash, bKash, Nagad, card)
+- [x] Payment validation (amount >= total for completion)
+- [x] Change calculation display
+- [x] Quick payment buttons
+- [x] Coupon display and removal
 
 ---
 
@@ -618,8 +675,8 @@ Each order in the sidebar shows:
 
 ### Potential Enhancements
 
-- [ ] Keyboard shortcuts (1-9) for order switching
-- [ ] Table name display in sidebar
+- [x] Keyboard shortcuts (Ctrl+1-9) for order switching
+- [x] Table name display in sidebar
 - [ ] Visual indicator for orders with unsent KOT
 - [ ] Order status badges
 
@@ -853,24 +910,29 @@ Sales reports and analytics for business insights.
 5. ✅ Pay command
 6. ✅ Done command (checkout)
 
-### Phase 2: Business Features (Current Focus)
+### Phase 2: Business Features ✅ Complete
 
 7. ✅ Coupon command
-8. ⬜ Customer search
-9. ⬜ Last order command
+8. ✅ Note command
+9. ✅ Customer command
+10. ✅ Payment UI with split payments
+11. ✅ Product card visual indicators
+12. ⬜ Customer search (autocomplete)
 
-### Phase 3: Operations
+### Phase 3: Operations (Current Focus)
 
-10. ✅ Print command (placeholder - needs printer integration)
-11. ⬜ KOT tracking & change detection
-12. ⬜ Settings management
-13. ⬜ Drawer command
+13. ✅ Print command (placeholder - needs printer integration)
+14. ⬜ KOT tracking & change detection
+15. ⬜ Settings management
+16. ⬜ Drawer command
+17. ⬜ Simplified command interface (SKU entry without prefix)
 
 ### Phase 4: Advanced
 
-14. ⬜ Reporting
-15. ⬜ Offline support
-16. ⬜ Inventory management
+18. ⬜ Last order command
+19. ⬜ Reporting
+20. ⬜ Offline support
+21. ⬜ Inventory management
 
 ---
 
