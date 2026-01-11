@@ -24,8 +24,8 @@ export default function LineItems() {
                     aria-label="Order line items"
                 >
                     <tbody>
-                        {orderedLineItems.map((lineItem: LineItemSchema) => (
-                            <LineItemRow key={`${lineItem.product_id}-${lineItem.variation_id}`} lineItem={lineItem} />
+                        {orderedLineItems.map((lineItem: LineItemSchema, index: number) => (
+                            <LineItemRow key={lineItem.id ?? `${lineItem.product_id}-${lineItem.variation_id}-${index}`} lineItem={lineItem} />
                         ))}
                     </tbody>
                 </table>
