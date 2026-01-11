@@ -24,10 +24,22 @@ export default function Sidebar() {
                 e.preventDefault();
                 router.push(`/orders/${orders[num - 1].id}`);
 
-                // Scroll the order link into view
+                // Scroll the order link into view within the sidebar
                 setTimeout(() => {
                     const orderLink = document.querySelector(`a[href="/orders/${orders[num - 1].id}"]`);
-                    orderLink?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    if (orderLink) {
+                        // Find the scrollable aside container
+                        const sidebar = orderLink.closest('aside');
+                        if (sidebar) {
+                            const linkRect = orderLink.getBoundingClientRect();
+                            const sidebarRect = sidebar.getBoundingClientRect();
+
+                            // Check if link is outside visible area
+                            if (linkRect.top < sidebarRect.top || linkRect.bottom > sidebarRect.bottom) {
+                                orderLink.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            }
+                        }
+                    }
                 }, 100);
             }
         };
