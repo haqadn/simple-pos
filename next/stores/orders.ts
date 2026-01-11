@@ -76,19 +76,19 @@ export const useOrderQuery = ( orderId: number ) => {
 
 	const queryKey = generateOrderQueryKey('detail', cachedOrder);
 
-	return useQuery<OrderSchema | undefined>({
+	return useQuery<OrderSchema | null>({
 		queryKey,
 		queryFn: async () => {
 			if (!orderId) {
-				return undefined;
+				return null;
 			}
 			const order = await OrdersAPI.getOrder(orderId.toString());
 			if (!order) {
-				return undefined;
+				return null;
 			}
 			return order;
 		},
-		initialData: cachedOrder,
+		initialData: cachedOrder ?? null,
 		staleTime: 60 * 1000,
 	});
 
@@ -101,7 +101,7 @@ export const useCurrentOrder = () => {
 	return useOrderQuery(parseInt(orderId));
 }
 
-export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | undefined>, product?: ProductSchema) => {
+export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | null>, product?: ProductSchema) => {
 	const queryClient = useQueryClient();
 	const order = orderQuery.data;
 	const orderRootKey = generateOrderQueryKey( 'order', order );
@@ -110,7 +110,7 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | u
 	const lineItemIsMutating = useIsMutating({ mutationKey: lineItemKey });
 	const lineItemsAreMutating = useIsMutating({ mutationKey: generateOrderQueryKey('lineItem', order) });
 
-	const lineItemQuery = useQuery<LineItemSchema | undefined>({
+	const lineItemQuery = useQuery<LineItemSchema | null>({
 		queryKey: lineItemKey,
 		enabled: !!order && !!product,
 		queryFn: () => findOrderLineItems(order, product)[0] ?? null,
@@ -196,7 +196,7 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | u
 	return [ lineItemQuery, mutation, lineItemIsMutating ] as const;
 }
 
-export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | undefined>) => {
+export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | null>) => {
 	const queryClient = useQueryClient();
 	const order = orderQuery.data;
 	const orderRootKey = generateOrderQueryKey('order', order);
@@ -207,20 +207,20 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | un
 	// Get tables data for proper slug mapping
 	const { data: tables } = useTablesQuery();
 
-	const serviceQuery = useQuery<ServiceMethodSchema | undefined>({
+	const serviceQuery = useQuery<ServiceMethodSchema | null>({
 		queryKey: serviceKey,
 		enabled: !!order,
 		queryFn: () => {
-			if (!order?.shipping_lines?.length) return undefined;
-			
+			if (!order?.shipping_lines?.length) return null;
+
 			// Find the active shipping line (not empty/cleared ones)
-			const activeShippingLine = order.shipping_lines.find(line => 
-				line.method_id && 
-				line.method_id !== '' && 
+			const activeShippingLine = order.shipping_lines.find(line =>
+				line.method_id &&
+				line.method_id !== '' &&
 				(line.method_id === 'pickup_location' || line.method_id === 'flat_rate' || line.method_id === 'free_shipping')
 			);
-			
-			if (!activeShippingLine) return undefined;
+
+			if (!activeShippingLine) return null;
 			
 			let slug: string;
 			let title: string;
@@ -328,7 +328,7 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | un
 	return [serviceQuery, mutation, serviceIsMutating] as const;
 }
 
-export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | undefined>) => {
+export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | null>) => {
 	const queryClient = useQueryClient();
 	const order = orderQuery.data;
 	const orderRootKey = generateOrderQueryKey('order', order);
@@ -382,7 +382,7 @@ export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | 
 	return [noteQuery, mutation, noteIsMutating] as const;
 }
 
-export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema | undefined>) => {
+export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema | null>) => {
 	const queryClient = useQueryClient();
 	const order = orderQuery.data;
 	const orderRootKey = generateOrderQueryKey('order', order);
@@ -451,7 +451,7 @@ export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema
 	return [customerInfoQuery, mutation, customerInfoIsMutating] as const;
 }
 
-export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | undefined>) => {
+export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | null>) => {
 	const queryClient = useQueryClient();
 	const order = orderQuery.data;
 	const orderRootKey = generateOrderQueryKey('order', order);

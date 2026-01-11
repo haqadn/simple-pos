@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from "react";
 import { useCurrentOrder, useLineItemQuery } from "@/stores/orders";
 import { NumberInput, ScrollShadow } from "@heroui/react";
 import { LineItemSchema } from "@/api/orders";
@@ -8,7 +9,12 @@ import { useMaintainOrder } from "@/hooks/useMaintainOrder";
 
 export default function LineItems() {
     const { data: order } = useCurrentOrder();
-    const lineItems = order?.line_items ?? [];
+
+    // Filter out items with quantity 0 or less - memoize to avoid new array on every render
+    const lineItems = useMemo(() =>
+        (order?.line_items ?? []).filter(li => li.quantity > 0),
+        [order?.line_items]
+    );
 
     const orderedLineItems = useMaintainOrder(lineItems, (a, b) => a.product_id === b.product_id && a.variation_id === b.variation_id);
     return (
@@ -35,10 +41,12 @@ const LineItemRow = ({ lineItem }: { lineItem: LineItemSchema }) => {
 
     const [query, mutation, isMutating] = useLineItemQuery(orderQuery, product);
 
-    if ( !isMutating && query.data?.quantity === 0 ) {
+    // Hide if quantity becomes 0 (filtered at source, but double-check for real-time updates)
+    const quantity = query.data?.quantity ?? lineItem.quantity;
+    if (quantity <= 0 && !isMutating) {
         return null;
     }
-    
+
     return (
         <tr key={lineItem.id}>
             <td className="p-1 w-3/4 text-sm">

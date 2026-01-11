@@ -12,6 +12,9 @@ export const useMaintainOrder = <T>(items: T[], compare: (a: T, b: T) => boolean
 
     useEffect(() => {
         if (!items || items.length === 0) {
+            if (orderedItems.length > 0) {
+                setOrderedItems([]);
+            }
             return;
         }
 
