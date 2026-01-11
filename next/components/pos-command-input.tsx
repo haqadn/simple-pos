@@ -158,7 +158,7 @@ export function POSCommandInput({ onMessage, onAddProduct }: POSCommandInputProp
       {/* Status indicator */}
       {multiMode && (
         <div className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded">
-          Multi-input mode: {activeCommand} (type '/' to exit)
+          Multi-input mode: {activeCommand} (type &apos;/&apos; to exit)
         </div>
       )}
       

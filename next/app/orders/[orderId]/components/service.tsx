@@ -98,10 +98,9 @@ export default function Service() {
     );
 }
 
-function RadioItem( { children, value, disabled, ...props }: { children: React.ReactNode, value: string, disabled?: boolean, [key: string]: any } ) {
+function RadioItem( { children, value, disabled }: { children: React.ReactNode, value: string, disabled?: boolean } ) {
     return (
         <Radio
-            {...props}
             value={value}
             isDisabled={disabled}
             classNames={{

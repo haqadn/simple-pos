@@ -56,15 +56,20 @@ All essential POS commands are implemented:
 ## Phase 2: UI Improvements (Current Focus)
 
 ### Payment UI
-- [ ] Payment card showing total, received, change
-- [ ] Quick payment buttons (exact, round up)
+- [x] Payment card showing total, received, change
+- [x] Quick payment buttons (BDT denominations: exact, 100, 200, 500, 1000)
 - [ ] Payment method selection
 - [ ] Split payment visualization
 
 ### Order Summary
-- [ ] Better order total display
-- [ ] Applied discounts visible
-- [ ] Service type indicator
+- [x] Better order total display
+- [x] Applied discounts visible (coupon code shown in payment card)
+- [x] Service type indicator (shown in sidebar and service card)
+
+### Action Buttons
+- [x] KOT button (prints kitchen order ticket)
+- [x] Bill button (prints receipt)
+- [x] Cancel button with confirmation dropdown
 
 ---
 
@@ -108,9 +113,9 @@ All essential POS commands are implemented:
 - [ ] Attach customer to order
 
 ### Keyboard Shortcuts
-- [ ] Number keys (1-9) for order switching
+- [x] Ctrl+1-9 for order switching (with sidebar auto-scroll)
 - [ ] Escape to clear input
-- [ ] Enter to submit
+- [x] Enter to submit
 
 ### Settings Management
 - [ ] API configuration UI
