@@ -41,20 +41,31 @@ const MetaDataSchema = z.object({
   value: z.union([z.string(), z.number(), z.boolean()]),
 });
 
+const CouponLineSchema = z.object({
+  id: z.number().optional(),
+  code: z.string(),
+  discount: z.string().default("0.00"),
+  discount_tax: z.string().default("0.00"),
+});
+
 export const OrderSchema = z.object({
   id: z.number(),
   status: z.string(),
   line_items: z.array(LineItemSchema),
   shipping_lines: z.array(ShippingLineSchema).default([]),
+  coupon_lines: z.array(CouponLineSchema).default([]),
   customer_note: z.string().default(""),
   billing: BillingSchema.default({}),
   total: z.string().default("0.00"),
+  discount_total: z.string().default("0.00"),
+  subtotal: z.string().optional(),
   meta_data: z.array(MetaDataSchema).default([]),
 });
 
 export type OrderSchema = z.infer<typeof OrderSchema>;
 export type LineItemSchema = z.infer<typeof LineItemSchema>;
 export type ShippingLineSchema = z.infer<typeof ShippingLineSchema>;
+export type CouponLineSchema = z.infer<typeof CouponLineSchema>;
 export type BillingSchema = z.infer<typeof BillingSchema>;
 export type MetaDataSchema = z.infer<typeof MetaDataSchema>;
 export type ShippingMethodType = z.infer<typeof ShippingMethodEnum>;
