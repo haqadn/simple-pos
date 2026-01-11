@@ -54,7 +54,7 @@ export default function CustomerInfo() {
     const customerAddress = `${localValues.address_1 || ''}${localValues.address_2 ? ', ' + localValues.address_2 : ''}${localValues.city ? ', ' + localValues.city : ''}${localValues.state ? ', ' + localValues.state : ''}${localValues.postcode ? ' ' + localValues.postcode : ''}`;
 
     return (
-        <Card className="mb-4">
+        <Card className="mb-4 border border-default-200 bg-white" shadow="none">
             <CardBody>
                 <Input 
                     className="mb-4" 

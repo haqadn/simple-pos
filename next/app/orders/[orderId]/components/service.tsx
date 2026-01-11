@@ -45,7 +45,8 @@ export default function Service() {
     return (
         <Card
             id="service-selection-card"
-            className="mb-4"
+            className="mb-4 border border-default-200 bg-white"
+            shadow="none"
             classNames={{
                 base: ! currentService || isMutating > 0 ? 'bg-warning-100' : '',
             }}
