@@ -568,8 +568,8 @@ export default function CommandBar() {
           `Multi-input mode: Type ${activeCommand} parameters, or "/" to exit`
         ) : (
           <>
-            <span>SKU [qty] | /pay /done /clear | ↑↓ history</span>
-            <Kbd className="text-[10px]">Tab</Kbd>
+            <span>SKU [qty] | /pay /done /clear | ↑↓ history |</span>
+            <Kbd className="text-[10px]">Esc</Kbd>
           </>
         )}
       </div>
