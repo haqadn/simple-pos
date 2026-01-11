@@ -18,9 +18,9 @@ export default function LineItems() {
 
     const orderedLineItems = useMaintainOrder(lineItems, (a, b) => a.product_id === b.product_id && a.variation_id === b.variation_id);
     return (
-            <ScrollShadow className="-my-4 py-4">
-                <table 
-                    className="w-full"
+            <ScrollShadow className="-my-4 py-4 overflow-x-hidden" orientation="vertical">
+                <table
+                    className="w-full table-fixed"
                     aria-label="Order line items"
                 >
                     <tbody>
@@ -49,10 +49,10 @@ const LineItemRow = ({ lineItem }: { lineItem: LineItemSchema }) => {
 
     return (
         <tr key={lineItem.id}>
-            <td className="p-1 w-3/4 text-sm">
-                <span>{lineItem.name}</span>
+            <td className="p-1 w-3/4 text-sm truncate">
+                <span title={lineItem.name}>{lineItem.name}</span>
             </td>
-            <td className="p-1 w-1/4 text-sm">
+            <td className="p-1 w-1/4 text-sm overflow-hidden">
                     <NumberInput
                         size="sm"
                         variant="underlined"

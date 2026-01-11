@@ -25,7 +25,7 @@ export default function RootLayout({
                 <CommandBar />
               </div>
             </div>
-            <div className="flex flex-row flex-1 overflow-y-hidden">
+            <div className="flex flex-row flex-1 overflow-hidden">
               <aside className="w-48 px-4 overflow-y-auto">
                 <Sidebar />
               </aside>

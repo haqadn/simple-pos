@@ -5,7 +5,7 @@ import { SelectedCategoryProvider } from "./components/selected-category";
 
 export default function OrderLayout({ children }: { children: React.ReactNode }) {
     return (
-        <div className="flex flex-row h-full -mx-4">
+        <div className="flex flex-row h-full -mx-4 overflow-hidden">
             {children}
             <div className="flex flex-col h-full flex-1 px-4">
                 <SelectedCategoryProvider>
