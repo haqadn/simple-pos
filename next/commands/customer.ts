@@ -106,12 +106,12 @@ export class CustomerCommand extends BaseCommand {
         this.triggerSearch(searchQuery);
       }
 
-      // Return cached results
+      // Return cached results - use type 'command' to replace entire input
       const suggestions = this.searchCache.map(customer => ({
         text: `${customer.name}, ${customer.phone}`,
         description: `Previous customer`,
-        insertText: `${customer.name}, ${customer.phone}`,
-        type: 'value' as const
+        insertText: `/customer ${customer.name}, ${customer.phone}`,
+        type: 'command' as const
       }));
 
       return [...baseSuggestions, ...suggestions];
