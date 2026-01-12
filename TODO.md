@@ -46,10 +46,7 @@ See `/next/FEATURES.md` for detailed feature documentation.
 - **Bill Customization** - Logo, header text, footer text, date/time, order number
 - **Customer Address on Bills** - Billing address included in receipts
 - **80mm Paper Only** - Removed paper size selection (hardcoded to 80mm)
-
-### In Progress
-
-- Category filtering for KOT (skip drinks, retail)
+- **KOT Category Filtering** - Skip specified categories on KOT (drinks, retail)
 
 ---
 
@@ -113,12 +110,12 @@ All essential POS commands are implemented:
 - [x] Date/time and order number options
 - [x] Live preview in settings
 
-### KOT (Kitchen Order Ticket)
+### KOT (Kitchen Order Ticket) ✅
 - [x] Basic KOT format with order number heading
 - [x] **Include service type** (Table/Takeaway/Delivery)
 - [x] Track previous KOT state per order
 - [x] Detect changes (new items, quantity changes)
-- [ ] Category filtering (skip drinks, retail)
+- [x] Category filtering (skip drinks, retail)
 
 ### Cash Drawer ✅
 - [x] Drawer kick command
@@ -155,11 +152,11 @@ All essential POS commands are implemented:
 - [x] Ctrl+D to open drawer
 - [x] Ctrl+Enter to complete order (done)
 
-### Settings Management ✅ Mostly Complete
+### Settings Management ✅
 - [x] API configuration UI
 - [x] Printer setup (USB and network)
 - [x] Bill customization (logo, header, footer)
-- [ ] KOT skip categories UI
+- [x] KOT skip categories UI
 
 ### Offline Support
 - [ ] Local order queue

@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCurrentOrder } from '@/stores/orders';
 import { useDraftOrderStore } from '@/stores/draft-order';
 import { usePrintStore, PrintJobData } from '@/stores/print';
+import { useProductsQuery } from '@/stores/products';
+import { useSettingsStore } from '@/stores/settings';
 import OrdersAPI from '@/api/orders';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -22,6 +24,21 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
     const orderQuery = useCurrentOrder();
     const queryClient = useQueryClient();
     const printStore = usePrintStore();
+    const { data: products } = useProductsQuery();
+    const skipKotCategories = useSettingsStore(state => state.skipKotCategories);
+
+    // Helper to check if a line item should be skipped on KOT based on category
+    const shouldSkipForKot = useMemo(() => {
+        if (!products || skipKotCategories.length === 0) return () => false;
+
+        return (productId: number, variationId: number) => {
+            const product = products.find(
+                p => p.product_id === productId && p.variation_id === variationId
+            );
+            if (!product) return false;
+            return product.categories.some(cat => skipKotCategories.includes(cat.id));
+        };
+    }, [products, skipKotCategories]);
 
     const handleNewOrder = useCallback(() => {
         // Reset draft and navigate to new order page (order only saved to DB when modified)
@@ -93,27 +110,33 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
             // Track which previous items we've seen
             const seenKeys = new Set<string>();
 
-            // Current items
-            const kotItems = order.line_items.map(item => {
-                const itemKey = `${item.product_id}-${item.variation_id}`;
-                seenKeys.add(itemKey);
-                return {
-                    id: item.id || 0,
-                    name: item.name,
-                    quantity: item.quantity,
-                    previousQuantity: previousItems[itemKey]?.quantity,
-                };
-            });
+            // Current items (filtered by category)
+            const kotItems = order.line_items
+                .filter(item => !shouldSkipForKot(item.product_id, item.variation_id))
+                .map(item => {
+                    const itemKey = `${item.product_id}-${item.variation_id}`;
+                    seenKeys.add(itemKey);
+                    return {
+                        id: item.id || 0,
+                        name: item.name,
+                        quantity: item.quantity,
+                        previousQuantity: previousItems[itemKey]?.quantity,
+                    };
+                });
 
             // Add removed items (were in previous KOT but not in current order)
+            // Parse itemKey to get product/variation IDs for category filtering
             Object.entries(previousItems).forEach(([itemKey, prev]) => {
                 if (!seenKeys.has(itemKey) && prev.quantity > 0) {
-                    kotItems.push({
-                        id: 0,
-                        name: prev.name,
-                        quantity: 0,
-                        previousQuantity: prev.quantity,
-                    });
+                    const [productId, variationId] = itemKey.split('-').map(Number);
+                    if (!shouldSkipForKot(productId, variationId)) {
+                        kotItems.push({
+                            id: 0,
+                            name: prev.name,
+                            quantity: 0,
+                            previousQuantity: prev.quantity,
+                        });
+                    }
                 }
             });
 
@@ -121,7 +144,7 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
         }
 
         return printData;
-    }, [orderQuery.data]);
+    }, [orderQuery.data, shouldSkipForKot]);
 
     const handlePrintKot = useCallback(async () => {
         if (!orderQuery.data) return;

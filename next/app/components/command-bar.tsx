@@ -31,6 +31,20 @@ export default function CommandBar() {
   const { data: products = [] } = useProductsQuery();
   const { ordersQuery } = useOrdersStore();
   const getProductById = useGetProductById();
+  const skipKotCategories = useSettingsStore(state => state.skipKotCategories);
+
+  // Helper to check if a line item should be skipped on KOT based on category
+  const shouldSkipForKot = useMemo(() => {
+    if (!products || products.length === 0 || skipKotCategories.length === 0) return () => false;
+
+    return (productId: number, variationId: number) => {
+      const product = products.find(
+        p => p.product_id === productId && p.variation_id === variationId
+      );
+      if (!product) return false;
+      return product.categories.some(cat => skipKotCategories.includes(cat.id));
+    };
+  }, [products, skipKotCategories]);
   
   // Command manager
   const {
@@ -314,27 +328,33 @@ export default function CommandBar() {
       // Track which previous items we've seen
       const seenKeys = new Set<string>();
 
-      // Current items
-      const kotItems = order.line_items.map(item => {
-        const itemKey = `${item.product_id}-${item.variation_id}`;
-        seenKeys.add(itemKey);
-        return {
-          id: item.id || 0,
-          name: item.name,
-          quantity: item.quantity,
-          previousQuantity: previousItems[itemKey]?.quantity,
-        };
-      });
+      // Current items (filtered by category)
+      const kotItems = order.line_items
+        .filter(item => !shouldSkipForKot(item.product_id, item.variation_id))
+        .map(item => {
+          const itemKey = `${item.product_id}-${item.variation_id}`;
+          seenKeys.add(itemKey);
+          return {
+            id: item.id || 0,
+            name: item.name,
+            quantity: item.quantity,
+            previousQuantity: previousItems[itemKey]?.quantity,
+          };
+        });
 
       // Add removed items (were in previous KOT but not in current order)
+      // Parse itemKey to get product/variation IDs for category filtering
       Object.entries(previousItems).forEach(([itemKey, prev]) => {
         if (!seenKeys.has(itemKey) && prev.quantity > 0) {
-          kotItems.push({
-            id: 0,
-            name: prev.name,
-            quantity: 0,
-            previousQuantity: prev.quantity,
-          });
+          const [productId, variationId] = itemKey.split('-').map(Number);
+          if (!shouldSkipForKot(productId, variationId)) {
+            kotItems.push({
+              id: 0,
+              name: prev.name,
+              quantity: 0,
+              previousQuantity: prev.quantity,
+            });
+          }
         }
       });
 
@@ -364,7 +384,7 @@ export default function CommandBar() {
     await OrdersAPI.updateOrder(orderId.toString(), {
       meta_data: metaUpdates
     });
-  }, [orderQuery, printStore]);
+  }, [orderQuery, printStore, shouldSkipForKot]);
 
   // Set customer note
   const handleSetNote = useCallback(async (note: string) => {

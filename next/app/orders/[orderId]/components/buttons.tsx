@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { ButtonGroup, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Kbd } from "@heroui/react";
 import { useCurrentOrder } from "@/stores/orders";
 import { useQueryClient } from "@tanstack/react-query";
@@ -8,15 +8,32 @@ import { useRouter } from "next/navigation";
 import OrdersAPI from "@/api/orders";
 import { DRAFT_ORDER_ID } from "@/stores/draft-order";
 import { usePrintStore, PrintJobData } from "@/stores/print";
+import { useProductsQuery } from "@/stores/products";
+import { useSettingsStore } from "@/stores/settings";
 
 export default function Buttons() {
     const orderQuery = useCurrentOrder();
     const queryClient = useQueryClient();
     const router = useRouter();
     const printStore = usePrintStore();
+    const { data: products } = useProductsQuery();
+    const skipKotCategories = useSettingsStore(state => state.skipKotCategories);
     const [isPrintingKot, setIsPrintingKot] = useState(false);
     const [isPrintingBill, setIsPrintingBill] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
+
+    // Helper to check if a line item should be skipped on KOT based on category
+    const shouldSkipForKot = useMemo(() => {
+        if (!products || skipKotCategories.length === 0) return () => false;
+
+        return (productId: number, variationId: number) => {
+            const product = products.find(
+                p => p.product_id === productId && p.variation_id === variationId
+            );
+            if (!product) return false;
+            return product.categories.some(cat => skipKotCategories.includes(cat.id));
+        };
+    }, [products, skipKotCategories]);
 
     // Build print data from order
     const buildPrintData = useCallback((type: 'bill' | 'kot'): PrintJobData | null => {
@@ -82,27 +99,33 @@ export default function Buttons() {
             // Track which previous items we've seen
             const seenKeys = new Set<string>();
 
-            // Current items
-            const kotItems = order.line_items.map(item => {
-                const itemKey = `${item.product_id}-${item.variation_id}`;
-                seenKeys.add(itemKey);
-                return {
-                    id: item.id || 0,
-                    name: item.name,
-                    quantity: item.quantity,
-                    previousQuantity: previousItems[itemKey]?.quantity,
-                };
-            });
+            // Current items (filtered by category)
+            const kotItems = order.line_items
+                .filter(item => !shouldSkipForKot(item.product_id, item.variation_id))
+                .map(item => {
+                    const itemKey = `${item.product_id}-${item.variation_id}`;
+                    seenKeys.add(itemKey);
+                    return {
+                        id: item.id || 0,
+                        name: item.name,
+                        quantity: item.quantity,
+                        previousQuantity: previousItems[itemKey]?.quantity,
+                    };
+                });
 
             // Add removed items (were in previous KOT but not in current order)
+            // Parse itemKey to get product/variation IDs for category filtering
             Object.entries(previousItems).forEach(([itemKey, prev]) => {
                 if (!seenKeys.has(itemKey) && prev.quantity > 0) {
-                    kotItems.push({
-                        id: 0,
-                        name: prev.name,
-                        quantity: 0,
-                        previousQuantity: prev.quantity,
-                    });
+                    const [productId, variationId] = itemKey.split('-').map(Number);
+                    if (!shouldSkipForKot(productId, variationId)) {
+                        kotItems.push({
+                            id: 0,
+                            name: prev.name,
+                            quantity: 0,
+                            previousQuantity: prev.quantity,
+                        });
+                    }
                 }
             });
 
@@ -110,7 +133,7 @@ export default function Buttons() {
         }
 
         return printData;
-    }, [orderQuery.data]);
+    }, [orderQuery.data, shouldSkipForKot]);
 
     const handlePrintKot = useCallback(async () => {
         if (!orderQuery.data) return;
