@@ -154,14 +154,14 @@ export abstract class BaseCommand implements Command {
     if (parts.length === 1) {
       const suggestions: CommandSuggestion[] = [];
       const lowerKeyword = keyword.toLowerCase();
-      
+
       // Only suggest if it's a partial match, not an exact match
       // Primary keyword
       if (metadata.keyword.startsWith(lowerKeyword) && metadata.keyword !== lowerKeyword) {
         suggestions.push({
-          text: metadata.keyword,
+          text: '/' + metadata.keyword,
           description: metadata.description,
-          insertText: metadata.keyword + ' ',
+          insertText: '/' + metadata.keyword + ' ',
           type: 'command'
         });
       }
@@ -170,9 +170,9 @@ export abstract class BaseCommand implements Command {
       metadata.aliases?.forEach(alias => {
         if (alias.startsWith(lowerKeyword) && alias !== lowerKeyword) {
           suggestions.push({
-            text: alias,
+            text: '/' + alias,
             description: `${metadata.description} (alias)`,
-            insertText: alias + ' ',
+            insertText: '/' + alias + ' ',
             type: 'command'
           });
         }

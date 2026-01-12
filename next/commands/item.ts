@@ -85,15 +85,18 @@ export class ItemCommand extends BaseMultiInputCommand {
   getMultiModeAutocompleteSuggestions(partialInput: string): CommandSuggestion[] {
     const suggestions: CommandSuggestion[] = [];
 
-    // For SKU suggestions, search available products
+    // For SKU/name suggestions, search available products
     const parts = partialInput.trim().split(/\s+/);
     if (parts.length === 1 && this.context) {
-      // Suggest product SKUs that match the partial input
+      const searchTerm = parts[0].toLowerCase();
+
+      // Find products matching by SKU or name
       const matchingProducts = this.context.products
-        .filter(p => 
-          p.sku?.toLowerCase().startsWith(parts[0].toLowerCase())
+        .filter(p =>
+          p.sku?.toLowerCase().startsWith(searchTerm) ||
+          p.name?.toLowerCase().includes(searchTerm)
         )
-        .slice(0, 5); // Limit to 5 suggestions
+        .slice(0, 8); // Limit to 8 suggestions
 
       matchingProducts.forEach(product => {
         suggestions.push({
@@ -154,19 +157,20 @@ export class ItemCommand extends BaseMultiInputCommand {
     }
   }
 
-  // Override base autocomplete to include product SKU suggestions
+  // Override base autocomplete to include product SKU/name suggestions
   getAutocompleteSuggestions(partialInput: string): CommandSuggestion[] {
     const baseSuggestions = super.getAutocompleteSuggestions(partialInput);
-    
-    // If we're typing parameters, add product SKU suggestions
+
+    // If we're typing parameters, add product suggestions
     const parts = partialInput.trim().split(/\s+/);
     if (parts.length > 1 && this.matches(parts[0]) && this.context) {
-      const skuPart = parts[1];
+      const searchTerm = parts[1].toLowerCase();
       const matchingProducts = this.context.products
-        .filter(p => 
-          p.sku?.toLowerCase().startsWith(skuPart.toLowerCase())
+        .filter(p =>
+          p.sku?.toLowerCase().startsWith(searchTerm) ||
+          p.name?.toLowerCase().includes(searchTerm)
         )
-        .slice(0, 5);
+        .slice(0, 8);
 
       const productSuggestions: CommandSuggestion[] = matchingProducts.map(product => ({
         text: product.sku,
