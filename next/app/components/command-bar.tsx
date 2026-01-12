@@ -11,7 +11,7 @@ import { usePrintStore, PrintJobData } from '@/stores/print';
 import { CommandContext, CustomerData } from '@/commands/command-manager';
 import { CommandSuggestion } from '@/commands/command';
 import OrdersAPI, { OrderSchema } from '@/api/orders';
-import { DRAFT_ORDER_ID } from '@/stores/draft-order';
+import { DRAFT_ORDER_ID, useDraftOrderStore } from '@/stores/draft-order';
 import { useSettingsStore, type PageShortcut } from '@/stores/settings';
 import { SettingsModal } from './settings-modal';
 import { ShortcutModal } from './shortcut-modal';
@@ -34,6 +34,16 @@ export default function CommandBar() {
   const { ordersQuery } = useOrdersStore();
   const getProductById = useGetProductById();
   const skipKotCategories = useSettingsStore(state => state.skipKotCategories);
+
+  // Draft order support
+  const updateDraftLineItems = useDraftOrderStore((state) => state.updateDraftLineItems);
+  const getDraftData = useDraftOrderStore((state) => state.getDraftData);
+  const acquireSaveLock = useDraftOrderStore((state) => state.acquireSaveLock);
+  const releaseSaveLock = useDraftOrderStore((state) => state.releaseSaveLock);
+  const getSavePromise = useDraftOrderStore((state) => state.getSavePromise);
+  const setSavePromise = useDraftOrderStore((state) => state.setSavePromise);
+  const getSavedOrderId = useDraftOrderStore((state) => state.getSavedOrderId);
+  const setSavedOrderId = useDraftOrderStore((state) => state.setSavedOrderId);
 
   // Helper to check if a line item should be skipped on KOT based on category
   const shouldSkipForKot = useMemo(() => {
@@ -107,10 +117,78 @@ export default function CommandBar() {
       }
       queryClient.setQueryData(orderQueryKey, optimisticOrder);
 
-      // Call the API
-      const OrdersAPI = (await import('@/api/orders')).default;
+      // Handle draft order - save to database first
+      if (orderId === DRAFT_ORDER_ID) {
+        // Update draft store optimistically
+        updateDraftLineItems(optimisticOrder.line_items);
 
-      // Prepare line items for the update
+        // Check if order was already saved by another mutation
+        const alreadySavedId = getSavedOrderId();
+        if (alreadySavedId) {
+          // Prepare line items for update (no existing IDs in draft)
+          const lineItems = optimisticOrder.line_items.map(li => ({
+            name: li.name,
+            product_id: li.product_id,
+            variation_id: li.variation_id,
+            quantity: li.quantity,
+            id: undefined,
+          }));
+          const updatedOrder = await OrdersAPI.updateOrder(alreadySavedId.toString(), { line_items: lineItems });
+          queryClient.setQueryData(['orders', alreadySavedId, 'detail'], updatedOrder);
+          await queryClient.invalidateQueries({ queryKey: ['orders', alreadySavedId] });
+          return;
+        }
+
+        // Try to acquire the save lock
+        const gotLock = acquireSaveLock();
+        if (!gotLock) {
+          // Another save is in progress, wait for it
+          const existingPromise = getSavePromise();
+          if (existingPromise) {
+            const savedOrder = await existingPromise;
+            if (savedOrder) {
+              // Order was saved, invalidate to refresh
+              await queryClient.invalidateQueries({ queryKey: ['orders', savedOrder.id] });
+              return;
+            }
+          }
+          // Check if saved while waiting
+          const savedId = getSavedOrderId();
+          if (savedId) {
+            await queryClient.invalidateQueries({ queryKey: ['orders', savedId] });
+            return;
+          }
+          throw new Error('Failed to save draft order');
+        }
+
+        // We have the lock - create the order
+        try {
+          const savePromise = (async () => {
+            const draftData = getDraftData();
+            return await OrdersAPI.saveOrder({
+              status: 'pending',
+              line_items: draftData.line_items,
+              customer_note: draftData.customer_note,
+              billing: draftData.billing,
+              meta_data: draftData.meta_data,
+            });
+          })();
+          setSavePromise(savePromise);
+
+          const savedOrder = await savePromise;
+          if (savedOrder) {
+            setSavedOrderId(savedOrder.id);
+            await queryClient.invalidateQueries({ queryKey: ['orders'] });
+            router.replace(`/orders/${savedOrder.id}`);
+            return;
+          }
+          throw new Error('Failed to save draft order');
+        } finally {
+          releaseSaveLock();
+        }
+      }
+
+      // Prepare line items for the update (real order)
       const lineItems: Array<{ id?: number; product_id: number; variation_id: number; quantity: number; name: string }> = [];
 
       // Remove existing items (set quantity to 0)
@@ -154,7 +232,7 @@ export default function CommandBar() {
       console.error('Failed to add product:', error);
       throw error;
     }
-  }, [orderQuery, getProductById, queryClient]);
+  }, [orderQuery, getProductById, queryClient, router, updateDraftLineItems, getDraftData, acquireSaveLock, releaseSaveLock, getSavePromise, setSavePromise, getSavedOrderId, setSavedOrderId]);
 
   // Clear all items from order
   const handleClearOrder = useCallback(async () => {
