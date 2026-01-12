@@ -9,6 +9,7 @@ import { PrintCommand } from './print';
 import { NoteCommand } from './note';
 import { CustomerCommand, CustomerData } from './customer';
 import { DrawerCommand } from './drawer';
+import { StockCommand } from './stock';
 export type { CustomerData };
 
 import { OrderSchema } from '@/api/orders';
@@ -42,6 +43,9 @@ export interface CommandContext {
   // Print operations
   print: (type: 'bill' | 'kot') => Promise<void>;
   openDrawer: () => Promise<void>;
+
+  // Stock operations
+  invalidateProducts?: () => Promise<void>;
 
   // Customer operations
   setNote: (note: string) => Promise<void>;
@@ -195,6 +199,7 @@ export class CommandManager {
     this.registry.registerCommand(new NoteCommand());
     this.registry.registerCommand(new CustomerCommand());
     this.registry.registerCommand(new DrawerCommand());
+    this.registry.registerCommand(new StockCommand());
   }
 
   /**

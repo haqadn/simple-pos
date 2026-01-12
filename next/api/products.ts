@@ -82,4 +82,36 @@ export default class ProductsAPI extends API {
   static async updateProduct(productId: ServerSideProductSchema['id'], data: Partial<ServerSideProductSchema>) {
     return await this.client.put(`/products/${productId}`, data);
   }
+
+  static async updateVariation(productId: number, variationId: number, data: Partial<ServerSideVariationSchema>) {
+    return await this.client.put(`/products/${productId}/variations/${variationId}`, data);
+  }
+
+  static async updateStock(productId: number, variationId: number, stockQuantity: number) {
+    const data = {
+      stock_quantity: stockQuantity,
+      manage_stock: true  // Enable stock management if not already
+    };
+
+    if (variationId === 0) {
+      // Simple product
+      return await this.updateProduct(productId, data);
+    } else {
+      // Variation
+      return await this.updateVariation(productId, variationId, data);
+    }
+  }
+
+  static async disableStockManagement(productId: number, variationId: number) {
+    const data = {
+      manage_stock: false,
+      stock_quantity: null
+    };
+
+    if (variationId === 0) {
+      return await this.updateProduct(productId, data);
+    } else {
+      return await this.updateVariation(productId, variationId, data);
+    }
+  }
 }

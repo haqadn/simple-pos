@@ -495,12 +495,15 @@ export default function CommandBar() {
       removeCoupon: handleRemoveCoupon,
       print: handlePrint,
       openDrawer: handleOpenDrawer,
+      invalidateProducts: async () => {
+        await queryClient.invalidateQueries({ queryKey: ['products'] });
+      },
       setNote: handleSetNote,
       setCustomer: handleSetCustomer,
       showMessage: (msg) => console.log('[Command]', msg),
       showError: (err) => console.error('[Command Error]', err)
     };
-  }, [orderQuery.data, products, handleAddProduct, handleClearOrder, handleCompleteOrder, handleSetPayment, getPaymentReceived, handleApplyCoupon, handleRemoveCoupon, handlePrint, handleOpenDrawer, handleSetNote, handleSetCustomer]);
+  }, [orderQuery.data, products, handleAddProduct, handleClearOrder, handleCompleteOrder, handleSetPayment, getPaymentReceived, handleApplyCoupon, handleRemoveCoupon, handlePrint, handleOpenDrawer, handleSetNote, handleSetCustomer, queryClient]);
 
   // Set up command context when ready
   useEffect(() => {

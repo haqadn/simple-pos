@@ -65,6 +65,7 @@ All essential POS commands are implemented:
 | `note` | `n` | ✅ Done | Add customer note |
 | `customer` | `cust`, `cu` | ✅ Done | Set customer info |
 | `drawer` | `cash` | ✅ Done | Open cash drawer |
+| `stock` | `manage-stock`, `inventory` | ✅ Done | Update product inventory |
 
 ---
 
@@ -125,13 +126,12 @@ All essential POS commands are implemented:
 
 ---
 
-## Phase 4: Additional Commands
+## Phase 4: Additional Commands ✅ Complete
 
-| Command | Aliases | Priority | Description |
-|---------|---------|----------|-------------|
+| Command | Aliases | Status | Description |
+|---------|---------|--------|-------------|
 | `drawer` | `cash` | ✅ Done | Open cash drawer |
-| `last-order` | `last` | Low | View/reprint last completed order |
-| `manage-stock` | `stock` | Low | Update product inventory |
+| `stock` | `manage-stock`, `inventory` | ✅ Done | Update product inventory |
 
 ---
 
@@ -186,6 +186,7 @@ All essential POS commands are implemented:
 - `/next/commands/note.ts` - Customer notes
 - `/next/commands/customer.ts` - Customer info
 - `/next/commands/drawer.ts` - Cash drawer
+- `/next/commands/stock.ts` - Inventory management
 
 ### ESC/POS Printing
 - `/next/lib/escpos/commands.ts` - ESC/POS command builder
