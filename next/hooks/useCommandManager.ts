@@ -161,6 +161,19 @@ export function useCommandManager() {
     return managerRef.current.getActiveCommand();
   }, []);
 
+  /**
+   * Set callback for async suggestion updates (e.g., customer search)
+   */
+  const setSuggestionsCallback = useCallback((callback: () => void) => {
+    if (!managerRef.current) return;
+    // Find customer command and set callback
+    const registry = (managerRef.current as unknown as { registry: { getCommand: (k: string) => unknown } }).registry;
+    const customerCommand = registry?.getCommand('customer');
+    if (customerCommand && 'setSuggestionsCallback' in customerCommand) {
+      (customerCommand as { setSuggestionsCallback: (cb: () => void) => void }).setSuggestionsCallback(callback);
+    }
+  }, []);
+
   return {
     // State
     state,
@@ -180,5 +193,6 @@ export function useCommandManager() {
     getPrompt,
     isInMultiMode,
     getActiveCommand,
+    setSuggestionsCallback,
   };
 }

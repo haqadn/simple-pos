@@ -1,5 +1,6 @@
 import { BaseCommand, CommandMetadata, CommandSuggestion } from './command';
 import { CommandContext } from './command-manager';
+import CustomersAPI, { CustomerSchema } from '@/api/customers';
 
 export interface CustomerData {
   name: string;
@@ -9,12 +10,22 @@ export interface CustomerData {
 
 /**
  * Customer command - set customer info on order
+ * Supports searching previous customers by name or phone
  */
 export class CustomerCommand extends BaseCommand {
   private context?: CommandContext;
+  private searchCache: CustomerSchema[] = [];
+  private lastSearchQuery = '';
+  private searchTimeout: ReturnType<typeof setTimeout> | null = null;
+  private onSuggestionsUpdate?: () => void;
 
   setContext(context: CommandContext) {
     this.context = context;
+  }
+
+  /** Set callback to notify when suggestions update (for async search) */
+  setSuggestionsCallback(callback: () => void) {
+    this.onSuggestionsUpdate = callback;
   }
 
   getMetadata(): CommandMetadata {
@@ -33,7 +44,7 @@ export class CustomerCommand extends BaseCommand {
           name: 'info',
           type: 'string',
           required: true,
-          description: 'Customer info: name, phone[, address]'
+          description: 'Customer info: name, phone[, address] - or search by name/phone'
         }
       ]
     };
@@ -76,6 +87,54 @@ export class CustomerCommand extends BaseCommand {
   }
 
   getAutocompleteSuggestions(partialInput: string): CommandSuggestion[] {
-    return super.getAutocompleteSuggestions(partialInput);
+    const baseSuggestions = super.getAutocompleteSuggestions(partialInput);
+
+    const parts = partialInput.trim().split(/\s+/);
+
+    // If user is typing after the command keyword
+    if (parts.length >= 2 && this.matches(parts[0])) {
+      const searchQuery = parts.slice(1).join(' ');
+
+      // Don't search if it looks like they're entering full info (has comma)
+      if (searchQuery.includes(',')) {
+        return baseSuggestions;
+      }
+
+      // Trigger async search (results will be cached for next call)
+      if (searchQuery !== this.lastSearchQuery && searchQuery.length >= 2) {
+        this.lastSearchQuery = searchQuery;
+        this.triggerSearch(searchQuery);
+      }
+
+      // Return cached results
+      const suggestions = this.searchCache.map(customer => ({
+        text: `${customer.name}, ${customer.phone}`,
+        description: `Previous customer`,
+        insertText: `${customer.name}, ${customer.phone}`,
+        type: 'value' as const
+      }));
+
+      return [...baseSuggestions, ...suggestions];
+    }
+
+    return baseSuggestions;
+  }
+
+  private triggerSearch(query: string): void {
+    // Debounce search
+    if (this.searchTimeout) {
+      clearTimeout(this.searchTimeout);
+    }
+
+    this.searchTimeout = setTimeout(async () => {
+      try {
+        const results = await CustomersAPI.search(query);
+        this.searchCache = results;
+        // Notify that suggestions have updated
+        this.onSuggestionsUpdate?.();
+      } catch {
+        this.searchCache = [];
+      }
+    }, 150);
   }
 }

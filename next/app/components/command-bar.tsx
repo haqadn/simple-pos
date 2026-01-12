@@ -56,7 +56,8 @@ export default function CommandBar() {
     navigateHistory,
     getPrompt,
     isInMultiMode,
-    getActiveCommand
+    getActiveCommand,
+    setSuggestionsCallback
   } = useCommandManager();
 
   // Handle adding products to the order
@@ -530,6 +531,18 @@ export default function CommandBar() {
       setSelectedSuggestion(-1);
     }
   }, [input, getAutocompleteSuggestions]);
+
+  // Set up callback for async suggestion updates (e.g., customer search)
+  useEffect(() => {
+    const refreshSuggestions = () => {
+      if (input.trim() && !input.endsWith(' ')) {
+        const commandSuggestions = getAutocompleteSuggestions(input);
+        setSuggestions(commandSuggestions);
+        setSelectedSuggestion(commandSuggestions.length > 0 ? 0 : -1);
+      }
+    };
+    setSuggestionsCallback(refreshSuggestions);
+  }, [input, getAutocompleteSuggestions, setSuggestionsCallback]);
 
   // Close suggestions when clicking outside
   useEffect(() => {

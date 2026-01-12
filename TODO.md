@@ -137,10 +137,9 @@ All essential POS commands are implemented:
 
 ## Phase 5: Polish & Advanced
 
-### Customer Search
-- [ ] Autocomplete customer lookup
-- [ ] Customer creation
-- [ ] Attach customer to order
+### Customer Search ✅
+- [x] Autocomplete customer lookup (searches previous orders by name/phone)
+- [x] Customer info attached to order via `/customer` command
 
 ### Keyboard Shortcuts ✅
 - [x] Ctrl+1-9 for order switching (with sidebar auto-scroll)

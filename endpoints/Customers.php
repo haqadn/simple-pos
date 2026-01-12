@@ -6,21 +6,43 @@ class Customers {
     // Initialize the class
     public function init() {
         add_action('rest_api_init', array($this, 'register_rest_routes'));
+        add_filter('rest_pre_serve_request', array($this, 'add_cors_headers'), 10, 4);
+    }
+
+    // Add CORS headers for this endpoint
+    public function add_cors_headers($served, $result, $request, $server) {
+        // Only add headers for our specific endpoint
+        if (strpos($request->get_route(), '/simple-pos/customers') !== false) {
+            header('Access-Control-Allow-Origin: *');
+            header('Access-Control-Allow-Methods: GET, OPTIONS');
+            header('Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce');
+            header('Access-Control-Allow-Credentials: true');
+        }
+        return $served;
     }
 
     // Register REST API routes
     public function register_rest_routes() {
-        register_rest_route('wc/v3/simple-pos', '/customers', array(
-            'methods' => 'GET',
-            'callback' => array($this, 'get_customers'),
-            'permission_callback' => array($this, 'get_customers_permissions_check'),
-            'args' => array(
-                'search' => array(
-                    'required' => true,
-                    'validate_callback' => function($param, $request, $key) {
-                        return !empty($param);
-                    }
+        register_rest_route('wc/v3', '/simple-pos/customers', array(
+            array(
+                'methods' => 'GET',
+                'callback' => array($this, 'get_customers'),
+                'permission_callback' => array($this, 'get_customers_permissions_check'),
+                'args' => array(
+                    'search' => array(
+                        'required' => true,
+                        'validate_callback' => function($param, $request, $key) {
+                            return !empty($param);
+                        }
+                    ),
                 ),
+            ),
+            array(
+                'methods' => 'OPTIONS',
+                'callback' => function() {
+                    return new \WP_REST_Response(null, 200);
+                },
+                'permission_callback' => '__return_true',
             ),
         ));
     }
@@ -54,7 +76,7 @@ class Customers {
         $customers = $wpdb->get_results($query);
     
         // Return the response with just the customers data
-        return new WP_REST_Response([ 'customers' => $customers ], 200);
+        return new \WP_REST_Response([ 'customers' => $customers ], 200);
     }
     
 }
