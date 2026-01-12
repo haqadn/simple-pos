@@ -1,6 +1,13 @@
 'use client';
 
 import { create } from 'zustand';
+import type {
+  PrinterConnection,
+  BillCustomization,
+  KotSettings,
+  PrintConfig,
+} from '@/lib/escpos/types';
+import { DEFAULT_PRINT_CONFIG } from '@/lib/escpos/types';
 
 export type PrintType = 'bill' | 'kot' | 'drawer';
 
@@ -44,56 +51,52 @@ export interface PrintJob {
   reject: (error: Error) => void;
 }
 
+// Re-export types from escpos
+export type { PrinterConnection, BillCustomization, KotSettings, PrintConfig };
+
 interface PrintState {
   queue: PrintJob[];
   isProcessing: boolean;
   currentJob: PrintJob | null;
-
-  // Config
-  config: {
-    billPrinter: string;
-    kitchenPrinter: string;
-    drawerPrinter: string;
-    printWidth: number;
-    printHeight: number;
-    silentPrinting: boolean;
-    enablePrinting: boolean;
-  };
+  config: PrintConfig;
 }
 
 interface PrintActions {
   push: (type: PrintType, data: PrintJobData | null) => Promise<void>;
   pop: () => void;
   setProcessing: (isProcessing: boolean) => void;
-  updateConfig: (config: Partial<PrintState['config']>) => void;
+  updateConfig: (config: Partial<PrintConfig>) => void;
+  updateBillConfig: (bill: Partial<BillCustomization>) => void;
+  updateKotConfig: (kot: Partial<KotSettings>) => void;
+  setBillPrinter: (connection: PrinterConnection) => void;
+  setKotPrinter: (connection: PrinterConnection) => void;
 }
 
-const DEFAULT_CONFIG: PrintState['config'] = {
-  billPrinter: '',
-  kitchenPrinter: '',
-  drawerPrinter: '',
-  printWidth: 80,
-  printHeight: 297,
-  silentPrinting: true,
-  enablePrinting: true,
-};
-
 // Load config from localStorage
-function loadConfig(): PrintState['config'] {
-  if (typeof window === 'undefined') return DEFAULT_CONFIG;
+function loadConfig(): PrintConfig {
+  if (typeof window === 'undefined') return DEFAULT_PRINT_CONFIG;
   try {
     const saved = localStorage.getItem('pos-print-config');
     if (saved) {
-      return { ...DEFAULT_CONFIG, ...JSON.parse(saved) };
+      const parsed = JSON.parse(saved);
+      // Deep merge with defaults to handle new fields
+      return {
+        ...DEFAULT_PRINT_CONFIG,
+        ...parsed,
+        bill: { ...DEFAULT_PRINT_CONFIG.bill, ...parsed.bill },
+        kot: { ...DEFAULT_PRINT_CONFIG.kot, ...parsed.kot },
+        billPrinter: { ...DEFAULT_PRINT_CONFIG.billPrinter, ...parsed.billPrinter },
+        kotPrinter: { ...DEFAULT_PRINT_CONFIG.kotPrinter, ...parsed.kotPrinter },
+      };
     }
   } catch (e) {
     console.error('Failed to load print config:', e);
   }
-  return DEFAULT_CONFIG;
+  return DEFAULT_PRINT_CONFIG;
 }
 
 // Save config to localStorage
-function saveConfig(config: PrintState['config']): void {
+function saveConfig(config: PrintConfig): void {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem('pos-print-config', JSON.stringify(config));
@@ -149,6 +152,36 @@ export const usePrintStore = create<PrintState & PrintActions>((set, get) => ({
     saveConfig(config);
     set({ config });
   },
+
+  updateBillConfig: (bill) => {
+    const config = {
+      ...get().config,
+      bill: { ...get().config.bill, ...bill },
+    };
+    saveConfig(config);
+    set({ config });
+  },
+
+  updateKotConfig: (kot) => {
+    const config = {
+      ...get().config,
+      kot: { ...get().config.kot, ...kot },
+    };
+    saveConfig(config);
+    set({ config });
+  },
+
+  setBillPrinter: (connection) => {
+    const config = { ...get().config, billPrinter: connection };
+    saveConfig(config);
+    set({ config });
+  },
+
+  setKotPrinter: (connection) => {
+    const config = { ...get().config, kotPrinter: connection };
+    saveConfig(config);
+    set({ config });
+  },
 }));
 
 // Helper to check if we're in Electron
@@ -157,7 +190,9 @@ export function isElectron(): boolean {
 }
 
 // Helper to get available printers
-export async function getAvailablePrinters(): Promise<Array<{ name: string; displayName: string; isDefault: boolean }>> {
+export async function getAvailablePrinters(): Promise<
+  Array<{ name: string; displayName: string; isDefault: boolean }>
+> {
   if (!isElectron()) return [];
   try {
     return await window.electron!.getPrinters();

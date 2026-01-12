@@ -4,6 +4,7 @@ import { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCurrentOrder } from '@/stores/orders';
 import { useDraftOrderStore } from '@/stores/draft-order';
+import { usePrintStore, PrintJobData } from '@/stores/print';
 import OrdersAPI from '@/api/orders';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -20,6 +21,7 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
     const resetDraft = useDraftOrderStore((state) => state.resetDraft);
     const orderQuery = useCurrentOrder();
     const queryClient = useQueryClient();
+    const printStore = usePrintStore();
 
     const handleNewOrder = useCallback(() => {
         // Reset draft and navigate to new order page (order only saved to DB when modified)
@@ -27,11 +29,60 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
         router.push('/orders/new');
     }, [resetDraft, router]);
 
+    // Build print data from order
+    const buildPrintData = useCallback((type: 'bill' | 'kot'): PrintJobData | null => {
+        const order = orderQuery.data;
+        if (!order) return null;
+
+        const printData: PrintJobData = {
+            orderId: order.id,
+            orderReference: order.id.toString(),
+            cartName: order.meta_data.find(m => m.key === 'service_slug')?.value?.toString() || 'Order',
+            orderTime: order.date_created,
+            customerNote: order.customer_note,
+            customer: {
+                name: `${order.billing.first_name} ${order.billing.last_name}`.trim(),
+                phone: order.billing.phone,
+            },
+        };
+
+        if (type === 'bill') {
+            printData.items = order.line_items.map(item => {
+                const subtotal = parseFloat(item.subtotal || '0');
+                const unitPrice = item.quantity > 0 ? subtotal / item.quantity : parseFloat(item.price?.toString() || '0');
+                return {
+                    id: item.id || 0,
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: unitPrice,
+                };
+            });
+            printData.total = parseFloat(order.total);
+            printData.discountTotal = parseFloat(order.discount_total || '0');
+            const paymentMeta = order.meta_data.find(m => m.key === 'payment_received');
+            printData.payment = paymentMeta ? parseFloat(paymentMeta.value?.toString() || '0') : 0;
+        } else {
+            printData.kotItems = order.line_items.map(item => ({
+                id: item.id || 0,
+                name: item.name,
+                quantity: item.quantity,
+                previousQuantity: undefined,
+            }));
+        }
+
+        return printData;
+    }, [orderQuery.data]);
+
     const handlePrintKot = useCallback(async () => {
         if (!orderQuery.data) return;
 
         const orderId = orderQuery.data.id;
-        console.log(`Printing KOT for order ${orderId}`);
+        const printData = buildPrintData('kot');
+
+        // Queue the print job
+        if (printData) {
+            await printStore.push('kot', printData);
+        }
 
         // Mark as printed in meta_data
         try {
@@ -47,7 +98,34 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
         }
 
         handlers?.onPrintKot?.();
-    }, [orderQuery.data, queryClient, handlers]);
+    }, [orderQuery.data, queryClient, handlers, buildPrintData, printStore]);
+
+    const handlePrintBill = useCallback(async () => {
+        if (!orderQuery.data) return;
+
+        const orderId = orderQuery.data.id;
+        const printData = buildPrintData('bill');
+
+        // Queue the print job
+        if (printData) {
+            await printStore.push('bill', printData);
+        }
+
+        // Mark as printed in meta_data
+        try {
+            await OrdersAPI.updateOrder(orderId.toString(), {
+                meta_data: [
+                    ...orderQuery.data.meta_data.filter(m => m.key !== 'last_bill_print'),
+                    { key: 'last_bill_print', value: new Date().toISOString() }
+                ]
+            });
+            await queryClient.invalidateQueries({ queryKey: ['orders', orderId] });
+        } catch (error) {
+            console.error('Failed to print Bill:', error);
+        }
+
+        handlers?.onPrintBill?.();
+    }, [orderQuery.data, queryClient, handlers, buildPrintData, printStore]);
 
     const handleFocusCommandBar = useCallback(() => {
         const commandInput = document.querySelector('input[aria-label="Command input field"]') as HTMLInputElement;
@@ -83,7 +161,7 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
             // Ctrl+P: Print Bill
             if (e.ctrlKey && !e.shiftKey && e.key === 'p') {
                 e.preventDefault();
-                handlers?.onPrintBill?.();
+                handlePrintBill();
                 return;
             }
 
@@ -115,11 +193,12 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handleNewOrder, handlePrintKot, handleFocusCommandBar, handlers]);
+    }, [handleNewOrder, handlePrintKot, handlePrintBill, handleFocusCommandBar, handlers]);
 
     return {
         handleNewOrder,
         handlePrintKot,
+        handlePrintBill,
         handleFocusCommandBar
     };
 }

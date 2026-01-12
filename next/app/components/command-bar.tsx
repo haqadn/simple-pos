@@ -271,13 +271,17 @@ export default function CommandBar() {
     };
 
     if (type === 'bill') {
-      // Bill data
-      printData.items = order.line_items.map(item => ({
-        id: item.id || 0,
-        name: item.name,
-        quantity: item.quantity,
-        price: parseFloat(item.price?.toString() || '0'),
-      }));
+      // Bill data - use subtotal/quantity for unit price, or price field if available
+      printData.items = order.line_items.map(item => {
+        const subtotal = parseFloat(item.subtotal || '0');
+        const unitPrice = item.quantity > 0 ? subtotal / item.quantity : parseFloat(item.price?.toString() || '0');
+        return {
+          id: item.id || 0,
+          name: item.name,
+          quantity: item.quantity,
+          price: unitPrice,
+        };
+      });
       printData.total = parseFloat(order.total);
       printData.discountTotal = parseFloat(order.discount_total || '0');
       const paymentMeta = order.meta_data.find(m => m.key === 'payment_received');

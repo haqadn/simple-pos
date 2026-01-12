@@ -29,6 +29,18 @@ interface PrinterInfo {
   isDefault: boolean;
 }
 
+interface EscPosResult {
+  success: boolean;
+  error?: string;
+}
+
+interface PrinterConnection {
+  type: 'usb' | 'network' | 'none';
+  usbName?: string;
+  networkHost?: string;
+  networkPort?: number;
+}
+
 interface ElectronAPI {
   isElectron: boolean;
   getPrinters: () => Promise<PrinterInfo[]>;
@@ -37,6 +49,12 @@ interface ElectronAPI {
   openDrawer: (printerName?: string) => void;
   onDrawerResult: (callback: (result: { success: boolean }) => void) => void;
   onLog: (callback: (message: unknown) => void) => void;
+
+  // ESC/POS printing
+  escposPrintUsb: (printerName: string, data: Uint8Array) => Promise<EscPosResult>;
+  escposPrintNetwork: (host: string, port: number, data: Uint8Array) => Promise<EscPosResult>;
+  testPrinter: (connection: PrinterConnection) => Promise<EscPosResult>;
+  openDrawerEscpos: (connection: PrinterConnection, pin: 2 | 5) => Promise<EscPosResult>;
 }
 
 declare global {

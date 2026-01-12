@@ -7,6 +7,9 @@ const LineItemSchema = z.object({
   product_id: z.number(),
   variation_id: z.number(),
   quantity: z.number(),
+  price: z.union([z.string(), z.number()]).optional(), // Unit price
+  subtotal: z.string().optional(), // Line subtotal before discounts
+  total: z.string().optional(), // Line total after discounts
 });
 
 const ShippingMethodEnum = z.enum(["flat_rate", "pickup_location", "free_shipping"]);

@@ -17,6 +17,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, Delete02Icon } from '@hugeicons/core-free-icons';
 import { useSettingsStore, type PageShortcut, type ApiConfig } from '@/stores/settings';
 import { useCategoriesQuery } from '@/stores/products';
+import { PrinterSettingsTab } from './settings/PrinterSettingsTab';
 
 const decodeHtmlEntities = (text: string) => {
   if (typeof document === 'undefined') return text;
@@ -260,7 +261,7 @@ export function SettingsModal({ isOpen, onOpenChange }: SettingsModalProps) {
     <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      size="2xl"
+      size="4xl"
       scrollBehavior="inside"
     >
       <ModalContent>
@@ -291,6 +292,11 @@ export function SettingsModal({ isOpen, onOpenChange }: SettingsModalProps) {
                       localShortcuts={localShortcuts}
                       setLocalShortcuts={setLocalShortcuts}
                     />
+                  </div>
+                </Tab>
+                <Tab key="printers" title="Printers">
+                  <div className="py-4">
+                    <PrinterSettingsTab onSave={onClose} />
                   </div>
                 </Tab>
               </Tabs>

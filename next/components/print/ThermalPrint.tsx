@@ -1,27 +1,121 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { usePrintStore, isElectron } from '@/stores/print';
-import BillPrint from './BillPrint';
-import KotPrint from './KotPrint';
+import { useEffect } from 'react';
+import { usePrintStore, PrintJobData } from '@/stores/print';
+import { renderBill, renderKot } from '@/lib/escpos';
+import type { PrinterConnection, BillData, KotData } from '@/lib/escpos';
 
 export default function ThermalPrint() {
-  const { queue, currentJob, config, pop, setProcessing, isProcessing } = usePrintStore();
-  const printAreaRef = useRef<HTMLDivElement>(null);
+  const { currentJob, config, pop, setProcessing, isProcessing } = usePrintStore();
 
-  // Get printer name based on job type
-  const getPrinterName = (type: 'bill' | 'kot' | 'drawer'): string => {
-    switch (type) {
-      case 'drawer':
-        return config.drawerPrinter;
-      case 'kot':
-        return config.kitchenPrinter;
-      default:
-        return config.billPrinter;
+  // Send data to printer based on connection type
+  const sendToPrinter = async (
+    connection: PrinterConnection,
+    data: Uint8Array
+  ): Promise<boolean> => {
+    if (!config.enablePrinting) {
+      console.log('[Print] Printing disabled, data size:', data.length, 'bytes');
+      return true;
+    }
+
+    if (!window.electron) {
+      console.error('[Print] Electron not available');
+      return false;
+    }
+
+    try {
+      let result: { success: boolean; error?: string };
+
+      if (connection.type === 'usb' && connection.usbName) {
+        result = await window.electron.escposPrintUsb(connection.usbName, data);
+      } else if (connection.type === 'network' && connection.networkHost) {
+        result = await window.electron.escposPrintNetwork(
+          connection.networkHost,
+          connection.networkPort || 9100,
+          data
+        );
+      } else {
+        console.error('[Print] Invalid printer connection:', connection);
+        return false;
+      }
+
+      if (!result.success) {
+        console.error('[Print] Print failed:', result.error);
+      }
+      return result.success;
+    } catch (error) {
+      console.error('[Print] Print error:', error);
+      return false;
     }
   };
 
-  // Execute print
+  // Handle bill print
+  const handleBillPrint = async (data: PrintJobData): Promise<void> => {
+    const billData: BillData = {
+      orderId: data.orderId,
+      orderReference: data.orderReference,
+      cartName: data.cartName,
+      orderTime: data.orderTime,
+      customer: data.customer,
+      items: data.items,
+      discountTotal: data.discountTotal,
+      payment: data.payment,
+      total: data.total,
+    };
+
+    const escposData = await renderBill(billData, {
+      customization: config.bill,
+      paperWidth: config.paperWidth,
+    });
+
+    await sendToPrinter(config.billPrinter, escposData);
+  };
+
+  // Handle KOT print
+  const handleKotPrint = async (data: PrintJobData): Promise<void> => {
+    const kotData: KotData = {
+      orderId: data.orderId,
+      orderReference: data.orderReference,
+      cartName: data.cartName,
+      customerNote: data.customerNote,
+      kotItems: data.kotItems,
+    };
+
+    const escposData = renderKot(kotData, {
+      settings: config.kot,
+      paperWidth: config.paperWidth,
+    });
+
+    await sendToPrinter(config.kotPrinter, escposData);
+  };
+
+  // Handle drawer kick
+  const handleDrawer = async (): Promise<void> => {
+    if (!config.enableDrawer) {
+      console.log('[Print] Cash drawer disabled');
+      return;
+    }
+
+    if (!window.electron) {
+      console.log('[Print] Cash drawer kick (no Electron)');
+      return;
+    }
+
+    try {
+      const result = await window.electron.openDrawerEscpos(
+        config.billPrinter,
+        config.drawerPulsePin
+      );
+
+      if (!result.success) {
+        console.error('[Print] Drawer kick failed:', result.error);
+      }
+    } catch (error) {
+      console.error('[Print] Drawer error:', error);
+    }
+  };
+
+  // Execute print job
   const executePrint = async () => {
     if (!currentJob || isProcessing) return;
 
@@ -29,52 +123,23 @@ export default function ThermalPrint() {
 
     const { type, data } = currentJob;
 
-    // Handle drawer separately
-    if (type === 'drawer') {
-      if (isElectron()) {
-        window.electron!.openDrawer(getPrinterName('drawer'));
-      } else {
-        console.log('[Print] Cash drawer kick (dev mode)');
+    try {
+      switch (type) {
+        case 'drawer':
+          await handleDrawer();
+          break;
+        case 'bill':
+          if (data) await handleBillPrint(data);
+          break;
+        case 'kot':
+          if (data) await handleKotPrint(data);
+          break;
       }
-      setTimeout(() => pop(), 500);
-      return;
+    } catch (error) {
+      console.error(`[Print] Error processing ${type}:`, error);
     }
 
-    // For bill/kot, wait for render then print
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    if (isElectron() && config.enablePrinting) {
-      // Electron printing
-      window.electron!.print({
-        deviceName: getPrinterName(type),
-        silent: config.silentPrinting,
-        pageSize: {
-          width: config.printWidth * 1000,
-          height: config.printHeight * 1000,
-        },
-      });
-
-      // Wait for print to complete
-      setTimeout(() => pop(), 1500);
-    } else {
-      // Browser/dev mode
-      if (config.enablePrinting) {
-        // Use browser print dialog
-        window.onafterprint = () => {
-          window.onafterprint = null;
-          pop();
-        };
-        window.print();
-      } else {
-        // Dev mode - just log
-        console.log('[Print]', {
-          type,
-          printer: getPrinterName(type),
-          data,
-        });
-        pop();
-      }
-    }
+    pop();
   };
 
   // Watch for new jobs
@@ -84,56 +149,6 @@ export default function ThermalPrint() {
     }
   }, [currentJob, isProcessing]);
 
-  // Render nothing if no job or drawer type
-  if (!currentJob || currentJob.type === 'drawer') {
-    return null;
-  }
-
-  return (
-    <div
-      ref={printAreaRef}
-      id="print-area"
-      style={{ width: `${config.printWidth}mm` }}
-      className="print-only"
-    >
-      {currentJob.type === 'bill' && currentJob.data && (
-        <BillPrint data={currentJob.data} />
-      )}
-      {currentJob.type === 'kot' && currentJob.data && (
-        <KotPrint data={currentJob.data} />
-      )}
-
-      <style jsx global>{`
-        /* Hide print area on screen */
-        #print-area {
-          display: none;
-        }
-
-        /* Show only print area when printing */
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-
-          #print-area,
-          #print-area * {
-            visibility: visible;
-          }
-
-          #print-area {
-            display: block !important;
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-
-          @page {
-            margin: 0;
-            size: auto;
-          }
-        }
-      `}</style>
-    </div>
-  );
+  // ESC/POS printing doesn't need visual rendering
+  return null;
 }
