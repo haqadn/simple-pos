@@ -146,10 +146,10 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
                 return;
             }
 
-            // Alt+1-9: Select service option by index (use e.code for macOS compatibility)
-            if (e.altKey && !e.ctrlKey && !e.shiftKey && /^Digit[1-9]$/.test(e.code)) {
+            // Alt+0-9: Select service option by index (use e.code for macOS compatibility)
+            if (e.altKey && !e.ctrlKey && !e.shiftKey && /^Digit[0-9]$/.test(e.code)) {
                 e.preventDefault();
-                const index = parseInt(e.code.charAt(5), 10) - 1; // Extract digit from "Digit1" etc.
+                const index = parseInt(e.code.charAt(5), 10); // Extract digit from "Digit0" etc.
                 handlers?.onSelectService?.(index);
                 return;
             }

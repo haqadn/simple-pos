@@ -17,7 +17,7 @@ export function GlobalShortcutsProvider({ children }: { children: React.ReactNod
     const { data: deliveryZones } = useDeliveryZonesQuery();
     const [, serviceMutation] = useServiceQuery(orderQuery);
 
-    // Select service by index (Alt+1-9)
+    // Select service by index (Alt+0-9)
     const handleSelectService = useCallback((index: number) => {
         // Combine tables and delivery zones in order
         const allServices = [
@@ -25,7 +25,7 @@ export function GlobalShortcutsProvider({ children }: { children: React.ReactNod
             ...(deliveryZones || [])
         ];
 
-        if (index >= 0 && index < allServices.length && index < 9) {
+        if (index >= 0 && index < allServices.length && index < 10) {
             const service = allServices[index];
             serviceMutation.mutate({ service });
         }

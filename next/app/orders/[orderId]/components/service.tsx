@@ -68,7 +68,7 @@ export default function Service() {
                                 <RadioItem
                                     key={table.slug}
                                     value={table.slug}
-                                    shortcutIndex={index < 9 ? index + 1 : undefined}
+                                    shortcutIndex={index < 10 ? index : undefined}
                                 >
                                     {table.title}
                                 </RadioItem>
@@ -93,7 +93,7 @@ export default function Service() {
                                     <RadioItem
                                         key={zone.slug}
                                         value={zone.slug}
-                                        shortcutIndex={globalIndex < 9 ? globalIndex + 1 : undefined}
+                                        shortcutIndex={globalIndex < 10 ? globalIndex : undefined}
                                     >
                                         {zone.title}
                                         <span className="text-sm text-gray-500 ml-2">({readableCost(zone.fee)})</span>
@@ -125,7 +125,7 @@ function RadioItem({ children, value, disabled, shortcutIndex }: {
         >
             <span className="flex items-center gap-1">
                 {children}
-                {shortcutIndex && (
+                {shortcutIndex !== undefined && (
                     <Kbd keys={["alt"]} className="text-[9px] ml-1 opacity-50">{shortcutIndex}</Kbd>
                 )}
             </span>
