@@ -50,6 +50,25 @@ export class DoneCommand extends BaseCommand {
     await this.context.completeOrder();
 
     const change = paymentReceived - orderTotal;
+
+    // Check if there's cash payment (from split_payments meta)
+    const splitPaymentsMeta = order.meta_data.find(m => m.key === 'split_payments');
+    let cashPayment = 0;
+    if (splitPaymentsMeta && typeof splitPaymentsMeta.value === 'string') {
+      try {
+        const payments = JSON.parse(splitPaymentsMeta.value);
+        cashPayment = payments.cash || 0;
+      } catch { /* ignore */ }
+    } else {
+      // Legacy: if no split_payments, assume all payment is cash
+      cashPayment = paymentReceived;
+    }
+
+    // Open drawer if there's cash payment or change to give
+    if (cashPayment > 0 || change > 0) {
+      await this.context.openDrawer();
+    }
+
     if (change > 0) {
       this.context.showMessage(`Order completed! Change: $${formatCurrency(change)}`);
     } else {

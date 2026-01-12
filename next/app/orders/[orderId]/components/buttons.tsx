@@ -300,6 +300,25 @@ export default function Buttons() {
                     const orderId = orderQuery.data.id;
                     await OrdersAPI.updateOrder(orderId.toString(), { status: 'completed' });
                     await queryClient.invalidateQueries({ queryKey: ['orders'] });
+
+                    // Check if there's cash payment (from split_payments meta)
+                    const splitPaymentsMeta = orderQuery.data.meta_data?.find(m => m.key === 'split_payments');
+                    let cashPayment = 0;
+                    if (splitPaymentsMeta && typeof splitPaymentsMeta.value === 'string') {
+                        try {
+                            const payments = JSON.parse(splitPaymentsMeta.value);
+                            cashPayment = payments.cash || 0;
+                        } catch { /* ignore */ }
+                    } else {
+                        // Legacy: if no split_payments, assume all payment is cash
+                        cashPayment = received;
+                    }
+
+                    // Open drawer if there's cash payment or change
+                    const change = received - total;
+                    if (cashPayment > 0 || change > 0) {
+                        await printStore.push('drawer', null);
+                    }
                     router.push('/');
                 }}
                 isDisabled={isDraft || !isPaid}
