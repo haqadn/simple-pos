@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useCallback, useMemo } from 'react';
+import { useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCurrentOrder } from '@/stores/orders';
-import { useDraftOrderStore } from '@/stores/draft-order';
+import { useDraftOrderStore, DRAFT_ORDER_ID } from '@/stores/draft-order';
 import { usePrintStore, PrintJobData } from '@/stores/print';
 import { useProductsQuery } from '@/stores/products';
 import { useSettingsStore } from '@/stores/settings';
-import OrdersAPI from '@/api/orders';
+import OrdersAPI, { OrderSchema } from '@/api/orders';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface ShortcutHandlers {
@@ -26,6 +26,37 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
     const printStore = usePrintStore();
     const { data: products } = useProductsQuery();
     const skipKotCategories = useSettingsStore(state => state.skipKotCategories);
+
+    // Track order ID for mutation checks
+    const orderId = orderQuery.data?.id;
+
+    // Helper to wait for mutations to settle and get fresh order data
+    const waitForMutationsRef = useRef<() => Promise<OrderSchema | null>>(() => Promise.resolve(null));
+    waitForMutationsRef.current = async () => {
+        if (!orderId || orderId === DRAFT_ORDER_ID) return orderQuery.data;
+
+        // Poll until no mutations are in progress
+        const checkMutations = () => {
+            const mutating = queryClient.isMutating({
+                predicate: (mutation) => {
+                    const key = mutation.options.mutationKey;
+                    return Array.isArray(key) && key[0] === 'orders' && key[1] === orderId;
+                }
+            });
+            return mutating > 0;
+        };
+
+        // Wait for mutations to complete (max 5 seconds)
+        let attempts = 0;
+        while (checkMutations() && attempts < 50) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+
+        // Fetch fresh order data from server
+        const freshOrder = await OrdersAPI.getOrder(orderId.toString());
+        return freshOrder;
+    };
 
     // Helper to check if a line item should be skipped on KOT based on category
     const shouldSkipForKot = useMemo(() => {
@@ -46,9 +77,9 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
         router.push('/orders/new');
     }, [resetDraft, router]);
 
-    // Build print data from order
-    const buildPrintData = useCallback((type: 'bill' | 'kot'): PrintJobData | null => {
-        const order = orderQuery.data;
+    // Build print data from order (accepts optional order override for fresh data)
+    const buildPrintData = useCallback((type: 'bill' | 'kot', orderOverride?: OrderSchema | null): PrintJobData | null => {
+        const order = orderOverride ?? orderQuery.data;
         if (!order) return null;
 
         const shippingLine = order.shipping_lines?.find(s => s.method_title);
@@ -186,23 +217,30 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
     const handlePrintBill = useCallback(async () => {
         if (!orderQuery.data) return;
 
-        const orderId = orderQuery.data.id;
-        const printData = buildPrintData('bill');
-
-        // Queue the print job
-        if (printData) {
-            await printStore.push('bill', printData);
-        }
-
-        // Mark as printed in meta_data
         try {
-            await OrdersAPI.updateOrder(orderId.toString(), {
+            // Wait for any pending mutations to complete and get fresh order data
+            // This ensures the bill includes correct totals even if an item was just added
+            const freshOrder = await waitForMutationsRef.current?.();
+            if (!freshOrder) {
+                console.error('Failed to get fresh order data for bill');
+                return;
+            }
+
+            const printData = buildPrintData('bill', freshOrder);
+
+            // Queue the print job
+            if (printData) {
+                await printStore.push('bill', printData);
+            }
+
+            // Mark as printed in meta_data
+            await OrdersAPI.updateOrder(freshOrder.id.toString(), {
                 meta_data: [
-                    ...orderQuery.data.meta_data.filter(m => m.key !== 'last_bill_print'),
+                    ...freshOrder.meta_data.filter(m => m.key !== 'last_bill_print'),
                     { key: 'last_bill_print', value: new Date().toISOString() }
                 ]
             });
-            await queryClient.invalidateQueries({ queryKey: ['orders', orderId] });
+            await queryClient.invalidateQueries({ queryKey: ['orders', freshOrder.id] });
         } catch (error) {
             console.error('Failed to print Bill:', error);
         }

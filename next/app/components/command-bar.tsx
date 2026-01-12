@@ -11,6 +11,7 @@ import { usePrintStore, PrintJobData } from '@/stores/print';
 import { CommandContext, CustomerData } from '@/commands/command-manager';
 import { CommandSuggestion } from '@/commands/command';
 import OrdersAPI, { OrderSchema } from '@/api/orders';
+import { DRAFT_ORDER_ID } from '@/stores/draft-order';
 import { useSettingsStore, type PageShortcut } from '@/stores/settings';
 import { SettingsModal } from './settings-modal';
 import { ShortcutModal } from './shortcut-modal';
@@ -265,10 +266,42 @@ export default function CommandBar() {
   // Print - uses print store queue
   const printStore = usePrintStore();
 
+  // Helper to wait for mutations to settle and get fresh order data
+  const waitForMutationsRef = useRef<() => Promise<OrderSchema | null>>(() => Promise.resolve(null));
+  waitForMutationsRef.current = async () => {
+    const currentOrderId = orderQuery.data?.id;
+    if (!currentOrderId || currentOrderId === DRAFT_ORDER_ID) return orderQuery.data;
+
+    // Poll until no mutations are in progress
+    const checkMutations = () => {
+      const mutating = queryClient.isMutating({
+        predicate: (mutation) => {
+          const key = mutation.options.mutationKey;
+          return Array.isArray(key) && key[0] === 'orders' && key[1] === currentOrderId;
+        }
+      });
+      return mutating > 0;
+    };
+
+    // Wait for mutations to complete (max 5 seconds)
+    let attempts = 0;
+    while (checkMutations() && attempts < 50) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+
+    // Fetch fresh order data from server
+    const freshOrder = await OrdersAPI.getOrder(currentOrderId.toString());
+    return freshOrder;
+  };
+
   const handlePrint = useCallback(async (type: 'bill' | 'kot') => {
     if (!orderQuery.data) throw new Error('No active order');
 
-    const order = orderQuery.data;
+    // For bills, wait for mutations and use fresh data to ensure correct totals
+    const order = type === 'bill'
+      ? (await waitForMutationsRef.current?.()) ?? orderQuery.data
+      : orderQuery.data;
     const orderId = order.id;
     const shippingLine = order.shipping_lines?.find(s => s.method_title);
     const isTable = shippingLine?.method_id === 'pickup_location';
