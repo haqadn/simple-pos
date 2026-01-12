@@ -183,19 +183,7 @@ export function PrinterConnectionForm({
       )}
 
       {connection.type !== 'none' && (
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-default-500">Paper:</span>
-            <RadioGroup
-              orientation="horizontal"
-              value={(connection.paperWidth || 80).toString()}
-              onValueChange={(v) => onChange({ ...connection, paperWidth: parseInt(v) as 58 | 80 })}
-              size="sm"
-            >
-              <Radio value="58">58mm</Radio>
-              <Radio value="80">80mm</Radio>
-            </RadioGroup>
-          </div>
+        <div className="flex items-center gap-2">
           <Button
             variant="flat"
             size="sm"
