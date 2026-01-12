@@ -71,11 +71,19 @@ export function renderKot(data: KotData, options: KotRenderOptions): Uint8Array 
     const hadPrevious =
       item.previousQuantity !== undefined && item.previousQuantity !== 0;
     const isNewItem = item.previousQuantity === undefined || item.previousQuantity === 0;
+    const isRemoved = item.quantity === 0 && hadPrevious;
 
     // Build quantity string
     let qtyStr: string;
+    let itemName = item.name;
+    const shouldBold = settings.highlightChanges && (isNewItem || isRemoved);
+
     if (settings.highlightChanges && hasChanged) {
-      if (hadPrevious) {
+      if (isRemoved) {
+        // Removed item: show "~oldQty~ X" and strikethrough name
+        qtyStr = `~${item.previousQuantity}~ X`;
+        itemName = `~~${item.name}~~`;
+      } else if (hadPrevious) {
         // Changed quantity: show "~oldQty~ newQty"
         qtyStr = `~${item.previousQuantity}~ ${item.quantity}`;
       } else if (isNewItem) {
@@ -84,13 +92,19 @@ export function renderKot(data: KotData, options: KotRenderOptions): Uint8Array 
       } else {
         qtyStr = item.quantity.toString();
       }
+    } else if (item.quantity === 0) {
+      // Skip items with 0 quantity if not highlighting changes
+      return;
     } else {
       qtyStr = item.quantity.toString();
     }
 
     // Print item row using columns (left-aligned name, right-aligned qty)
+    // Bold new/removed items for visibility
     builder.alignLeft();
-    builder.columns(item.name, qtyStr, charWidth);
+    if (shouldBold) builder.bold(true);
+    builder.columns(itemName, qtyStr, charWidth);
+    if (shouldBold) builder.bold(false);
   });
 
   builder.separator('-', charWidth);

@@ -12,7 +12,7 @@ See `/next/FEATURES.md` for detailed feature documentation.
 
 ## Bugs / Issues
 
-- [ ] **Shipping costs missing from bill** - Delivery/service fees not showing on printed receipts
+- [x] **Shipping costs missing from bill** - Delivery/service fees not showing on printed receipts
 
 ---
 
@@ -49,8 +49,7 @@ See `/next/FEATURES.md` for detailed feature documentation.
 
 ### In Progress
 
-- KOT service type display (Table/Takeaway/Delivery)
-- KOT change detection (track previous quantities)
+- Category filtering for KOT (skip drinks, retail)
 
 ---
 
@@ -116,9 +115,9 @@ All essential POS commands are implemented:
 
 ### KOT (Kitchen Order Ticket)
 - [x] Basic KOT format with order number heading
-- [ ] **Include service type** (Table/Takeaway/Delivery)
-- [ ] Track previous KOT state per order
-- [ ] Detect changes (new items, quantity changes)
+- [x] **Include service type** (Table/Takeaway/Delivery)
+- [x] Track previous KOT state per order
+- [x] Detect changes (new items, quantity changes)
 - [ ] Category filtering (skip drinks, retail)
 
 ### Cash Drawer ✅

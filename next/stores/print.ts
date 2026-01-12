@@ -34,6 +34,7 @@ export interface PrintJobData {
   };
   payment?: number;
   discountTotal?: number;
+  shippingTotal?: number;
   total?: number;
 
   // KOT specific

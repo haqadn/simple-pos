@@ -53,6 +53,7 @@ export interface BillData {
     price: number;
   }>;
   discountTotal?: number;
+  shippingTotal?: number;
   payment?: number;
   total?: number;
 }

@@ -156,8 +156,14 @@ export async function renderBill(
     builder.columns('Discount', `-${formatCurrency(discount)}`, charWidth);
   }
 
+  // Shipping/Delivery fee
+  const shipping = data.shippingTotal || 0;
+  if (shipping > 0) {
+    builder.columns('Delivery', formatCurrency(shipping), charWidth);
+  }
+
   // Total
-  const total = data.total ?? subtotal - discount;
+  const total = data.total ?? subtotal - discount + shipping;
   builder.bold(true);
   builder.columns('Total', formatCurrency(total), charWidth);
   builder.bold(false);

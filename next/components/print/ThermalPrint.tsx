@@ -60,6 +60,7 @@ export default function ThermalPrint() {
       customer: data.customer,
       items: data.items,
       discountTotal: data.discountTotal,
+      shippingTotal: data.shippingTotal,
       payment: data.payment,
       total: data.total,
     };

@@ -55,15 +55,58 @@ export default function Buttons() {
             });
             printData.total = parseFloat(order.total);
             printData.discountTotal = parseFloat(order.discount_total || '0');
+            // Sum up shipping costs from all shipping lines
+            printData.shippingTotal = order.shipping_lines?.reduce(
+                (sum, line) => sum + parseFloat(line.total || '0'), 0
+            ) || 0;
             const paymentMeta = order.meta_data.find(m => m.key === 'payment_received');
             printData.payment = paymentMeta ? parseFloat(paymentMeta.value?.toString() || '0') : 0;
         } else {
-            printData.kotItems = order.line_items.map(item => ({
-                id: item.id || 0,
-                name: item.name,
-                quantity: item.quantity,
-                previousQuantity: undefined,
-            }));
+            // Get previous KOT items from meta_data for change detection
+            const lastKotMeta = order.meta_data.find(m => m.key === 'last_kot_items');
+            const previousItems: Record<string, { quantity: number; name: string }> = {};
+            if (lastKotMeta && typeof lastKotMeta.value === 'string') {
+                try {
+                    const parsed = JSON.parse(lastKotMeta.value);
+                    // Handle both old format (number) and new format ({quantity, name})
+                    Object.entries(parsed).forEach(([key, val]) => {
+                        if (typeof val === 'number') {
+                            previousItems[key] = { quantity: val, name: 'Unknown Item' };
+                        } else if (val && typeof val === 'object' && 'quantity' in val) {
+                            previousItems[key] = val as { quantity: number; name: string };
+                        }
+                    });
+                } catch { /* ignore parse errors */ }
+            }
+
+            // Track which previous items we've seen
+            const seenKeys = new Set<string>();
+
+            // Current items
+            const kotItems = order.line_items.map(item => {
+                const itemKey = `${item.product_id}-${item.variation_id}`;
+                seenKeys.add(itemKey);
+                return {
+                    id: item.id || 0,
+                    name: item.name,
+                    quantity: item.quantity,
+                    previousQuantity: previousItems[itemKey]?.quantity,
+                };
+            });
+
+            // Add removed items (were in previous KOT but not in current order)
+            Object.entries(previousItems).forEach(([itemKey, prev]) => {
+                if (!seenKeys.has(itemKey) && prev.quantity > 0) {
+                    kotItems.push({
+                        id: 0,
+                        name: prev.name,
+                        quantity: 0,
+                        previousQuantity: prev.quantity,
+                    });
+                }
+            });
+
+            printData.kotItems = kotItems;
         }
 
         return printData;
@@ -81,11 +124,21 @@ export default function Buttons() {
                 await printStore.push('kot', printData);
             }
 
-            // Mark as printed in meta_data
+            // Store current items for next KOT change detection (with names for removed item display)
+            const currentItems: Record<string, { quantity: number; name: string }> = {};
+            orderQuery.data.line_items.forEach(item => {
+                const itemKey = `${item.product_id}-${item.variation_id}`;
+                currentItems[itemKey] = { quantity: item.quantity, name: item.name };
+            });
+
+            // Mark as printed in meta_data and store item quantities
             await OrdersAPI.updateOrder(orderId.toString(), {
                 meta_data: [
-                    ...orderQuery.data.meta_data.filter(m => m.key !== 'last_kot_print'),
-                    { key: 'last_kot_print', value: new Date().toISOString() }
+                    ...orderQuery.data.meta_data.filter(m =>
+                        m.key !== 'last_kot_print' && m.key !== 'last_kot_items'
+                    ),
+                    { key: 'last_kot_print', value: new Date().toISOString() },
+                    { key: 'last_kot_items', value: JSON.stringify(currentItems) }
                 ]
             });
 
