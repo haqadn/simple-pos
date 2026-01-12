@@ -7,6 +7,7 @@ import { useTablesQuery, useDeliveryZonesQuery } from '@/stores/service';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import OrdersAPI from '@/api/orders';
+import { usePrintStore } from '@/stores/print';
 
 export function GlobalShortcutsProvider({ children }: { children: React.ReactNode }) {
     const orderQuery = useCurrentOrder();
@@ -16,6 +17,7 @@ export function GlobalShortcutsProvider({ children }: { children: React.ReactNod
     const { data: tables } = useTablesQuery();
     const { data: deliveryZones } = useDeliveryZonesQuery();
     const [, serviceMutation] = useServiceQuery(orderQuery);
+    const printStore = usePrintStore();
 
     // Select service by index (Alt+0-9)
     const handleSelectService = useCallback((index: number) => {
@@ -52,10 +54,9 @@ export function GlobalShortcutsProvider({ children }: { children: React.ReactNod
     }, [orderQuery.data, queryClient]);
 
     // Open drawer handler
-    const handleOpenDrawer = useCallback(() => {
-        console.log('Opening cash drawer');
-        // TODO: Integrate with actual cash drawer hardware
-    }, []);
+    const handleOpenDrawer = useCallback(async () => {
+        await printStore.push('drawer', null);
+    }, [printStore]);
 
     // Done handler - complete order
     const handleDone = useCallback(async () => {

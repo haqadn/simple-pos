@@ -419,6 +419,11 @@ export default function CommandBar() {
     });
   }, [orderQuery, printStore, shouldSkipForKot]);
 
+  // Open cash drawer
+  const handleOpenDrawer = useCallback(async () => {
+    await printStore.push('drawer', null);
+  }, [printStore]);
+
   // Set customer note
   const handleSetNote = useCallback(async (note: string) => {
     if (!orderQuery.data) throw new Error('No active order');
@@ -489,12 +494,13 @@ export default function CommandBar() {
       applyCoupon: handleApplyCoupon,
       removeCoupon: handleRemoveCoupon,
       print: handlePrint,
+      openDrawer: handleOpenDrawer,
       setNote: handleSetNote,
       setCustomer: handleSetCustomer,
       showMessage: (msg) => console.log('[Command]', msg),
       showError: (err) => console.error('[Command Error]', err)
     };
-  }, [orderQuery.data, products, handleAddProduct, handleClearOrder, handleCompleteOrder, handleSetPayment, getPaymentReceived, handleApplyCoupon, handleRemoveCoupon, handlePrint, handleSetNote, handleSetCustomer]);
+  }, [orderQuery.data, products, handleAddProduct, handleClearOrder, handleCompleteOrder, handleSetPayment, getPaymentReceived, handleApplyCoupon, handleRemoveCoupon, handlePrint, handleOpenDrawer, handleSetNote, handleSetCustomer]);
 
   // Set up command context when ready
   useEffect(() => {
