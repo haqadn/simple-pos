@@ -9,6 +9,7 @@ import { useProductsQuery } from '@/stores/products';
 import { useSettingsStore } from '@/stores/settings';
 import OrdersAPI, { OrderSchema } from '@/api/orders';
 import { useQueryClient } from '@tanstack/react-query';
+import { getMatchingShortcut } from '@/lib/shortcuts';
 
 interface ShortcutHandlers {
     onPrintKot?: () => void;
@@ -257,43 +258,39 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Ctrl+N: New order
-            if (e.ctrlKey && !e.shiftKey && e.key === 'n') {
+            const shortcutId = getMatchingShortcut(e);
+
+            if (shortcutId) {
                 e.preventDefault();
-                handleNewOrder();
+
+                switch (shortcutId) {
+                    case 'newOrder':
+                        handleNewOrder();
+                        break;
+                    case 'printKot':
+                        handlePrintKot();
+                        break;
+                    case 'printBill':
+                        handlePrintBill();
+                        break;
+                    case 'openDrawer':
+                        handlers?.onOpenDrawer?.();
+                        break;
+                    case 'done':
+                        handlers?.onDone?.();
+                        break;
+                    default:
+                        // Handle selectService0-9
+                        if (shortcutId.startsWith('selectService')) {
+                            const index = parseInt(shortcutId.replace('selectService', ''), 10);
+                            handlers?.onSelectService?.(index);
+                        }
+                        break;
+                }
                 return;
             }
 
-            // Alt+0-9: Select service option by index (use e.code for macOS compatibility)
-            if (e.altKey && !e.ctrlKey && !e.shiftKey && /^Digit[0-9]$/.test(e.code)) {
-                e.preventDefault();
-                const index = parseInt(e.code.charAt(5), 10); // Extract digit from "Digit0" etc.
-                handlers?.onSelectService?.(index);
-                return;
-            }
-
-            // Ctrl+K: Print KOT
-            if (e.ctrlKey && !e.shiftKey && e.key === 'k') {
-                e.preventDefault();
-                handlePrintKot();
-                return;
-            }
-
-            // Ctrl+P: Print Bill
-            if (e.ctrlKey && !e.shiftKey && e.key === 'p') {
-                e.preventDefault();
-                handlePrintBill();
-                return;
-            }
-
-            // Ctrl+D: Open Drawer
-            if (e.ctrlKey && !e.shiftKey && e.key === 'd') {
-                e.preventDefault();
-                handlers?.onOpenDrawer?.();
-                return;
-            }
-
-            // Escape: Focus command bar (if not already focused)
+            // Escape: Focus command bar (if not already focused) - not in registry as it's context-dependent
             if (e.key === 'Escape') {
                 const commandInput = document.querySelector('input[aria-label="Command input field"]') as HTMLInputElement;
                 // Only focus if not already focused - let command bar handle its own escape
@@ -301,13 +298,6 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
                     e.preventDefault();
                     handleFocusCommandBar();
                 }
-                return;
-            }
-
-            // Ctrl+Enter: Complete order (done)
-            if (e.ctrlKey && e.key === 'Enter') {
-                e.preventDefault();
-                handlers?.onDone?.();
                 return;
             }
         };

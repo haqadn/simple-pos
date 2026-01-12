@@ -17,6 +17,7 @@ import { SettingsModal } from './settings-modal';
 import { ShortcutModal } from './shortcut-modal';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Settings01Icon } from '@hugeicons/core-free-icons';
+import { isAppShortcut } from '@/lib/shortcuts';
 
 export default function CommandBar() {
   const [input, setInput] = useState('');
@@ -585,9 +586,9 @@ export default function CommandBar() {
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Forward Ctrl/Alt shortcuts to window so global handler can process them
-    if (e.ctrlKey || e.altKey || e.metaKey) {
-      e.preventDefault(); // Prevent special characters from being typed
+    // Only forward registered app shortcuts to window, let standard text editing shortcuts pass through
+    if (isAppShortcut(e)) {
+      e.preventDefault();
       // Dispatch a new event to window since HeroUI Input blocks propagation
       const event = new KeyboardEvent('keydown', {
         key: e.key,
