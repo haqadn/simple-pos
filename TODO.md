@@ -2,11 +2,17 @@
 
 ## Project Status
 
-- **Next.js Frontend**: ~60% complete - Core commands done, UI polish in progress
+- **Next.js Frontend**: ~80% complete - Core features done, printing implemented
 - **Vue.js Frontend**: Legacy reference only (do not modify)
 - **Goal**: Feature parity with Vue.js, then Electron packaging for Windows
 
 See `/next/FEATURES.md` for detailed feature documentation.
+
+---
+
+## Bugs / Issues
+
+- [ ] **Shipping costs missing from bill** - Delivery/service fees not showing on printed receipts
 
 ---
 
@@ -20,7 +26,7 @@ See `/next/FEATURES.md` for detailed feature documentation.
 - **Pay Command** (`/pay`, `/p`) - Record payment with multi-input mode for split payments
 - **Done Command** (`/done`, `/dn`, `/d`) - Complete order with payment validation
 - **Coupon Command** (`/coupon`, `/c`, `/discount`) - Apply/remove discount codes
-- **Print Command** (`/print`, `/pr`) - Print bill or KOT (placeholder for printer integration)
+- **Print Command** (`/print`, `/pr`) - Print bill or KOT
 - **Note Command** (`/note`, `/n`) - Add customer note to order
 - **Customer Command** (`/customer`, `/cust`, `/cu`) - Set customer billing info (name, phone, address)
 - **Multi-Order Management** - URL-based order switching via sidebar
@@ -35,11 +41,16 @@ See `/next/FEATURES.md` for detailed feature documentation.
 - **Payment UI** - Total, received, change display with quick payment buttons
 - **Split Payments** - Multiple payment methods (Cash, bKash, Nagad, Card)
 - **Product Card Indicators** - Visual indicators for low stock, out of stock, in-cart quantity
+- **ESC/POS Printing** - Bill and KOT rendering with thermal printer support
+- **Printer Settings UI** - USB auto-detect, network config, bill customization
+- **Bill Customization** - Logo, header text, footer text, date/time, order number
+- **Customer Address on Bills** - Billing address included in receipts
+- **80mm Paper Only** - Removed paper size selection (hardcoded to 80mm)
 
 ### In Progress
 
-- Simplified command interface (SKU entry without /item prefix)
-- Printer integration
+- KOT service type display (Table/Takeaway/Delivery)
+- KOT change detection (track previous quantities)
 
 ---
 
@@ -74,8 +85,8 @@ All essential POS commands are implemented:
 - [x] Service type indicator (shown in sidebar and service card)
 
 ### Action Buttons ✅
-- [x] KOT button (prints kitchen order ticket)
-- [x] Bill button (prints receipt)
+- [x] KOT button with Ctrl+K shortcut
+- [x] Bill button with Ctrl+P shortcut
 - [x] Cancel button with confirmation dropdown
 
 ### Product Cards ✅
@@ -86,45 +97,34 @@ All essential POS commands are implemented:
 
 ---
 
-## Phase 3: Printing System Integration
+## Phase 3: Printing System ✅ Mostly Complete
 
-### Print Infrastructure
-- [ ] Print store/queue for managing jobs
-- [ ] ESC/POS command generation
-- [ ] Printer connection (USB, network, browser API)
-- [ ] Print templates (bill, KOT)
+### Print Infrastructure ✅
+- [x] Print store/queue for managing jobs
+- [x] ESC/POS command generation (EscPosBuilder class)
+- [x] USB printer support (via Electron IPC)
+- [x] Network printer support (TCP socket port 9100)
+- [x] Print templates (bill, KOT)
 
-### Bill Printing
-- [ ] Receipt format with items, totals, payment
-- [ ] Business info header
-- [ ] Connect to `/print bill` command
+### Bill Printing ✅
+- [x] Receipt format with items, totals, payment, change
+- [x] Logo support with image encoding
+- [x] Customizable header/footer text
+- [x] Customer name, phone, address
+- [x] Date/time and order number options
+- [x] Live preview in settings
 
 ### KOT (Kitchen Order Ticket)
+- [x] Basic KOT format with order number heading
+- [ ] **Include service type** (Table/Takeaway/Delivery)
 - [ ] Track previous KOT state per order
 - [ ] Detect changes (new items, quantity changes)
 - [ ] Category filtering (skip drinks, retail)
-- [ ] Connect to `/print kot` command
 
----
-
-## Phase 3.5: Simplified Command Interface (In Progress)
-
-Streamline input so users can add items without command prefixes.
-
-### New Input Patterns
-| Input | Action |
-|-------|--------|
-| `BURGER` | Add 1 burger by SKU |
-| `BURGER 3` | Add 3 burgers |
-| `@T5` or `@table5` | Switch to table 5 |
-| `@123` | Switch to order #123 |
-| `/pay 50` | Record payment |
-| `/done` | Complete order |
-
-### Implementation Tasks
-- [ ] Input type detection (SKU vs `/command`)
-- [ ] Default to product search when no prefix
-- [ ] Update autocomplete to show products by default
+### Cash Drawer ✅
+- [x] Drawer kick command
+- [x] Test drawer button in settings
+- [x] Configurable pulse pin (2 or 5)
 
 ---
 
@@ -145,7 +145,7 @@ Streamline input so users can add items without command prefixes.
 - [ ] Customer creation
 - [ ] Attach customer to order
 
-### Keyboard Shortcuts
+### Keyboard Shortcuts ✅
 - [x] Ctrl+1-9 for order switching (with sidebar auto-scroll)
 - [x] Escape to focus command bar (or clear input if already focused)
 - [x] Enter to submit
@@ -156,11 +156,11 @@ Streamline input so users can add items without command prefixes.
 - [x] Ctrl+D to open drawer
 - [x] Ctrl+Enter to complete order (done)
 
-### Settings Management
-- [ ] API configuration UI
-- [ ] Printer setup
-- [ ] Table configuration
-- [ ] KOT skip categories
+### Settings Management ✅ Mostly Complete
+- [x] API configuration UI
+- [x] Printer setup (USB and network)
+- [x] Bill customization (logo, header, footer)
+- [ ] KOT skip categories UI
 
 ### Offline Support
 - [ ] Local order queue
@@ -168,7 +168,7 @@ Streamline input so users can add items without command prefixes.
 - [ ] Offline indicator
 
 ### Electron Packaging
-- [ ] Electron wrapper for Next.js
+- [x] Electron wrapper for Next.js
 - [ ] Windows installer
 - [ ] Auto-updates
 
@@ -185,22 +185,34 @@ Streamline input so users can add items without command prefixes.
 - `/next/commands/pay.ts` - Payment recording
 - `/next/commands/done.ts` - Order completion
 - `/next/commands/coupon.ts` - Discount codes
-- `/next/commands/print.ts` - Printing (placeholder)
+- `/next/commands/print.ts` - Printing
 - `/next/commands/note.ts` - Customer notes
 - `/next/commands/customer.ts` - Customer info
 
-### Utilities
-- `/next/lib/format.ts` - Currency formatting (no decimal if whole number)
+### ESC/POS Printing
+- `/next/lib/escpos/commands.ts` - ESC/POS command builder
+- `/next/lib/escpos/bill-renderer.ts` - Bill receipt generator
+- `/next/lib/escpos/kot-renderer.ts` - KOT generator
+- `/next/lib/escpos/encoder.ts` - Image encoding for logos
+- `/next/lib/escpos/types.ts` - Print configuration types
 
 ### Stores
 - `/next/stores/orders.ts` - Order queries and mutations
 - `/next/stores/products.ts` - Product catalog
 - `/next/stores/service.ts` - Table/delivery services
+- `/next/stores/print.ts` - Print queue and configuration
+
+### Settings UI
+- `/next/app/components/settings/PrinterSettingsTab.tsx` - Printer configuration
+- `/next/app/components/settings/PrinterConnectionForm.tsx` - USB/network selector
+- `/next/app/components/settings/BillPreview.tsx` - Live receipt preview
+- `/next/app/components/settings/LogoUpload.tsx` - Logo image upload
 
 ### UI
 - `/next/app/components/command-bar.tsx` - Command input
 - `/next/app/components/sidebar.tsx` - Order list
 - `/next/app/orders/[orderId]/` - Order page components
+- `/next/components/print/ThermalPrint.tsx` - Print job processor
 
 ### API
 - `/next/api/orders.ts` - Order CRUD with Zod schemas
