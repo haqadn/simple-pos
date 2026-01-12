@@ -40,6 +40,7 @@ export function POSCommandInput({ onMessage, onAddProduct }: POSCommandInputProp
       return null;
     }
     
+    // Minimal context - only supports item command
     return {
       currentOrder: orderQuery.data,
       products,
@@ -50,7 +51,7 @@ export function POSCommandInput({ onMessage, onAddProduct }: POSCommandInputProp
       showError: (error: string) => {
         onMessage?.(error, 'error');
       }
-    };
+    } as unknown as CommandContext;
   }, [orderQuery.data, products, onAddProduct, onMessage]);
 
   // Set up command context when ready

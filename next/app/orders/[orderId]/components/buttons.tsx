@@ -26,7 +26,7 @@ export default function Buttons() {
         const printData: PrintJobData = {
             orderId: order.id,
             orderReference: order.id.toString(),
-            cartName: order.meta_data.find(m => m.key === 'service_slug')?.value?.toString() || 'Order',
+            cartName: order.shipping_lines?.find(s => s.method_title)?.method_title || 'Order',
             orderTime: order.date_created,
             customerNote: order.customer_note,
             customer: {

@@ -29,6 +29,7 @@ export interface PrintJobData {
   customer?: {
     name?: string;
     phone?: string;
+    address?: string;
   };
   payment?: number;
   discountTotal?: number;

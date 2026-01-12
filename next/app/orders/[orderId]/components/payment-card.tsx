@@ -26,7 +26,7 @@ interface PaymentAmounts {
 export default function PaymentCard() {
     const orderQuery = useCurrentOrder();
     const queryClient = useQueryClient();
-    const [paymentQuery, paymentMutation, paymentIsMutating] = usePaymentQuery(orderQuery);
+    const [paymentQuery, , paymentIsMutating] = usePaymentQuery(orderQuery);
     const [isRemovingCoupon, setIsRemovingCoupon] = useState(false);
 
     // Local state for split payments

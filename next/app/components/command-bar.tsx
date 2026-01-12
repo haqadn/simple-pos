@@ -261,7 +261,7 @@ export default function CommandBar() {
     const printData: PrintJobData = {
       orderId,
       orderReference: orderId.toString(),
-      cartName: order.meta_data.find(m => m.key === 'service_slug')?.value?.toString() || 'Order',
+      cartName: order.shipping_lines?.find(s => s.method_title)?.method_title || 'Order',
       orderTime: order.date_created,
       customerNote: order.customer_note,
       customer: {
@@ -632,7 +632,7 @@ export default function CommandBar() {
   );
 }
 
-function HelpTextBar({ multiMode, activeCommand }: { multiMode: boolean; activeCommand: string | null }) {
+function HelpTextBar({ multiMode, activeCommand }: { multiMode: boolean; activeCommand: string | undefined }) {
   const pageShortcuts = useSettingsStore((state) => state.pageShortcuts);
   const [activeShortcut, setActiveShortcut] = useState<PageShortcut | null>(null);
   const { isOpen: isSettingsOpen, onOpen: onSettingsOpen, onOpenChange: onSettingsOpenChange } = useDisclosure();
