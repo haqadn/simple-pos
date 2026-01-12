@@ -39,6 +39,7 @@ export interface BillData {
   orderId?: number;
   orderReference?: string;
   cartName?: string;
+  serviceType?: 'table' | 'delivery';
   orderTime?: string;
   customer?: {
     name?: string;
@@ -60,6 +61,7 @@ export interface KotData {
   orderId?: number;
   orderReference?: string;
   cartName?: string;
+  serviceType?: 'table' | 'delivery';
   customerNote?: string;
   kotItems?: Array<{
     id: number;

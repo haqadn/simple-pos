@@ -256,12 +256,15 @@ export default function CommandBar() {
 
     const order = orderQuery.data;
     const orderId = order.id;
+    const shippingLine = order.shipping_lines?.find(s => s.method_title);
+    const isTable = shippingLine?.method_id === 'pickup_location';
 
     // Build print data based on type
     const printData: PrintJobData = {
       orderId,
       orderReference: orderId.toString(),
-      cartName: order.shipping_lines?.find(s => s.method_title)?.method_title || 'Order',
+      cartName: shippingLine?.method_title || 'Order',
+      serviceType: shippingLine ? (isTable ? 'table' : 'delivery') : undefined,
       orderTime: order.date_created,
       customerNote: order.customer_note,
       customer: {

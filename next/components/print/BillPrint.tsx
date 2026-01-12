@@ -15,6 +15,7 @@ export default function BillPrint({ data }: BillPrintProps) {
     payment = 0,
     discountTotal = 0,
     cartName,
+    serviceType,
   } = data;
 
   const filteredItems = items.filter(item => item.quantity > 0);
@@ -41,11 +42,10 @@ export default function BillPrint({ data }: BillPrintProps) {
     return date.toLocaleTimeString();
   };
 
-  const humanizeCartName = (name?: string) => {
+  // Format service display - table name as-is, "Delivery" for delivery
+  const formatServiceDisplay = (name?: string) => {
     if (!name) return '';
-    if (/T[^a-zA-Z]/g.test(name)) return 'Table ' + name.slice(2);
-    if (/D[^a-zA-Z]/g.test(name)) return 'Home Delivery';
-    if (/P[^a-zA-Z]/g.test(name)) return 'Take away';
+    if (serviceType === 'delivery') return 'Delivery';
     return name;
   };
 
@@ -79,7 +79,7 @@ export default function BillPrint({ data }: BillPrintProps) {
       {filteredItems.length > 0 && (
         <header className="order-info">
           <p className="my-1 text-sm">
-            {humanizeCartName(cartName)}
+            {formatServiceDisplay(cartName)}
             {hasCustomerInfo && (
               <>
                 <br />

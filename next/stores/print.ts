@@ -16,6 +16,7 @@ export interface PrintJobData {
   orderId?: number;
   orderReference?: string;
   cartName?: string;
+  serviceType?: 'table' | 'delivery';
   orderTime?: string;
   customerNote?: string;
 

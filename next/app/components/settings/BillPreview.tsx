@@ -9,7 +9,8 @@ interface BillPreviewProps {
 
 // Sample data for preview
 const SAMPLE_DATA = {
-  cartName: 'T-05',
+  cartName: 'Table 5',
+  serviceType: 'table' as const,
   orderReference: '12345',
   orderTime: new Date().toISOString(),
   customer: { name: 'John Doe', phone: '+1234567890', address: '123 Main St' },
@@ -21,14 +22,6 @@ const SAMPLE_DATA = {
   discountTotal: 50,
   payment: 700,
 };
-
-function humanizeCartName(name: string): string {
-  if (!name) return '';
-  if (/^T-?\d/i.test(name)) return 'Table ' + name.replace(/^T-?/i, '');
-  if (/^D-?\d/i.test(name)) return 'Home Delivery';
-  if (/^P-?\d/i.test(name)) return 'Take Away';
-  return name;
-}
 
 export function BillPreview({ customization, paperWidth }: BillPreviewProps) {
   const widthPx = paperWidth === 80 ? 300 : 220;
@@ -74,7 +67,7 @@ export function BillPreview({ customization, paperWidth }: BillPreviewProps) {
 
         {/* Order Info */}
         <div className="text-center">
-          <div className="font-bold">{humanizeCartName(SAMPLE_DATA.cartName)}</div>
+          <div className="font-bold">{SAMPLE_DATA.cartName}</div>
           <div>
             {SAMPLE_DATA.customer.name} | {SAMPLE_DATA.customer.phone}
           </div>

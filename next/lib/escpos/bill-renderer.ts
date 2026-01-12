@@ -10,14 +10,15 @@ interface BillRenderOptions {
 }
 
 /**
- * Convert cart name to human-readable format
+ * Format service display based on type
+ * - Table: show just the table name/number (strip "Table " prefix if present)
+ * - Delivery: show "Delivery"
  */
-function humanizeCartName(name: string): string {
-  if (!name) return '';
-  if (/^T-?\d/i.test(name)) return 'Table ' + name.replace(/^T-?/i, '');
-  if (/^D-?\d/i.test(name)) return 'Home Delivery';
-  if (/^P-?\d/i.test(name)) return 'Take Away';
-  return name;
+function formatServiceDisplay(cartName: string, serviceType?: 'table' | 'delivery'): string {
+  if (!cartName) return '';
+  if (serviceType === 'delivery') return 'Delivery';
+  // For tables, strip "Table " prefix if present
+  return cartName;
 }
 
 /**
@@ -67,11 +68,11 @@ export async function renderBill(
 
   builder.separator('-', charWidth);
 
-  // Cart/Table name
+  // Service type display (Table name or "Delivery")
   if (data.cartName) {
     builder.alignCenter();
     builder.bold(true);
-    builder.text(humanizeCartName(data.cartName));
+    builder.text(formatServiceDisplay(data.cartName, data.serviceType));
     builder.bold(false);
     builder.newline();
   }

@@ -9,6 +9,18 @@ interface KotRenderOptions {
 }
 
 /**
+ * Format service display based on type
+ * - Table: show just the table name/number (strip "Table " prefix if present)
+ * - Delivery: show "Delivery"
+ */
+function formatServiceDisplay(cartName: string, serviceType?: 'table' | 'delivery'): string {
+  if (!cartName) return '';
+  if (serviceType === 'delivery') return 'Delivery';
+  // For tables, strip "Table " prefix if present
+  return cartName;
+}
+
+/**
  * Render a KOT as ESC/POS commands
  * Features:
  * - Large table/cart name or order number as heading
@@ -22,14 +34,21 @@ export function renderKot(data: KotData, options: KotRenderOptions): Uint8Array 
   const builder = new EscPosBuilder();
   builder.init();
 
-  // Header: "Order #xxx" as single heading line
-  if (settings.showOrderNumber && data.orderReference) {
+  // Service type display (Table name or "Delivery") - large and bold
+  if (settings.showTableName && data.cartName) {
     builder.alignCenter();
     builder.doubleSize();
     builder.bold(true);
-    builder.text(`Order #${data.orderReference}`);
+    builder.text(formatServiceDisplay(data.cartName, data.serviceType));
     builder.bold(false);
     builder.normalSize();
+    builder.newline();
+  }
+
+  // Order number (smaller, below service type)
+  if (settings.showOrderNumber && data.orderReference) {
+    builder.alignCenter();
+    builder.text(`Order #${data.orderReference}`);
     builder.newline();
   }
 

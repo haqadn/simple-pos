@@ -23,10 +23,14 @@ export default function Buttons() {
         const order = orderQuery.data;
         if (!order) return null;
 
+        const shippingLine = order.shipping_lines?.find(s => s.method_title);
+        const isTable = shippingLine?.method_id === 'pickup_location';
+
         const printData: PrintJobData = {
             orderId: order.id,
             orderReference: order.id.toString(),
-            cartName: order.shipping_lines?.find(s => s.method_title)?.method_title || 'Order',
+            cartName: shippingLine?.method_title || 'Order',
+            serviceType: shippingLine ? (isTable ? 'table' : 'delivery') : undefined,
             orderTime: order.date_created,
             customerNote: order.customer_note,
             customer: {

@@ -55,6 +55,7 @@ export default function ThermalPrint() {
       orderId: data.orderId,
       orderReference: data.orderReference,
       cartName: data.cartName,
+      serviceType: data.serviceType,
       orderTime: data.orderTime,
       customer: data.customer,
       items: data.items,
@@ -77,6 +78,7 @@ export default function ThermalPrint() {
       orderId: data.orderId,
       orderReference: data.orderReference,
       cartName: data.cartName,
+      serviceType: data.serviceType,
       customerNote: data.customerNote,
       kotItems: data.kotItems,
     };

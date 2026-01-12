@@ -447,7 +447,7 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 		const shippingLine: ShippingLineSchema = {
 			method_id: service.type === 'table' ? 'pickup_location' : 'flat_rate',
 			instance_id: service.type === 'table' ? '0' : service.slug,
-			method_title: service.type === 'table' ? `Table (${service.title})` : service.title,
+			method_title: service.title,
 			total: service.fee.toString(),
 			total_tax: '0.00',
 			taxes: []
