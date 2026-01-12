@@ -296,7 +296,7 @@ export function SettingsModal({ isOpen, onOpenChange }: SettingsModalProps) {
                 </Tab>
                 <Tab key="printers" title="Printers">
                   <div className="py-4">
-                    <PrinterSettingsTab onSave={onClose} />
+                    <PrinterSettingsTab />
                   </div>
                 </Tab>
               </Tabs>

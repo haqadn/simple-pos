@@ -32,6 +32,9 @@ export default function Buttons() {
             customer: {
                 name: `${order.billing.first_name} ${order.billing.last_name}`.trim(),
                 phone: order.billing.phone,
+                address: [order.billing.address_1, order.billing.address_2, order.billing.city]
+                    .filter(Boolean)
+                    .join(', ') || undefined,
             },
         };
 

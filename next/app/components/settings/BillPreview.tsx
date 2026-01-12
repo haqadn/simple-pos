@@ -12,14 +12,14 @@ const SAMPLE_DATA = {
   cartName: 'T-05',
   orderReference: '12345',
   orderTime: new Date().toISOString(),
-  customer: { name: 'John Doe', phone: '+1234567890' },
+  customer: { name: 'John Doe', phone: '+1234567890', address: '123 Main St' },
   items: [
     { id: 1, name: 'Cappuccino', quantity: 2, price: 150 },
     { id: 2, name: 'Club Sandwich', quantity: 1, price: 280 },
     { id: 3, name: 'Chocolate Cake', quantity: 1, price: 180 },
   ],
   discountTotal: 50,
-  payment: 600,
+  payment: 700,
 };
 
 function humanizeCartName(name: string): string {
@@ -58,7 +58,7 @@ export function BillPreview({ customization, paperWidth }: BillPreviewProps) {
               src={customization.logo}
               alt="Logo"
               className="mx-auto"
-              style={{ maxWidth: '60%' }}
+              style={{ maxWidth: '80%' }}
             />
           </div>
         )}
@@ -78,6 +78,7 @@ export function BillPreview({ customization, paperWidth }: BillPreviewProps) {
           <div>
             {SAMPLE_DATA.customer.name} | {SAMPLE_DATA.customer.phone}
           </div>
+          <div>{SAMPLE_DATA.customer.address}</div>
           {customization.showOrderNumber && (
             <div>Invoice#: {SAMPLE_DATA.orderReference}</div>
           )}
@@ -94,25 +95,23 @@ export function BillPreview({ customization, paperWidth }: BillPreviewProps) {
 
         <div className="border-t border-dashed border-black my-1" />
 
-        {/* Items */}
-        <table className="w-full">
+        {/* Items - table format matching actual print */}
+        <table className="w-full text-[10px]">
           <thead>
-            <tr>
+            <tr className="font-bold">
               <td className="text-left">Item</td>
+              <td className="text-right">Qty</td>
+              <td className="text-right">Price</td>
               <td className="text-right">Total</td>
             </tr>
           </thead>
           <tbody>
             {SAMPLE_DATA.items.map((item) => (
               <tr key={item.id}>
-                <td>
-                  {item.name}
-                  <br />
-                  <span className="text-gray-600">
-                    {item.quantity} x {item.price}
-                  </span>
-                </td>
-                <td className="text-right align-top">{item.quantity * item.price}</td>
+                <td className="text-left">{item.name}</td>
+                <td className="text-right">{item.quantity}</td>
+                <td className="text-right">{item.price}</td>
+                <td className="text-right">{item.quantity * item.price}</td>
               </tr>
             ))}
           </tbody>

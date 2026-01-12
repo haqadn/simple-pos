@@ -65,7 +65,7 @@ export default function ThermalPrint() {
 
     const escposData = await renderBill(billData, {
       customization: config.bill,
-      paperWidth: config.paperWidth,
+      paperWidth: config.billPrinter.paperWidth || 80,
     });
 
     await sendToPrinter(config.billPrinter, escposData);
@@ -83,7 +83,7 @@ export default function ThermalPrint() {
 
     const escposData = renderKot(kotData, {
       settings: config.kot,
-      paperWidth: config.paperWidth,
+      paperWidth: config.kotPrinter.paperWidth || 80,
     });
 
     await sendToPrinter(config.kotPrinter, escposData);

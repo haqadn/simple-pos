@@ -83,6 +83,11 @@ export async function renderBill(
       .filter(Boolean)
       .join(' | ');
     builder.text(customerInfo).newline();
+
+    // Customer address
+    if (data.customer?.address) {
+      builder.text(data.customer.address).newline();
+    }
   }
 
   // Order reference

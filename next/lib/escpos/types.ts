@@ -5,6 +5,7 @@ export interface PrinterConnection {
   usbName?: string;
   networkHost?: string;
   networkPort?: number;
+  paperWidth?: 58 | 80;
 }
 
 export interface BillCustomization {
@@ -42,6 +43,7 @@ export interface BillData {
   customer?: {
     name?: string;
     phone?: string;
+    address?: string;
   };
   items?: Array<{
     id: number;
@@ -68,11 +70,11 @@ export interface KotData {
 }
 
 export const DEFAULT_PRINT_CONFIG: PrintConfig = {
-  billPrinter: { type: 'none' },
-  kotPrinter: { type: 'none' },
+  billPrinter: { type: 'none', paperWidth: 80 },
+  kotPrinter: { type: 'none', paperWidth: 80 },
   enableDrawer: true,
   drawerPulsePin: 2,
-  paperWidth: 80,
+  paperWidth: 80, // Kept for backwards compatibility
   bill: {
     headerText: '',
     footerText: 'Thank you for your visit!',
