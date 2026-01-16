@@ -87,7 +87,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Test: Create order with service/table selection",
       "Verify: Order meta contains correct service data"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 7,

@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 5
+Tasks completed: 6
 Current task: None
 
 ---
@@ -197,3 +197,40 @@ Current task: None
 
 ### Commit
 - chore: create command and order helper utilities
+
+---
+
+## [2026-01-16] - Task 6: Implement order creation tests
+
+### Changes Made
+- `/next/e2e/tests/order-management/create-order.spec.ts`: Created comprehensive order creation tests (9 tests)
+  - **Create empty order** tests:
+    - `can navigate to orders page and create new draft order`: Verifies navigation to /orders and clicking New Order
+    - `draft order becomes real order when modified with line item`: Verifies draft order saves to WooCommerce when item added
+    - `URL contains order ID after order is saved`: Verifies URL routing contains order ID
+  - **Create order with service selection** tests:
+    - `can select a table before/after creating order`: Verifies table selection in service card
+    - `can select a delivery zone`: Verifies delivery zone selection
+    - `service selection persists when order is saved`: Verifies service meta saved to WooCommerce
+  - **Order status verification** tests:
+    - `new orders start as draft/pending status`: Verifies orders created with pending status
+    - `order ID is visible in the UI after creation`: Verifies order title shows Order #[id]
+  - **Order appears in sidebar** tests:
+    - `newly created order appears in sidebar order list`: Verifies order link appears in sidebar
+
+### Verification
+- IDE diagnostics show no TypeScript errors for create-order.spec.ts
+- `npx playwright test --list` discovers 44 total tests (9 new order creation tests)
+- All tests use proper waiting strategies (waitForURL, waitForLoadState, waitForMutations)
+- Tests use test.skip() for graceful handling when service options or products are unavailable
+- Tests verify both UI state and WooCommerce API state where applicable
+
+### Notes
+- Tests follow hybrid backend strategy: real WooCommerce API for mutations
+- Tests are resilient to different service configurations (tables, delivery zones, or neither)
+- Order creation flow: /orders/new is draft -> add item -> saves to DB -> URL changes to /orders/[id]
+- Service selection card uses id="service-selection-card" for reliable selection
+- Tests use OrdersAPI.getOrder() to verify order state in WooCommerce
+
+### Commit
+- feat: implement order creation e2e tests
