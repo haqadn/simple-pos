@@ -35,7 +35,7 @@ Set up wp-env for self-contained E2E testing, seed WooCommerce with test product
       "Save credentials to .env.test file (gitignored)",
       "Add .env.test to .gitignore if not present"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 3,

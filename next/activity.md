@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 1
+Tasks completed: 2
 Current task: None
 
 ---
@@ -28,3 +28,28 @@ Current task: None
 
 ### Commit
 - chore: configure wp-env for E2E testing
+
+---
+
+## [2026-01-16] - Task 2: Create WooCommerce API credentials setup script
+
+### Changes Made
+- Created `/Users/adnan/Projects/simple-pos-e2e/next/e2e/scripts/setup-api-credentials.js`
+  - Uses wp-env run to execute WP-CLI commands inside the WordPress container
+  - Checks if wp-env is running before proceeding
+  - Generates WooCommerce REST API consumer key and secret using PHP eval
+  - Creates admin user if not exists
+  - Saves credentials to .env.test file with WC_CONSUMER_KEY, WC_CONSUMER_SECRET, WP_PORT, WP_BASE_URL
+  - Supports --force flag to regenerate existing credentials
+  - Idempotent: skips if valid credentials already exist
+- Updated `/Users/adnan/Projects/simple-pos-e2e/next/package.json`:
+  - Added `test:e2e:credentials` script to run the credentials setup
+
+### Verification
+- Validated JavaScript syntax with `node --check e2e/scripts/setup-api-credentials.js`
+- Validated package.json is valid JSON via Node.js require()
+- Ran script to confirm it properly detects when wp-env is not running and exits gracefully
+- Confirmed .env.test is already covered by existing `.env*` pattern in .gitignore (line 41)
+
+### Commit
+- chore: add WooCommerce API credentials setup script
