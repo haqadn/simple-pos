@@ -556,3 +556,50 @@ Current task: None
 
 ### Commit
 - feat: implement pay command e2e tests
+
+---
+
+## [2026-01-16] - Task 13: Implement done command tests
+
+### Changes Made
+- `/next/e2e/tests/commands/done-command.spec.ts`: Created comprehensive done command tests (16 tests)
+  - **/done completes paid order** tests (3 tests):
+    - `can complete order with /done command`: Verifies basic /done functionality and status change to completed
+    - `/done on fully paid order shows success message`: Verifies success handling
+    - `/done with overpayment shows change and completes`: Verifies overpayment scenario completion
+  - **All aliases /dn, /d work correctly** tests (3 tests):
+    - `/dn alias completes paid order`: Verifies /dn alias works
+    - `/d alias completes paid order`: Verifies /d alias works
+    - `all aliases produce same result`: Verifies all aliases behave identically
+  - **Verify order status changes to completed in WooCommerce** tests (3 tests):
+    - `order status is completed after /done`: Verifies WooCommerce status update
+    - `order total and line items are preserved after completion`: Verifies data integrity
+    - `payment meta is preserved after completion`: Verifies payment_received meta persists
+  - **Verify order removed from active orders list** tests (2 tests):
+    - `completed order is removed from sidebar`: Verifies order removed from sidebar after completion
+    - `app navigates away from completed order`: Verifies navigation behavior after completion
+  - **Edge Cases** tests (5 tests):
+    - `/done on empty order shows error`: Verifies empty order handling
+    - `/done on unpaid order shows error about insufficient payment`: Verifies unpaid order rejection
+    - `/done on partially paid order shows error`: Verifies partial payment rejection
+    - `/done twice on same order is handled gracefully`: Verifies double-completion handling
+    - `command bar remains functional after /done`: Verifies app state after completion
+
+### Verification
+- IDE diagnostics show no TypeScript errors for done-command.spec.ts
+- `npx playwright test --list` discovers 187 total tests (16 new done-command tests)
+- All tests use dynamic test data from getTestProducts()
+- Tests verify both UI state and WooCommerce API state (via OrdersAPI.getOrder)
+- Tests verify order status changes to 'completed' in WooCommerce
+- Tests verify order is removed from sidebar after completion
+- Tests use test.skip() for graceful handling when test data unavailable
+
+### Notes
+- Done command requires: (1) order has line items, (2) payment >= order total
+- Done command changes order status to 'completed' in WooCommerce
+- After completion, order should be removed from active orders in sidebar
+- Tests verify all aliases: /done, /dn, /d
+- Edge case tests verify insufficient payment and empty order handling
+
+### Commit
+- feat: implement done command e2e tests

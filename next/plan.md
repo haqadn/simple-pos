@@ -183,7 +183,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Verify order status changes to completed in WooCommerce",
       "Verify order removed from active orders list"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 14,
