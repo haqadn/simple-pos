@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 4
+Tasks completed: 5
 Current task: None
 
 ---
@@ -117,3 +117,32 @@ Current task: None
 
 ### Commit
 - chore: add dynamic wp-env port configuration for Playwright
+
+---
+
+## [2026-01-16] - Task 5: Create unified test setup script
+
+### Changes Made
+- Created `/Users/adnan/Projects/simple-pos-e2e/next/e2e/scripts/setup.js`
+  - Orchestrates full E2E test environment setup in 3 steps:
+    1. Check if wp-env is running, start if not
+    2. Check if API credentials exist in .env.test, create if not
+    3. Check if test products are seeded, seed if not
+  - Supports `--force` flag to regenerate all setup (credentials and products)
+  - Supports `--skip-env` flag to skip wp-env startup check
+  - Uses child process to run existing setup-api-credentials.js and seed-products.js scripts
+  - Includes HTTP client to check if test products exist via WooCommerce API
+  - Clear timestamped logging with prefixes (SETUP, OK, ERROR)
+  - Waits for wp-env to be ready before proceeding with credentials setup
+- Updated `/Users/adnan/Projects/simple-pos-e2e/next/package.json`:
+  - Added `test:e2e:setup` script to run the unified setup script
+  - Updated `test:e2e` to call setup.js before running playwright tests
+
+### Verification
+- Validated JavaScript syntax with `node --check e2e/scripts/setup.js` - passed
+- Validated package.json is valid JSON via Node.js require() - passed
+- Ran setup script with `--skip-env` flag to verify it properly orchestrates the flow
+- Confirmed script correctly delegates to setup-api-credentials.js and seed-products.js
+
+### Commit
+- chore: add unified E2E test setup script

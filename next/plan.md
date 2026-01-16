@@ -76,7 +76,7 @@ Set up wp-env for self-contained E2E testing, seed WooCommerce with test product
       "Add npm script test:e2e:setup",
       "Update test:e2e to call setup first"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 6,
