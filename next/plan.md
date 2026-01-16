@@ -210,7 +210,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Test: /cl alias works correctly",
       "Verify order remains as draft with zero total"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 16,

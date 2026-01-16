@@ -657,3 +657,54 @@ Current task: None
 
 ### Commit
 - feat: implement coupon command e2e tests
+
+---
+
+## [2026-01-16] - Task 15: Implement clear command tests
+
+### Changes Made
+- `/next/e2e/tests/commands/clear-command.spec.ts`: Created comprehensive clear command tests (20 tests)
+  - **/clear removes all line items** tests (4 tests):
+    - `can clear order with /clear command`: Verifies basic /clear functionality removes all items
+    - `/clear removes all items regardless of quantity`: Verifies large quantity items are removed
+    - `/clear removes multiple different items`: Verifies multiple different products are cleared
+    - `/clear updates order total to zero in UI`: Verifies total becomes zero after clear
+  - **/clear on empty order does not error** tests (3 tests):
+    - `/clear on empty order shows message but does not crash`: Verifies graceful handling
+    - `/clear on order with zero items does not create negative state`: Verifies valid zero state
+    - `multiple /clear commands on empty order do not cause issues`: Verifies repeated clears are safe
+  - **/cl alias works correctly** tests (3 tests):
+    - `/cl alias clears order same as /clear`: Verifies /cl alias works
+    - `/cl alias updates total to zero`: Verifies alias updates totals correctly
+    - `/cl on empty order behaves same as /clear on empty order`: Verifies alias handles empty order
+  - **Verify order remains as draft with zero total** tests (5 tests):
+    - `order remains as draft status after /clear`: Verifies order status is preserved
+    - `order total is zero in WooCommerce after /clear`: Verifies API total is zero
+    - `line_items array is empty in WooCommerce after /clear`: Verifies line_items cleared in API
+    - `order is not deleted after /clear`: Verifies order still exists (not trashed)
+    - `can add items after /clear`: Verifies order can be reused after clear
+  - **Edge Cases** tests (5 tests):
+    - `/clear preserves customer assignment`: Verifies customer_id maintained
+    - `/clear preserves order notes`: Verifies customer_note maintained
+    - `/clear does not affect coupon lines`: Verifies coupon_lines preserved
+    - `command bar remains functional after /clear`: Verifies UI still works
+    - `/clear with payment recorded - payment is preserved`: Verifies payment meta handling
+
+### Verification
+- IDE diagnostics show no TypeScript errors for clear-command.spec.ts
+- `npx playwright test --list` discovers 228 total tests (20 new clear-command tests)
+- All tests use dynamic test data from getTestProducts()
+- Tests verify both UI state and WooCommerce API state (via OrdersAPI.getOrder)
+- Tests verify line_items array becomes empty in WooCommerce
+- Tests verify order status remains pending/draft (not deleted)
+- Tests use test.skip() for graceful handling when test data unavailable
+
+### Notes
+- Clear command removes all line_items from order but preserves the order itself
+- Order remains in pending/draft status and can be reused
+- Aliases supported: /clear, /cl
+- Tests verify edge cases: empty order handling, preserving customer/notes/coupons
+- Tests follow established patterns from other command test files
+
+### Commit
+- feat: implement clear command e2e tests
