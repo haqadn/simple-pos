@@ -362,9 +362,9 @@ export const CommandShortcuts = {
 
   /**
    * Trigger print action
+   * @param type - 'bill' for customer receipt or 'kot' for kitchen order ticket
    */
-  async print(page: Page, type?: 'receipt' | 'kot'): Promise<void> {
-    const args = type ? [type] : [];
-    await executeCommand(page, 'print', args);
+  async print(page: Page, type: 'bill' | 'kot'): Promise<void> {
+    await executeCommand(page, 'print', [type]);
   },
 } as const;

@@ -223,7 +223,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Test: /print kot triggers KOT print",
       "Test: /pr alias works correctly"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 17,

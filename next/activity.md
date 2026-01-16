@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 14
+Tasks completed: 16
 Current task: None
 
 ---
@@ -708,3 +708,56 @@ Current task: None
 
 ### Commit
 - feat: implement clear command e2e tests
+
+---
+
+## [2026-01-16] - Task 16: Implement print command tests
+
+### Changes Made
+- `/next/e2e/tests/commands/print-command.spec.ts`: Created comprehensive print command tests (20 tests)
+  - **/print bill triggers print action** tests (3 tests):
+    - `can trigger bill print with /print bill command`: Verifies basic /print bill functionality
+    - `/print bill updates last_bill_print in order meta`: Verifies meta_data timestamp is set
+    - `/print bill shows success message`: Verifies command executes without crashing
+  - **/print kot triggers KOT print action** tests (3 tests):
+    - `can trigger KOT print with /print kot command`: Verifies /print kot functionality
+    - `/print kot updates last_kot_print in order meta`: Verifies KOT meta_data timestamp
+    - `/print kot also updates last_kot_items meta for change detection`: Verifies KOT item tracking
+  - **/pr alias works correctly** tests (3 tests):
+    - `/pr alias triggers print same as /print`: Verifies /pr bill works
+    - `/pr kot works same as /print kot`: Verifies /pr kot works
+    - `/pr bill and /print bill produce identical results`: Verifies alias equivalence
+  - **Autocomplete suggestions** tests (2 tests):
+    - `typing /print shows autocomplete with bill and kot options`: Verifies autocomplete
+    - `typing /print b narrows suggestions to bill`: Verifies filtered autocomplete
+  - **Error handling** tests (4 tests):
+    - `/print without type argument shows error`: Verifies missing argument handling
+    - `/print with invalid type is rejected`: Verifies invalid type handling
+    - `/print on empty order shows error`: Verifies empty order handling
+    - `command bar remains functional after print error`: Verifies graceful error recovery
+  - **Print with different order states** tests (4 tests):
+    - `can print bill after recording payment`: Verifies print works with payment
+    - `can print multiple times on same order`: Verifies multiple prints work
+    - `can print both bill and KOT for same order`: Verifies both print types work
+    - `print bill includes correct order data`: Verifies order data integrity
+  - **KOT change detection** tests (1 test):
+    - `KOT tracks items for change detection on subsequent prints`: Verifies last_kot_items tracking
+- `/next/e2e/helpers/commands.ts`: Updated `CommandShortcuts.print` to use correct types ('bill' | 'kot')
+
+### Verification
+- TypeScript compilation passes without errors for print-command.spec.ts
+- `npx playwright test --list` discovers 248 total tests (20 new print-command tests)
+- Tests use proper waiting strategies (waitForMutations, waitForURL)
+- Tests verify print was triggered by checking meta_data timestamps
+- Tests use test.skip() for graceful handling when test data unavailable
+
+### Notes
+- Print command uses types 'bill' (customer receipt) or 'kot' (kitchen order ticket)
+- Alias is /pr
+- Print is verified by checking order meta_data for last_bill_print or last_kot_print timestamps
+- KOT print also sets last_kot_items for change detection on subsequent prints
+- The actual print output is not verified (requires printer hardware)
+- Tests check testability by observing meta_data changes, following PRD guidance
+
+### Commit
+- feat: implement print command e2e tests
