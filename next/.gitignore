@@ -17,6 +17,9 @@
 /playwright/.cache/
 /e2e/.test-data-cache.json
 
+# wp-env
+/.wp-env-home/
+
 # next.js
 /.next/
 /out/

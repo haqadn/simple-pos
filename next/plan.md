@@ -1,7 +1,7 @@
 # Project Plan
 
 ## Overview
-Implement comprehensive Playwright E2E testing for Simple POS to prevent regressions, validate features, and catch edge cases. Tests use a hybrid approach: real WooCommerce API for order mutations, mocked responses for read-only operations.
+Set up wp-env for self-contained E2E testing, seed WooCommerce with test products, fix TypeScript errors, and verify tests run successfully.
 
 **Reference:** `PRD.md`
 
@@ -14,346 +14,155 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
   {
     "id": 1,
     "category": "setup",
-    "description": "Initialize Playwright and configure for Next.js",
+    "description": "Install and configure wp-env for E2E testing",
     "steps": [
-      "Install @playwright/test as dev dependency",
-      "Create playwright.config.ts with baseURL localhost:3000, Chromium browser, reasonable timeouts",
-      "Add e2e test scripts to package.json (test:e2e, test:e2e:ui, test:e2e:debug)",
-      "Create e2e/ directory structure: fixtures/, helpers/, tests/",
-      "Verify Playwright runs with a minimal smoke test"
+      "Install @wordpress/env as dev dependency",
+      "Create .wp-env.json with WordPress, WooCommerce, and Simple POS plugin",
+      "Configure automatic port selection",
+      "Add wp-env scripts to package.json (wp-env, wp-env:start, wp-env:stop)",
+      "Test that wp-env starts successfully and WooCommerce is active"
     ],
     "passes": true
   },
   {
     "id": 2,
     "category": "setup",
-    "description": "Create test fixtures and base test configuration",
+    "description": "Create WooCommerce API credentials setup script",
     "steps": [
-      "Create e2e/fixtures/test-base.ts with extended test fixture",
-      "Add POSPage helper class with common selectors and actions",
-      "Include command bar interaction methods (type command, execute, wait for result)",
-      "Add order page navigation and verification helpers",
-      "Export extended test and expect from fixtures"
+      "Create e2e/scripts/setup-api-credentials.js",
+      "Use wp-env run to execute WP-CLI commands",
+      "Generate WooCommerce REST API consumer key and secret",
+      "Save credentials to .env.test file (gitignored)",
+      "Add .env.test to .gitignore if not present"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 3,
     "category": "setup",
-    "description": "Implement dynamic test data fetching from WooCommerce",
+    "description": "Create product seeding script",
     "steps": [
-      "Create e2e/fixtures/test-data.ts for fetching real products",
-      "Implement getTestProducts() that fetches products with variations from WooCommerce API",
-      "Store simple product and variable product for test use",
-      "Add product SKU and variation ID extraction helpers",
-      "Use globalSetup to fetch and cache test data"
+      "Create e2e/scripts/seed-products.js",
+      "Read API credentials from .env.test",
+      "Implement idempotent product creation (check SKU before creating)",
+      "Create simple product: TEST-SIMPLE-001, price 25.00",
+      "Create variable product: TEST-VAR-001 with S/M/L variations",
+      "Add npm script test:e2e:seed"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 4,
     "category": "setup",
-    "description": "Create API mock factories for read-only endpoints",
+    "description": "Update Playwright config for dynamic wp-env port",
     "steps": [
-      "Create e2e/fixtures/api-mocks.ts with mock response factories",
-      "Implement mockProducts() with realistic product data",
-      "Implement mockCustomers() with sample customer data",
-      "Implement mockCoupons() with valid and invalid coupon scenarios",
-      "Add route interception setup helper for tests"
+      "Modify playwright.config.ts to read WP_PORT from environment",
+      "Create helper to detect wp-env port from .wp-env.json or CLI",
+      "Update webServer config to start both wp-env and Next.js",
+      "Ensure baseURL uses correct WordPress port for API calls",
+      "Test configuration with wp-env running on non-default port"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 5,
     "category": "setup",
-    "description": "Create command and order helper utilities",
+    "description": "Create unified test setup script",
     "steps": [
-      "Create e2e/helpers/commands.ts with command input helpers",
-      "Add executeCommand(command, args) helper",
-      "Add enterMultiInputMode() and exitMultiInputMode() helpers",
-      "Create e2e/helpers/orders.ts with order manipulation helpers",
-      "Add createNewOrder(), getOrderTotal(), getLineItems() helpers"
+      "Create e2e/scripts/setup.js that orchestrates full setup",
+      "Check if wp-env is running, start if not",
+      "Check if API credentials exist, create if not",
+      "Check if products are seeded, seed if not",
+      "Add npm script test:e2e:setup",
+      "Update test:e2e to call setup first"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 6,
-    "category": "feature",
-    "description": "Implement order creation tests",
+    "category": "fix",
+    "description": "Fix TypeScript errors in multi-input-mode.spec.ts",
     "steps": [
-      "Create e2e/tests/order-management/create-order.spec.ts",
-      "Test: Navigate to /orders and create new draft order",
-      "Verify: Draft order exists, URL contains order ID, status is draft",
-      "Test: Create order with service/table selection",
-      "Verify: Order meta contains correct service data"
+      "Remove parseInt() wrapper from OrdersAPI.getOrder() calls",
+      "orderId is already a string from getCurrentOrderId()",
+      "Verify no other type errors in file",
+      "Run tsc --noEmit to confirm fixes"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 7,
-    "category": "feature",
-    "description": "Implement line item add tests",
+    "category": "fix",
+    "description": "Fix TypeScript errors in customer-assignment.spec.ts",
     "steps": [
-      "Create e2e/tests/line-items/add-item.spec.ts",
-      "Test: Add item by SKU via /item command",
-      "Test: Add item with specific quantity /item SKU 5",
-      "Test: Add same item twice increments quantity",
-      "Test: Add variable product shows variation selector",
-      "Verify all scenarios persist to WooCommerce"
+      "Remove parseInt() wrapper from all OrdersAPI.getOrder() calls",
+      "Remove unused imports (mockCustomers, etc.)",
+      "Fix any other type errors in file",
+      "Run tsc --noEmit to confirm fixes"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 8,
-    "category": "feature",
-    "description": "Implement line item remove and update tests",
+    "category": "fix",
+    "description": "Fix TypeScript errors in clear-command.spec.ts",
     "steps": [
-      "Create e2e/tests/line-items/remove-item.spec.ts",
-      "Test: Remove item via /item SKU 0",
-      "Test: Remove last item leaves order empty",
-      "Create e2e/tests/line-items/update-quantity.spec.ts",
-      "Test: Update quantity via command and UI input",
-      "Test: Rapid quantity changes result in correct final value"
+      "Update Order type or cast to include customer_id property",
+      "Or change test to access customer_id via correct path",
+      "Verify no other type errors in file",
+      "Run tsc --noEmit to confirm fixes"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 9,
-    "category": "feature",
-    "description": "Implement line item edge case tests",
+    "category": "fix",
+    "description": "Fix TypeScript errors in item-command.spec.ts",
     "steps": [
-      "Create e2e/tests/line-items/edge-cases.spec.ts",
-      "Test: Invalid SKU shows appropriate error",
-      "Test: Negative quantity handling",
-      "Test: Very large quantity handling",
-      "Test: WooCommerce update pattern (delete then add) works correctly",
-      "Test: No duplicate or orphaned line items after updates"
+      "Fix .textContent() call on string array (suggestions already strings)",
+      "Remove unused imports (getLineItems, getFirstInStockVariation, etc.)",
+      "Fix unused posPage parameter in test",
+      "Run tsc --noEmit to confirm fixes"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 10,
-    "category": "feature",
-    "description": "Implement item command comprehensive tests",
+    "category": "fix",
+    "description": "Fix remaining TypeScript errors across all test files",
     "steps": [
-      "Create e2e/tests/commands/item-command.spec.ts",
-      "Test all input formats: /item SKU, /item SKU qty, /i alias",
-      "Test autocomplete suggestions appear for partial SKU",
-      "Test increment vs set behavior for existing items",
-      "Verify optimistic updates and final server state match"
+      "Run npx tsc --noEmit and collect all errors",
+      "Fix each error systematically",
+      "Remove all unused imports",
+      "Ensure all files compile without errors"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 11,
-    "category": "feature",
-    "description": "Implement multi-input mode tests",
+    "category": "testing",
+    "description": "Update test-data.ts to use wp-env API",
     "steps": [
-      "Create e2e/tests/commands/multi-input-mode.spec.ts",
-      "Test: /item with no args enters multi-input mode",
-      "Verify prompt changes to item>",
-      "Test: Rapid entry of multiple SKUs works correctly",
-      "Test: / exits multi-input mode",
-      "Verify all items added persist correctly"
+      "Update API base URL to use wp-env port",
+      "Read credentials from .env.test",
+      "Ensure getTestProducts() works with seeded products",
+      "Update globalSetup to work with new configuration",
+      "Test that dynamic test data fetching works"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 12,
-    "category": "feature",
-    "description": "Implement pay command tests",
-    "steps": [
-      "Create e2e/tests/commands/pay-command.spec.ts",
-      "Test: Record exact payment /pay 50.00",
-      "Test: Record partial payment shows balance",
-      "Test: Record overpayment shows change amount",
-      "Test: /p alias works correctly",
-      "Verify payment stored in order meta"
-    ],
-    "passes": true
-  },
-  {
-    "id": 13,
-    "category": "feature",
-    "description": "Implement done command tests",
-    "steps": [
-      "Create e2e/tests/commands/done-command.spec.ts",
-      "Test: /done completes paid order",
-      "Test: All aliases /dn, /d work correctly",
-      "Verify order status changes to completed in WooCommerce",
-      "Verify order removed from active orders list"
-    ],
-    "passes": true
-  },
-  {
-    "id": 14,
-    "category": "feature",
-    "description": "Implement coupon command tests",
-    "steps": [
-      "Create e2e/tests/commands/coupon-command.spec.ts",
-      "Test: Apply valid coupon updates totals",
-      "Test: Apply invalid coupon shows error",
-      "Test: Toggle coupon (apply then remove)",
-      "Test: Autocomplete shows matching coupons",
-      "Test: /c and /discount aliases work"
-    ],
-    "passes": true
-  },
-  {
-    "id": 15,
-    "category": "feature",
-    "description": "Implement clear command tests",
-    "steps": [
-      "Create e2e/tests/commands/clear-command.spec.ts",
-      "Test: /clear removes all line items",
-      "Test: /clear on empty order does not error",
-      "Test: /cl alias works correctly",
-      "Verify order remains as draft with zero total"
-    ],
-    "passes": true
-  },
-  {
-    "id": 16,
-    "category": "feature",
-    "description": "Implement print command tests",
-    "steps": [
-      "Create e2e/tests/commands/print-command.spec.ts",
-      "Add testability hook to app if needed (emit event or expose state)",
-      "Test: /print triggers print action",
-      "Test: /print kot triggers KOT print",
-      "Test: /pr alias works correctly"
-    ],
-    "passes": true
-  },
-  {
-    "id": 17,
-    "category": "feature",
-    "description": "Implement keyboard shortcuts tests",
-    "steps": [
-      "Create e2e/tests/keyboard-shortcuts/global-shortcuts.spec.ts",
-      "Test: Shortcut focuses command bar",
-      "Test: Shortcut creates new order",
-      "Create e2e/tests/keyboard-shortcuts/command-bar-shortcuts.spec.ts",
-      "Test: Enter executes, Escape clears, Up/Down navigate, Tab accepts"
-    ],
-    "passes": true
-  },
-  {
-    "id": 18,
-    "category": "feature",
-    "description": "Implement product search tests",
-    "steps": [
-      "Create e2e/tests/features/product-search.spec.ts",
-      "Test: Search by product name shows results",
-      "Test: Search by SKU shows matching product",
-      "Test: Click product adds to order",
-      "Test: No results shows empty state"
-    ],
-    "passes": true
-  },
-  {
-    "id": 19,
-    "category": "feature",
-    "description": "Implement customer assignment tests",
-    "steps": [
-      "Create e2e/tests/features/customer-assignment.spec.ts",
-      "Test: Search customer by name/email",
-      "Test: Select customer assigns to order",
-      "Test: Clear customer makes order guest",
-      "Verify customer_id in WooCommerce order"
-    ],
-    "passes": true
-  },
-  {
-    "id": 20,
-    "category": "feature",
-    "description": "Implement service/table selection tests",
-    "steps": [
-      "Create e2e/tests/features/service-selection.spec.ts",
-      "Test: Select dine-in service type",
-      "Test: Select table number",
-      "Test: Change service type updates order",
-      "Verify service meta in WooCommerce order"
-    ],
-    "passes": true
-  },
-  {
-    "id": 21,
-    "category": "feature",
-    "description": "Implement order notes tests",
-    "steps": [
-      "Create e2e/tests/features/notes.spec.ts",
-      "Test: Add order note",
-      "Test: Edit existing note",
-      "Test: Customer note vs order note distinction",
-      "Verify notes saved correctly in WooCommerce"
-    ],
-    "passes": true
-  },
-  {
-    "id": 22,
-    "category": "feature",
-    "description": "Implement multi-order management tests",
-    "steps": [
-      "Create e2e/tests/order-management/multi-order.spec.ts",
-      "Test: Create and switch between multiple orders",
-      "Test: Each order maintains independent state",
-      "Test: URL-based routing loads correct order",
-      "Test: Create order while another is open"
-    ],
-    "passes": true
-  },
-  {
-    "id": 23,
-    "category": "feature",
-    "description": "Implement order completion flow tests",
-    "steps": [
-      "Create e2e/tests/order-management/order-completion.spec.ts",
-      "Test: Complete fully paid order",
-      "Test: Handle partial payment scenario",
-      "Verify payment recorded correctly",
-      "Verify order removed from active list"
-    ],
-    "passes": true
-  },
-  {
-    "id": 24,
-    "category": "integration",
-    "description": "Implement full order flow integration test",
-    "steps": [
-      "Create e2e/tests/integration/full-order-flow.spec.ts",
-      "Test complete flow: service > create > customer > items > modify > remove > coupon > note > pay > done",
-      "Verify final order in WooCommerce matches all inputs",
-      "Assert no console errors throughout flow",
-      "Document as the primary smoke test for CI"
-    ],
-    "passes": true
-  },
-  {
-    "id": 25,
     "category": "testing",
-    "description": "Add custom assertions and improve test reliability",
+    "description": "Run full test suite and fix any runtime issues",
     "steps": [
-      "Create e2e/helpers/assertions.ts with custom matchers",
-      "Add toHaveLineItem(), toHaveTotal(), toHavePayment() assertions",
-      "Review all tests for proper waiting strategies",
-      "Replace any arbitrary waits with proper element/network waits",
-      "Run full test suite and fix any flaky tests"
+      "Run npm run test:e2e with wp-env running",
+      "Identify and fix any failing tests due to environment",
+      "Ensure seeded products are found by tests",
+      "Verify API calls use correct credentials",
+      "Document any tests that need adjustment"
     ],
-    "passes": true
-  },
-  {
-    "id": 26,
-    "category": "documentation",
-    "description": "Document test suite and add debugging support",
-    "steps": [
-      "Update next/README.md with E2E testing instructions",
-      "Configure screenshot on failure",
-      "Configure trace recording for debugging",
-      "Add console log capture to test reports",
-      "Document how to run specific test files and debug failures"
-    ],
-    "passes": true
+    "passes": false
   }
 ]
 ```
