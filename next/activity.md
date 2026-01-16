@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 11
+Tasks completed: 12
 Current task: None
 
 ---
@@ -503,3 +503,56 @@ Current task: None
 
 ### Commit
 - feat: implement multi-input mode e2e tests
+
+---
+
+## [2026-01-16] - Task 12: Implement pay command tests
+
+### Changes Made
+- `/next/e2e/tests/commands/pay-command.spec.ts`: Created comprehensive pay command tests (21 tests)
+  - **Record exact payment /pay amount** tests (3 tests):
+    - `can record payment with /pay command`: Verifies basic /pay amount functionality
+    - `/pay with exact amount shows zero change/balance`: Verifies exact payment results in zero balance
+    - `/pay with amount records payment correctly in UI`: Verifies payment displayed in UI
+  - **Record partial payment shows balance** tests (3 tests):
+    - `partial payment shows remaining balance`: Verifies partial payment and balance calculation
+    - `partial payment shows "Short" or balance indicator`: Verifies balance indicator display
+    - `can add multiple partial payments`: Verifies payment replacement behavior
+  - **Record overpayment shows change amount** tests (3 tests):
+    - `overpayment shows positive change amount`: Verifies change calculation on overpayment
+    - `large overpayment shows correct change`: Verifies change with round number payments
+    - `paying double the amount shows correct change`: Verifies doubling payment gives correct change
+  - **/p alias works correctly** tests (3 tests):
+    - `/p alias records payment same as /pay`: Verifies /p alias basic functionality
+    - `/p with partial amount works correctly`: Verifies /p with partial payment
+    - `/p with overpayment works correctly`: Verifies /p with overpayment
+  - **Verify payment stored in order meta** tests (3 tests):
+    - `payment is saved to WooCommerce order meta_data`: Verifies payment_received in meta_data
+    - `payment meta updates correctly on subsequent /pay commands`: Verifies meta updates on changes
+    - `UI payment amount matches server meta_data value`: Verifies UI/server consistency
+  - **Edge Cases** tests (6 tests):
+    - `/pay with zero amount is handled`: Verifies zero payment handling
+    - `/pay without amount does not crash`: Verifies empty argument handling
+    - `/pay with negative amount is rejected`: Verifies negative amount rejection
+    - `/pay with decimal amount works correctly`: Verifies decimal (45.67) handling
+    - `/pay with very large amount is handled`: Verifies large payment (99999.99)
+    - `/pay on empty order is handled gracefully`: Verifies payment on empty order
+
+### Verification
+- IDE diagnostics show no TypeScript errors for pay-command.spec.ts
+- `npx playwright test --list` discovers 171 total tests (21 new pay-command tests)
+- Test file follows established patterns from existing command test files
+- All tests use dynamic test data from getTestProducts()
+- Tests verify both UI state and WooCommerce API state (via OrdersAPI.getOrder)
+- Tests verify payment_received meta_data key in WooCommerce order
+- Tests use test.skip() for graceful handling when test data unavailable
+
+### Notes
+- Pay command stores payment in order meta_data with key `payment_received`
+- Payment is set (not additive) - each /pay command replaces the previous payment amount
+- Change/Short is calculated as payment - total in the UI
+- /p alias works identically to /pay
+- Tests cover: exact payment, partial payment, overpayment, alias, meta storage, edge cases
+
+### Commit
+- feat: implement pay command e2e tests

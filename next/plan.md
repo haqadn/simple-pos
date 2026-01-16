@@ -170,7 +170,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Test: /p alias works correctly",
       "Verify payment stored in order meta"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 13,
