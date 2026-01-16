@@ -50,8 +50,11 @@ async function globalSetup(config: FullConfig) {
     console.error('Global Setup Failed');
     console.error('========================================');
     console.error(error);
-    console.error('\nEnsure WooCommerce is running and accessible.');
-    console.error('API URL:', 'https://wordpress.simple-pos.orb.local/wp-json/wc/v3');
+    console.error('\nEnsure:');
+    console.error('1. wp-env is running: npm run wp-env:start');
+    console.error('2. API credentials exist: npm run test:e2e:credentials');
+    console.error('3. Test products are seeded: npm run test:e2e:seed');
+    console.error('\nOr run: npm run test:e2e:setup (does all of the above)');
     console.error('========================================\n');
 
     // Try to use stale cache as fallback

@@ -62,7 +62,7 @@ Set up wp-env for self-contained E2E testing, seed WooCommerce with test product
       "Ensure baseURL uses correct WordPress port for API calls",
       "Test configuration with wp-env running on non-default port"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 5,

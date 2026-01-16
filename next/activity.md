@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 3
+Tasks completed: 4
 Current task: None
 
 ---
@@ -79,3 +79,41 @@ Current task: None
 
 ### Commit
 - chore: add WooCommerce product seeding script
+
+---
+
+## [2026-01-16] - Task 4: Update Playwright config for dynamic wp-env port
+
+### Changes Made
+- Created `/Users/adnan/Projects/simple-pos-e2e/next/e2e/helpers/wp-env-config.ts`
+  - Helper module for reading wp-env configuration from .env.test
+  - Exports `loadEnvTestConfig()` to parse .env.test file
+  - Exports `getWpEnvPortFromCli()` to detect wp-env port from running instance
+  - Exports `isWpEnvRunning()` to check if wp-env is running
+  - Exports `getWpEnvConfig()` to get full WooCommerce API config
+  - Exports `getWpPort()` and `getWpBaseUrl()` for use in playwright.config.ts
+- Updated `/Users/adnan/Projects/simple-pos-e2e/next/playwright.config.ts`
+  - Added import for wp-env-config helper
+  - Added WP_PORT and WP_BASE_URL constants from dynamic config
+  - Added documentation for environment setup steps
+  - Updated webServer to array with both wp-env and Next.js servers
+  - wp-env server starts WordPress and waits for /wp-admin/ to be available
+  - Next.js server receives WP_PORT and WP_BASE_URL environment variables
+- Updated `/Users/adnan/Projects/simple-pos-e2e/next/e2e/fixtures/test-data.ts`
+  - Removed hardcoded API_CONFIG with static credentials
+  - Added import for wp-env-config helper
+  - Created getApiConfig() function to load credentials from .env.test
+  - Updated createApiClient() to use dynamic configuration
+  - Added helpful error message when credentials are missing
+- Updated `/Users/adnan/Projects/simple-pos-e2e/next/e2e/global-setup.ts`
+  - Updated error message to include setup instructions instead of hardcoded URL
+
+### Verification
+- Ran `npx tsc --noEmit --skipLibCheck playwright.config.ts` - passed, no TypeScript errors
+- Ran `npx tsc --noEmit --skipLibCheck e2e/helpers/wp-env-config.ts` - passed
+- Ran `npx tsc --noEmit --skipLibCheck e2e/fixtures/test-data.ts` - passed
+- Ran `npx tsc --noEmit --skipLibCheck e2e/global-setup.ts` - passed
+- Ran `npx playwright test --list` - successfully listed all tests, confirming config loads correctly
+
+### Commit
+- chore: add dynamic wp-env port configuration for Playwright

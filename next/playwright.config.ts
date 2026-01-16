@@ -1,8 +1,17 @@
 import { defineConfig, devices } from '@playwright/test';
+import { getWpPort, getWpBaseUrl } from './e2e/helpers/wp-env-config';
 
 /**
  * Playwright configuration for Simple POS E2E tests
  * @see https://playwright.dev/docs/test-configuration
+ *
+ * Environment Setup:
+ * 1. Run `npm run wp-env:start` to start WordPress with wp-env
+ * 2. Run `npm run test:e2e:credentials` to generate API credentials
+ * 3. Run `npm run test:e2e:seed` to seed test products
+ * 4. Run `npm run test:e2e` to execute tests
+ *
+ * Or use `npm run test:e2e:setup` to run steps 1-3 automatically.
  *
  * Debugging Features:
  * - Screenshots: Captured on every failure (see test-results/)
@@ -15,6 +24,11 @@ import { defineConfig, devices } from '@playwright/test';
  *   npm run test:e2e:ui       # UI mode with time-travel
  *   npm run test:e2e:trace    # Force trace recording on all tests
  */
+
+// Get WordPress port from .env.test or environment
+const WP_PORT = getWpPort();
+const WP_BASE_URL = getWpBaseUrl();
+
 export default defineConfig({
   // Global setup - fetches test data from WooCommerce before tests run
   globalSetup: require.resolve('./e2e/global-setup'),
@@ -104,16 +118,33 @@ export default defineConfig({
     // },
   ],
 
-  // Web server configuration - start Next.js dev server before tests
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000, // 2 minutes to start
-    // Capture server stdout/stderr for debugging server issues
-    stdout: 'pipe',
-    stderr: 'pipe',
-  },
+  // Web server configuration
+  // Start both wp-env (WordPress) and Next.js dev server before tests
+  webServer: [
+    // WordPress via wp-env
+    {
+      command: 'npm run wp-env:start',
+      url: `${WP_BASE_URL}/wp-admin/`,
+      reuseExistingServer: true, // Always reuse if already running
+      timeout: 180000, // 3 minutes for WordPress to start
+      stdout: 'pipe',
+      stderr: 'pipe',
+    },
+    // Next.js frontend
+    {
+      command: 'npm run dev',
+      url: 'http://localhost:3000',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000, // 2 minutes to start
+      stdout: 'pipe',
+      stderr: 'pipe',
+      // Set WP_PORT environment variable for the Next.js server
+      env: {
+        WP_PORT,
+        WP_BASE_URL,
+      },
+    },
+  ],
 
   // Output folder for test artifacts (screenshots, traces, videos)
   outputDir: 'test-results',
