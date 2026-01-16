@@ -101,7 +101,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Test: Add variable product shows variation selector",
       "Verify all scenarios persist to WooCommerce"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 8,

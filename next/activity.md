@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 6
+Tasks completed: 7
 Current task: None
 
 ---
@@ -234,3 +234,49 @@ Current task: None
 
 ### Commit
 - feat: implement order creation e2e tests
+
+---
+
+## [2026-01-16] - Task 7: Implement line item add tests
+
+### Changes Made
+- `/next/e2e/tests/line-items/add-item.spec.ts`: Created comprehensive line item add tests (15 tests)
+  - **Add item by SKU via command** tests:
+    - `can add item by SKU using /item command`: Verifies basic /item SKU functionality
+    - `item command with SKU adds item with quantity 1`: Verifies default quantity is 1
+  - **Add item with specific quantity** tests:
+    - `can add item with specific quantity using /item SKU qty`: Verifies quantity specification
+    - `/item SKU 3 adds item with quantity 3`: Verifies quantity parsing
+  - **Add same item twice increments quantity** tests:
+    - `adding same item twice increments quantity`: Verifies increment behavior
+    - `adding item twice without quantity increments by 1 each time`: Verifies sequential increments
+  - **Add variable product** tests:
+    - `adding variable product shows variation selector`: Tests variable product handling
+    - `can add variation product by variation SKU`: Tests direct variation SKU entry
+  - **Persistence to WooCommerce** tests:
+    - `added item persists to WooCommerce order`: Verifies API persistence
+    - `item with quantity persists correct quantity to WooCommerce`: Verifies quantity persistence
+    - `multiple items persist correctly to WooCommerce`: Verifies multi-item orders
+    - `order total updates correctly when item is added`: Verifies total calculation
+  - **Add item via autocomplete** tests:
+    - `can add item by selecting from autocomplete suggestions`: Tests autocomplete flow
+  - **Item command aliases** tests:
+    - `/i alias works the same as /item`: Verifies /i alias
+    - `/i SKU qty adds item with specified quantity`: Verifies alias with quantity
+
+### Verification
+- IDE diagnostics show no TypeScript errors for add-item.spec.ts
+- `npx playwright test --list` discovers 59 total tests (15 new add-item tests)
+- All tests use dynamic test data from getTestProducts()
+- Tests verify both UI state and WooCommerce API state
+- Tests use test.skip() for graceful handling when products or variations unavailable
+
+### Notes
+- Tests follow hybrid backend strategy: real WooCommerce API for order mutations
+- Line item tests verify persistence via OrdersAPI.getOrder()
+- Tests handle both simple and variable products
+- Variable product tests use getFirstInStockVariation() to find testable variations
+- Tests are resilient and skip gracefully when required test data is unavailable
+
+### Commit
+- feat: implement line item add e2e tests
