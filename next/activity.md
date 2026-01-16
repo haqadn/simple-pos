@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 8
+Tasks completed: 9
 Current task: None
 
 ---
@@ -202,3 +202,26 @@ Current task: None
 
 ### Commit
 - fix: add customer_id to OrderSchema to fix clear-command.spec.ts TypeScript errors
+
+---
+
+## [2026-01-16] - Task 9: Fix TypeScript errors in item-command.spec.ts
+
+### Changes Made
+- Updated `/Users/adnan/Projects/simple-pos-e2e/next/e2e/tests/commands/item-command.spec.ts`:
+  - Fixed `.textContent()` call on string array (lines 318-324)
+    - `posPage.getAutocompleteSuggestions()` returns `Promise<string[]>` (already text content)
+    - Removed unnecessary `Promise.all()` with `map(s => s.textContent())`
+    - Changed to use `suggestions.some()` directly since suggestions are already strings
+    - Added explicit `text: string` type annotation to fix implicit any error
+  - Removed unused imports:
+    - `getLineItems` - not used anywhere in the file
+    - `getFirstInStockVariation` - not used anywhere in the file
+    - `selectAutocompleteSuggestionByIndex` - not used anywhere in the file
+
+### Verification
+- Ran `npx tsc --noEmit 2>&1 | grep "item-command.spec.ts"` - no errors returned
+- Both TypeScript errors in item-command.spec.ts are now fixed
+
+### Commit
+- fix: resolve TypeScript errors in item-command.spec.ts

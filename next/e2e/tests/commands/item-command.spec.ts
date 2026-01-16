@@ -14,7 +14,6 @@ import {
   gotoNewOrder,
   waitForMutations,
   getCurrentOrderId,
-  getLineItems,
   getLineItem,
   hasLineItem,
   getLineItemCount,
@@ -25,7 +24,6 @@ import {
   getTestProducts,
   getTestSku,
   getTestPrice,
-  getFirstInStockVariation,
 } from '../../fixtures';
 import {
   executeCommand,
@@ -33,7 +31,6 @@ import {
   typePartialCommand,
   waitForAutocomplete,
   getAutocompleteSuggestionTexts,
-  selectAutocompleteSuggestionByIndex,
   acceptAutocompleteSuggestion,
   CommandShortcuts,
 } from '../../fixtures';
@@ -315,12 +312,10 @@ test.describe('Item Command', () => {
         expect(suggestions.length).toBeGreaterThan(0);
 
         // At least one suggestion should match our product
-        const suggestionTexts = await Promise.all(
-          suggestions.map(s => s.textContent())
-        );
-        const hasMatchingSuggestion = suggestionTexts.some(
-          text => text?.toLowerCase().includes(sku.toLowerCase()) ||
-                  text?.toLowerCase().includes(product.name.toLowerCase())
+        // suggestions is already string[] from getAutocompleteSuggestions()
+        const hasMatchingSuggestion = suggestions.some(
+          (text: string) => text.toLowerCase().includes(sku.toLowerCase()) ||
+                  text.toLowerCase().includes(product.name.toLowerCase())
         );
         expect(hasMatchingSuggestion).toBe(true);
       } catch {
