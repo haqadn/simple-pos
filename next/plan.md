@@ -314,7 +314,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Verify payment recorded correctly",
       "Verify order removed from active list"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 24,

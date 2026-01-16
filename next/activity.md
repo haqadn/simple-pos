@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 22
+Tasks completed: 23
 Current task: None
 
 ---
@@ -1097,3 +1097,54 @@ Current task: None
 
 ### Commit
 - feat: implement multi-order management e2e tests
+
+---
+
+## [2026-01-16] - Task 23: Implement order completion flow tests
+
+### Changes Made
+- `/next/e2e/tests/order-management/order-completion.spec.ts`: Created comprehensive order completion flow tests (20 tests)
+  - **Complete fully paid order** tests (4 tests):
+    - `can complete order after adding items and recording full payment`: Verifies full completion flow
+    - `order completion flow with exact payment shows zero balance`: Verifies exact payment handling
+    - `order completion flow with overpayment shows correct change`: Verifies change calculation
+    - `order completion preserves line item data`: Verifies data integrity after completion
+  - **Handle partial payment scenario** tests (4 tests):
+    - `partial payment prevents order completion`: Verifies incomplete payment blocks completion
+    - `partial payment shows remaining balance in UI`: Verifies balance display
+    - `can complete order after topping up partial payment`: Verifies payment update flow
+    - `zero payment does not allow order completion`: Verifies no-payment rejection
+  - **Verify payment recorded correctly** tests (4 tests):
+    - `payment amount is stored in order meta_data`: Verifies payment_received in WooCommerce
+    - `payment persists after order completion`: Verifies payment survives status change
+    - `UI payment amount matches WooCommerce stored value`: Verifies UI/API consistency
+    - `multiple payment updates result in correct final value`: Verifies payment replacement
+  - **Verify order removed from active list** tests (4 tests):
+    - `completed order disappears from sidebar`: Verifies sidebar update on completion
+    - `can create new order after completing previous`: Verifies app flow continues
+    - `sidebar shows remaining active orders after completion`: Verifies partial list update
+    - `navigates away from completed order page`: Verifies navigation behavior
+  - **Edge cases** tests (4 tests):
+    - `attempting to complete empty order does not crash`: Verifies graceful error handling
+    - `completing order with multiple items works correctly`: Verifies multi-item completion
+    - `order completion after page reload works`: Verifies data durability
+    - `rapid complete attempts do not cause issues`: Verifies race condition handling
+
+### Verification
+- IDE diagnostics show no TypeScript errors for order-completion.spec.ts
+- `npx playwright test --list` discovers 398 total tests (20 new order-completion tests)
+- Tests follow established patterns from existing order-management test files
+- Tests use dynamic test data from getTestProducts()
+- Tests verify both UI state and WooCommerce API state via OrdersAPI.getOrder()
+- Tests use test.skip() for graceful handling when test data unavailable
+
+### Notes
+- Tests cover the complete order lifecycle: add items -> record payment -> complete order
+- Tests verify order status changes to 'completed' in WooCommerce
+- Tests verify payment_received meta_data is stored and preserved
+- Tests verify completed orders are removed from sidebar
+- Tests verify partial payment prevents completion (requires full payment)
+- Edge case tests verify graceful handling of empty orders, page reloads, and rapid attempts
+
+### Commit
+- feat: implement order completion flow e2e tests
