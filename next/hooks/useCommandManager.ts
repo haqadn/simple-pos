@@ -169,7 +169,7 @@ export function useCommandManager() {
     // Find customer command and set callback
     const registry = (managerRef.current as unknown as { registry: { getCommand: (k: string) => unknown } }).registry;
     const customerCommand = registry?.getCommand('customer');
-    if (customerCommand && 'setSuggestionsCallback' in customerCommand) {
+    if (customerCommand && typeof customerCommand === 'object' && customerCommand !== null && 'setSuggestionsCallback' in customerCommand) {
       (customerCommand as { setSuggestionsCallback: (cb: () => void) => void }).setSuggestionsCallback(callback);
     }
   }, []);
