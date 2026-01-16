@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 4
+Tasks completed: 5
 Current task: None
 
 ---
@@ -145,3 +145,55 @@ Current task: None
 
 ### Commit
 - chore: create API mock factories for read-only endpoints
+
+---
+
+## [2026-01-16] - Task 5: Create command and order helper utilities
+
+### Changes Made
+- `/next/e2e/helpers/commands.ts`: Created standalone command input helper utilities
+  - `executeCommand(page, command, args)`: Execute a command with optional arguments
+  - `executeCommandAndWait()`: Execute command and wait for network to settle
+  - `typePartialCommand()`: Type command without executing (for autocomplete testing)
+  - `clearCommandInput()`, `escapeCommandBar()`: Command bar cleanup utilities
+  - `getPromptText()`: Get current prompt text (e.g., ">", "item>")
+  - `enterMultiInputMode(page, command)`: Enter multi-input mode for a command
+  - `exitMultiInputMode(page)`: Exit multi-input mode by typing /
+  - `isInMultiInputMode(page)`: Check if currently in multi-input mode
+  - `executeMultiModeEntry()`: Execute entry in multi-input mode
+  - Autocomplete helpers: `waitForAutocomplete()`, `getAutocompleteSuggestionTexts()`, `selectAutocompleteSuggestionByIndex()`, `acceptAutocompleteSuggestion()`, `navigateAutocomplete()`
+  - Locator helpers: `getCommandInput()`, `getAutocompleteDropdown()`, `getAutocompleteSuggestions()`
+  - String utilities: `buildCommandString()`, `parseCommandString()`
+  - `CommandShortcuts` object with convenient helpers: `addItem()`, `removeItem()`, `recordPayment()`, `completeOrder()`, `clearOrder()`, `applyCoupon()`, `print()`
+  - Exported `COMMAND_BAR_SELECTORS` constant for direct selector access
+- `/next/e2e/helpers/orders.ts`: Created standalone order manipulation helper utilities
+  - Navigation: `gotoOrders()`, `gotoOrder()`, `gotoNewOrder()`, `createNewOrder()`
+  - Order page: `waitForOrderPageReady()`, `getCurrentOrderId()`, `verifyOnOrderPage()`
+  - Line items: `getLineItems()`, `getLineItemCount()`, `getLineItem()`, `hasLineItem()`, `getLineItemQuantityInput()`, `updateLineItemQuantity()`
+  - Payment: `getOrderTotal()`, `getPaymentAmount()`, `getChangeAmount()`, `getOrderBalance()`, `isOrderPaid()`, `enterPayment()`, `clickQuickPayment()`
+  - Sidebar: `getOrderLinksFromSidebar()`, `clickOrderInSidebar()`
+  - Summary: `getOrderSummary()` returns combined order info
+  - `OrderVerify` object with assertion helpers: `lineItemCount()`, `lineItem()`, `noLineItem()`, `total()`, `isPaid()`, `isNotPaid()`, `balance()`, `isEmpty()`, `onOrderPage()`
+  - `ServiceSelection` object: `selectTable()`, `selectDeliveryZone()`, `getSelectedService()`, `isServiceCardVisible()`
+  - Utility: `waitForMutations()`, `screenshot()`
+  - Exported `ORDER_SELECTORS` constant for direct selector access
+  - Type definitions: `LineItem`, `OrderSummary`
+- `/next/e2e/helpers/index.ts`: Created index file exporting all helpers
+- `/next/e2e/fixtures/index.ts`: Updated to re-export all helpers for convenience
+
+### Verification
+- IDE diagnostics show no TypeScript errors for commands.ts, orders.ts, and index.ts
+- `npx playwright test --list` continues to discover all 35 existing tests
+- All helper functions are exported and importable from both `../helpers` and `../fixtures`
+- Helpers are standalone (use Page object) and complement the POSPage class methods
+
+### Notes
+- Helpers are standalone utilities that use Playwright Page object directly
+- Can be used alongside or instead of POSPage class methods
+- `CommandShortcuts` provides quick access to common command operations
+- `OrderVerify` provides expect-based assertions for order validation
+- `ServiceSelection` provides table/delivery zone selection helpers
+- All helpers follow the same selector patterns as POSPage for consistency
+
+### Commit
+- chore: create command and order helper utilities

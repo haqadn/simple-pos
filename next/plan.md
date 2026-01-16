@@ -74,7 +74,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Create e2e/helpers/orders.ts with order manipulation helpers",
       "Add createNewOrder(), getOrderTotal(), getLineItems() helpers"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 6,

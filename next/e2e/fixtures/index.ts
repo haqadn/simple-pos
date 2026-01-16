@@ -7,9 +7,13 @@
  *   import { test, expect, POSPage } from '../fixtures';
  *   import { getTestProducts, getTestSku, getTestPrice } from '../fixtures';
  *   import { setupMockRoutes, mockProducts, mockCustomers, mockCoupons } from '../fixtures';
+ *   import { executeCommand, createNewOrder, getOrderTotal } from '../fixtures';
  */
 
 export { test, expect, POSPage } from './test-base';
+
+// Re-export all helpers for convenience
+export * from '../helpers';
 
 // Test data exports
 export {
