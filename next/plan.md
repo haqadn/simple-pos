@@ -35,7 +35,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Add order page navigation and verification helpers",
       "Export extended test and expect from fixtures"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 3,

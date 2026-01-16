@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 1
+Tasks completed: 2
 Current task: None
 
 ---
@@ -27,3 +27,39 @@ Current task: None
 
 ### Commit
 - chore: initialize Playwright e2e testing setup
+
+---
+
+## [2026-01-16] - Task 2: Create test fixtures and base test configuration
+
+### Changes Made
+- `/next/e2e/fixtures/test-base.ts`: Created extended test fixture with POSPage helper class
+  - POSPage class with common selectors for command bar, order page, sidebar, service selection
+  - Command bar interaction methods: focusCommandBar, typeCommand, executeCommand, clearCommandInput
+  - Autocomplete methods: waitForAutocomplete, getAutocompleteSuggestions, selectAutocompleteSuggestion
+  - Multi-input mode methods: enterMultiInputMode, exitMultiInputMode, isInMultiInputMode
+  - Navigation methods: gotoOrders, gotoOrder, gotoNewOrder, createNewOrder
+  - Line item methods: getLineItems, getLineItem, hasLineItem, updateLineItemQuantity
+  - Order verification methods: getCurrentOrderId, verifyOnOrderPage, verifyLineItemCount, verifyLineItem
+  - Payment methods: getOrderTotal, getPaymentAmount, getChangeAmount, isOrderPaid, enterPayment
+  - Service selection methods: selectTable, selectDeliveryZone, getSelectedService
+  - Sidebar methods: getOrderLinksFromSidebar, clickOrderInSidebar
+  - Extended test fixture that provides posPage to all tests
+- `/next/e2e/fixtures/index.ts`: Export file for clean imports
+- `/next/e2e/tests/fixtures.spec.ts`: Verification tests for the fixtures
+
+### Verification
+- TypeScript compilation passes with no errors
+- IDE diagnostics show no errors for test-base.ts and fixtures.spec.ts
+- `npx playwright test --list` discovers 7 tests (5 new fixture tests + 2 smoke tests)
+- Fixture tests verify: posPage availability, navigation, command bar locators, sidebar locators, order creation
+
+### Notes
+- POSPage uses aria-labels and data-testid where available for reliable element selection
+- Command bar input is identified by aria-label="Command input field"
+- Service selection card uses id="service-selection-card"
+- Line items table uses aria-label="Order line items"
+- Payment table uses aria-label="Payment details"
+
+### Commit
+- chore: create test fixtures and POSPage helper class
