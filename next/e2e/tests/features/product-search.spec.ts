@@ -355,7 +355,7 @@ test.describe('Product Search', () => {
       const url = page.url();
       const match = url.match(/\/orders\/(\d+)/);
       expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const orderId = match![1];
 
       // Verify in WooCommerce
       const savedOrder = await OrdersAPI.getOrder(orderId);

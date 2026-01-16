@@ -277,7 +277,7 @@ test.describe('Order Creation', () => {
         const savedOrder = await OrdersAPI.getOrder(orderId);
         expect(savedOrder).toBeTruthy();
         // Order should have shipping_lines if service was selected
-        if (savedOrder.shipping_lines && savedOrder.shipping_lines.length > 0) {
+        if (savedOrder && savedOrder.shipping_lines && savedOrder.shipping_lines.length > 0) {
           expect(savedOrder.shipping_lines.length).toBeGreaterThan(0);
         }
       } catch {
@@ -312,7 +312,7 @@ test.describe('Order Creation', () => {
         const savedOrder = await OrdersAPI.getOrder(orderId);
         expect(savedOrder).toBeTruthy();
         // New orders should be in pending status
-        expect(['pending', 'processing', 'on-hold']).toContain(savedOrder.status);
+        expect(['pending', 'processing', 'on-hold']).toContain(savedOrder!.status);
       } catch {
         test.skip(true, 'Could not create order to verify status - skipping test');
       }

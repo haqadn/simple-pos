@@ -136,7 +136,7 @@ Set up wp-env for self-contained E2E testing, seed WooCommerce with test product
       "Remove all unused imports",
       "Ensure all files compile without errors"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 11,

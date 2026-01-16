@@ -405,12 +405,12 @@ test.describe('Multi-Order Management', () => {
 
       // Verify via API
       const apiFirstOrder = await OrdersAPI.getOrder(firstOrderId);
-      expect(apiFirstOrder.line_items.length).toBe(1);
-      expect(apiFirstOrder.line_items[0].quantity).toBe(2);
+      expect(apiFirstOrder!.line_items.length).toBe(1);
+      expect(apiFirstOrder!.line_items[0].quantity).toBe(2);
 
       const apiSecondOrder = await OrdersAPI.getOrder(secondOrderId);
-      expect(apiSecondOrder.line_items.length).toBe(1);
-      expect(apiSecondOrder.line_items[0].quantity).toBe(5);
+      expect(apiSecondOrder!.line_items.length).toBe(1);
+      expect(apiSecondOrder!.line_items[0].quantity).toBe(5);
     });
 
     test('payment data is independent between orders', async ({ page, posPage }) => {
@@ -478,11 +478,11 @@ test.describe('Multi-Order Management', () => {
 
       // Verify via API
       const apiFirstOrder = await OrdersAPI.getOrder(firstOrderId);
-      const paymentMeta = apiFirstOrder.meta_data?.find(
-        (m: { key: string; value: string }) => m.key === 'payment_received'
+      const paymentMeta = apiFirstOrder!.meta_data?.find(
+        (m) => m.key === 'payment_received'
       );
       expect(paymentMeta).toBeTruthy();
-      expect(parseFloat(paymentMeta?.value || '0')).toBe(50);
+      expect(parseFloat(String(paymentMeta?.value) || '0')).toBe(50);
     });
   });
 
@@ -759,8 +759,8 @@ test.describe('Multi-Order Management', () => {
 
       // Verify first order data is unchanged via API
       const apiFirstOrder = await OrdersAPI.getOrder(firstOrderId);
-      expect(apiFirstOrder.line_items.length).toBe(1);
-      expect(apiFirstOrder.line_items[0].quantity).toBe(3);
+      expect(apiFirstOrder!.line_items.length).toBe(1);
+      expect(apiFirstOrder!.line_items[0].quantity).toBe(3);
     });
 
     test('original order remains unchanged when new order is created', async ({ page, posPage }) => {
@@ -1032,11 +1032,11 @@ test.describe('Multi-Order Management', () => {
 
       // Verify second order is completed via API
       const apiSecondOrder = await OrdersAPI.getOrder(secondOrderId);
-      expect(apiSecondOrder.status).toBe('completed');
+      expect(apiSecondOrder!.status).toBe('completed');
 
       // Verify first order is still pending
       const apiFirstOrder = await OrdersAPI.getOrder(firstOrderId);
-      expect(['pending', 'processing', 'on-hold']).toContain(apiFirstOrder.status);
+      expect(['pending', 'processing', 'on-hold']).toContain(apiFirstOrder!.status);
     });
   });
 });

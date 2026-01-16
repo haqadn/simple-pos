@@ -429,7 +429,7 @@ test.describe('Service Selection', () => {
       expect(savedOrder).toBeTruthy();
 
       // Should have shipping_lines with delivery method
-      if (savedOrder.shipping_lines && savedOrder.shipping_lines.length > 0) {
+      if (savedOrder && savedOrder.shipping_lines && savedOrder.shipping_lines.length > 0) {
         const shippingLine = savedOrder.shipping_lines.find(
           line => line.method_id && line.method_id !== ''
         );
@@ -494,7 +494,7 @@ test.describe('Service Selection', () => {
       expect(savedOrder).toBeTruthy();
 
       // Should have shipping_lines with pickup_location method
-      if (savedOrder.shipping_lines && savedOrder.shipping_lines.length > 0) {
+      if (savedOrder && savedOrder.shipping_lines && savedOrder.shipping_lines.length > 0) {
         const shippingLine = savedOrder.shipping_lines.find(
           line => line.method_id === 'pickup_location'
         );
@@ -593,11 +593,11 @@ test.describe('Service Selection', () => {
       // Verify in WooCommerce
       const savedOrder = await OrdersAPI.getOrder(orderId);
       expect(savedOrder).toBeTruthy();
-      expect(savedOrder.shipping_lines).toBeTruthy();
-      expect(savedOrder.shipping_lines.length).toBeGreaterThan(0);
+      expect(savedOrder!.shipping_lines).toBeTruthy();
+      expect(savedOrder!.shipping_lines.length).toBeGreaterThan(0);
 
       // Find the active shipping line
-      const shippingLine = savedOrder.shipping_lines.find(
+      const shippingLine = savedOrder!.shipping_lines.find(
         line => line.method_id === 'pickup_location'
       );
       expect(shippingLine).toBeTruthy();
@@ -643,11 +643,11 @@ test.describe('Service Selection', () => {
       // Verify in WooCommerce
       const savedOrder = await OrdersAPI.getOrder(orderId);
       expect(savedOrder).toBeTruthy();
-      expect(savedOrder.shipping_lines).toBeTruthy();
-      expect(savedOrder.shipping_lines.length).toBeGreaterThan(0);
+      expect(savedOrder!.shipping_lines).toBeTruthy();
+      expect(savedOrder!.shipping_lines.length).toBeGreaterThan(0);
 
       // Find the active shipping line
-      const shippingLine = savedOrder.shipping_lines.find(
+      const shippingLine = savedOrder!.shipping_lines.find(
         line => line.method_id && ['flat_rate', 'free_shipping'].includes(line.method_id)
       );
       expect(shippingLine).toBeTruthy();
@@ -699,10 +699,10 @@ test.describe('Service Selection', () => {
       // Verify in WooCommerce
       const savedOrder = await OrdersAPI.getOrder(orderId);
       expect(savedOrder).toBeTruthy();
-      expect(savedOrder.shipping_lines).toBeTruthy();
+      expect(savedOrder!.shipping_lines).toBeTruthy();
 
       // Find the shipping line
-      const shippingLine = savedOrder.shipping_lines.find(
+      const shippingLine = savedOrder!.shipping_lines.find(
         line => line.method_id && ['flat_rate', 'free_shipping'].includes(line.method_id)
       );
       expect(shippingLine).toBeTruthy();
@@ -751,9 +751,9 @@ test.describe('Service Selection', () => {
       // Verify service is still set in WooCommerce
       const savedOrder = await OrdersAPI.getOrder(orderId);
       expect(savedOrder).toBeTruthy();
-      expect(savedOrder.shipping_lines).toBeTruthy();
+      expect(savedOrder!.shipping_lines).toBeTruthy();
 
-      const shippingLine = savedOrder.shipping_lines.find(
+      const shippingLine = savedOrder!.shipping_lines.find(
         line => line.method_id === 'pickup_location'
       );
       expect(shippingLine).toBeTruthy();
@@ -944,13 +944,13 @@ test.describe('Service Selection', () => {
       expect(savedOrder).toBeTruthy();
 
       // Should have shipping_lines
-      const hasShippingLine = savedOrder.shipping_lines?.some(
+      const hasShippingLine = savedOrder!.shipping_lines?.some(
         line => line.method_id === 'pickup_location'
       );
       expect(hasShippingLine).toBe(true);
 
       // Should still have line items
-      expect(savedOrder.line_items.length).toBeGreaterThan(0);
+      expect(savedOrder!.line_items.length).toBeGreaterThan(0);
     });
   });
 });
