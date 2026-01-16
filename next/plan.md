@@ -115,7 +115,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Test: Update quantity via command and UI input",
       "Test: Rapid quantity changes result in correct final value"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 9,

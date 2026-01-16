@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 7
+Tasks completed: 8
 Current task: None
 
 ---
@@ -280,3 +280,61 @@ Current task: None
 
 ### Commit
 - feat: implement line item add e2e tests
+
+---
+
+## [2026-01-16] - Task 8: Implement line item remove and update tests
+
+### Changes Made
+- `/next/e2e/tests/line-items/remove-item.spec.ts`: Created comprehensive line item removal tests (8 tests)
+  - **Remove item via command** tests:
+    - `can remove item via /item SKU 0 command`: Verifies basic removal functionality
+    - `/item SKU 0 removes item from order`: Verifies removal with explicit quantity 0
+    - `removing item with /i SKU 0 alias works`: Verifies /i alias works for removal
+  - **Remove last item** tests:
+    - `removing last item leaves order empty`: Verifies order is empty after last item removed
+    - `order with no items has zero total`: Verifies total recalculates to zero
+  - **Remove one of multiple items** tests:
+    - `can remove one item while keeping others`: Verifies selective removal works
+  - **Persistence to WooCommerce** tests:
+    - `removed item is deleted from WooCommerce order`: Verifies API deletion
+    - `order total updates to zero after all items removed`: Verifies total persistence
+
+- `/next/e2e/tests/line-items/update-quantity.spec.ts`: Created comprehensive quantity update tests (14 tests)
+  - **Update quantity via command** tests:
+    - `can increase quantity using /item SKU qty command`: Verifies quantity increase
+    - `can decrease quantity using /item SKU qty command`: Verifies quantity decrease
+    - `setting quantity to 1 works correctly`: Verifies edge case of quantity 1
+  - **Update quantity via UI input** tests:
+    - `can update quantity via line item input field`: Verifies UI input update
+    - `UI quantity update persists to WooCommerce`: Verifies UI update persistence
+  - **Rapid quantity changes** tests:
+    - `rapid quantity changes result in correct final value`: Verifies debouncing/final state
+    - `rapid quantity changes sync correctly to WooCommerce`: Verifies rapid changes persist
+  - **Order total recalculation** tests:
+    - `order total updates when quantity changes`: Verifies total increases
+    - `decreasing quantity decreases total`: Verifies total decreases
+  - **Increment behavior** tests:
+    - `using /item SKU without quantity increments by 1`: Verifies increment behavior
+    - `multiple increments work correctly`: Verifies sequential increments
+  - **WooCommerce persistence** tests:
+    - `quantity changes persist correctly via command`: Verifies command persistence
+    - `quantity changes persist correctly via UI`: Verifies UI persistence
+
+### Verification
+- IDE diagnostics show no TypeScript errors for both new test files
+- `npx playwright test --list` discovers 81 total tests (22 new tests: 8 remove + 14 update)
+- All tests use dynamic test data from getTestProducts()
+- Tests verify both UI state and WooCommerce API state
+- Tests use proper waiting strategies (waitForMutations, waitForURL)
+- Tests use test.skip() for graceful handling when test data unavailable
+
+### Notes
+- Remove tests verify item is completely removed from order (line_items.length = 0)
+- Update tests cover both command-based and UI-based quantity changes
+- Rapid quantity change tests verify debouncing results in correct final state
+- Tests verify total recalculation on both increase and decrease
+- Increment behavior tests verify /item SKU without quantity adds 1 to existing
+
+### Commit
+- feat: implement line item remove and update e2e tests
