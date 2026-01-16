@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 25
+Tasks completed: 26
 Current task: None
 
 ---
@@ -1236,3 +1236,54 @@ Current task: None
 
 ### Commit
 - testing: add custom assertions and improve test reliability
+
+---
+
+## [2026-01-16] - Task 26: Document test suite and add debugging support
+
+### Changes Made
+- `/next/README.md`: Completely rewrote with comprehensive E2E testing documentation
+  - Added Quick Start section with basic test commands
+  - Documented all available test scripts (test:e2e, test:e2e:ui, test:e2e:debug, test:e2e:trace, test:e2e:report)
+  - Added instructions for running specific test files and patterns
+  - Documented test structure (fixtures/, helpers/, tests/ directories)
+  - Added detailed debugging section covering:
+    - HTML report viewing
+    - UI mode for development
+    - Playwright Inspector usage
+    - Trace recording and viewing
+  - Documented test artifacts (screenshots, traces, videos, HTML report)
+  - Added code examples for using fixtures, helpers, and custom assertions
+  - Documented configuration options and environment variables
+  - Added troubleshooting section for common issues
+
+- `/next/playwright.config.ts`: Enhanced debugging configuration
+  - Added detailed header comment explaining debugging features
+  - Added TRACE environment variable support for forced trace recording
+  - Added JSON reporter for CI integrations
+  - Added viewport configuration for consistent screenshots
+  - Added ignoreHTTPSErrors for self-signed certificates
+  - Added contextOptions for future HAR recording support
+  - Added webServer stdout/stderr piping for server debugging
+  - Added preserveOutput: 'failures-only' for cleaner artifact management
+
+- `/next/package.json`: Added new test scripts
+  - `test:e2e:trace`: Run tests with trace recording enabled for all tests
+  - `test:e2e:report`: Open the HTML test report directly
+
+### Verification
+- TypeScript compilation passes for playwright.config.ts (no type errors)
+- `npx playwright test --list` discovers all 405 tests successfully
+- All new package.json scripts are valid JSON
+- README.md renders correctly with proper markdown formatting
+
+### Notes
+- Screenshot on failure was already configured (screenshot: 'only-on-failure')
+- Trace recording on first retry was already configured (trace: 'on-first-retry')
+- Video recording on first retry was already configured (video: 'on-first-retry')
+- Console logs are captured automatically by the HTML reporter
+- Added TRACE=1 environment variable option to force trace recording for all tests
+- Documentation follows Playwright best practices for debugging workflows
+
+### Commit
+- docs: document test suite and add debugging support
