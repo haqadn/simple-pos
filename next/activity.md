@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 9
+Tasks completed: 10
 Current task: None
 
 ---
@@ -385,3 +385,68 @@ Current task: None
 
 ### Commit
 - feat: implement line item edge case e2e tests
+
+---
+
+## [2026-01-16] - Task 10: Implement item command comprehensive tests
+
+### Changes Made
+- `/next/e2e/tests/commands/item-command.spec.ts`: Created comprehensive item command tests (31 tests)
+  - **Input Format: /item SKU** tests (3 tests):
+    - `can add item with /item SKU format`: Verifies basic /item SKU command
+    - `/item SKU adds item with default quantity of 1`: Verifies default quantity is 1
+    - `/item SKU works with SKU containing special characters`: Verifies special char SKUs
+  - **Input Format: /item SKU qty** tests (4 tests):
+    - `can add item with /item SKU qty format`: Verifies quantity specification
+    - `/item SKU 1 adds single item`: Verifies single quantity
+    - `/item SKU 10 adds item with double-digit quantity`: Verifies double-digit qty
+    - `/item SKU 100 adds large quantity`: Verifies large quantity handling
+  - **Input Format: /i alias** tests (3 tests):
+    - `/i alias adds item same as /item`: Verifies /i alias works
+    - `/i SKU qty works same as /item SKU qty`: Verifies alias with quantity
+    - `/i is case insensitive command`: Verifies case insensitivity
+  - **Autocomplete Suggestions** tests (4 tests):
+    - `typing partial SKU shows autocomplete suggestions`: Verifies autocomplete appears
+    - `autocomplete suggestions include matching products`: Verifies relevant suggestions
+    - `selecting autocomplete suggestion fills command`: Verifies click selection
+    - `Tab accepts first autocomplete suggestion`: Verifies Tab key acceptance
+  - **Increment vs Set Behavior** tests (6 tests):
+    - `/item SKU on new item adds quantity 1`: Verifies initial add behavior
+    - `/item SKU on existing item increments by 1`: Verifies increment on re-add
+    - `/item SKU qty on existing item sets quantity (not increment)`: Verifies set vs increment
+    - `multiple /item SKU increments correctly`: Verifies sequential increments
+    - `/item SKU 0 removes item from order`: Verifies removal with qty 0
+    - `increment then set then increment works correctly`: Verifies mixed operations
+  - **Optimistic Updates and Server State** tests (6 tests):
+    - `UI updates immediately (optimistic update)`: Verifies immediate UI feedback
+    - `final UI state matches server state after add`: Verifies UI/server consistency
+    - `final UI state matches server state after multiple operations`: Verifies complex scenarios
+    - `order total in UI matches server total`: Verifies total calculation sync
+    - `server state persists correctly after quantity change`: Verifies persistence
+    - `no duplicate line items in server state after multiple operations`: Verifies no duplicates
+  - **Edge Cases** tests (5 tests):
+    - `/item with invalid SKU does not add item`: Verifies invalid SKU handling
+    - `/item without arguments does not crash`: Verifies empty argument handling
+    - `/item with very long SKU is handled`: Verifies long input handling
+    - `/item SKU with decimal quantity is handled`: Verifies decimal qty handling
+    - `/item SKU with negative quantity is rejected`: Verifies negative qty rejection
+- Created `/next/e2e/tests/commands/` directory for command-related tests
+
+### Verification
+- IDE diagnostics show no TypeScript errors for item-command.spec.ts
+- `npx playwright test --list` discovers 128 total tests (31 new item-command tests)
+- Test file follows established patterns from existing test files
+- All tests use dynamic test data from getTestProducts()
+- Tests verify both UI state and WooCommerce API state
+- Tests use test.skip() for graceful handling when test data unavailable
+
+### Notes
+- Tests cover all required input formats: /item SKU, /item SKU qty, /i alias
+- Autocomplete tests handle cases where autocomplete may not appear
+- Increment vs set behavior is thoroughly tested with multiple scenarios
+- Optimistic update tests verify immediate UI feedback and eventual consistency
+- Edge case tests focus on graceful error handling
+- Tests are resilient with proper waiting strategies (waitForURL, waitForMutations)
+
+### Commit
+- feat: implement item command comprehensive e2e tests
