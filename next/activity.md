@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 21
+Tasks completed: 22
 Current task: None
 
 ---
@@ -1051,3 +1051,49 @@ Current task: None
 
 ### Commit
 - feat: implement order notes e2e tests
+
+---
+
+## [2026-01-16] - Task 22: Implement multi-order management tests
+
+### Changes Made
+- `/next/e2e/tests/order-management/multi-order.spec.ts`: Created comprehensive multi-order management tests (16 tests)
+  - **Create and switch between multiple orders** tests (3 tests):
+    - `can create two orders and switch between them`: Verifies creating two orders with different data
+    - `can switch between orders using sidebar links`: Verifies sidebar navigation works
+    - `switching orders does not corrupt data`: Verifies multiple switches preserve data integrity
+  - **Each order maintains independent state** tests (3 tests):
+    - `line items are independent between orders`: Verifies quantity changes don't affect other orders
+    - `modifying one order does not affect another`: Verifies API state independence
+    - `payment data is independent between orders`: Verifies payment meta isolation
+  - **URL-based routing loads correct order** tests (4 tests):
+    - `navigating directly to order URL loads correct order`: Verifies direct URL navigation
+    - `URL updates when switching orders`: Verifies URL reflects current order
+    - `browser back/forward navigation works correctly`: Verifies history navigation
+    - `refresh preserves current order`: Verifies data durability on page reload
+  - **Create order while another is open** tests (4 tests):
+    - `creating new order while viewing existing order works`: Verifies new order creation
+    - `original order remains unchanged when new order is created`: Verifies data preservation
+    - `both orders appear in sidebar after creation`: Verifies sidebar list updates
+    - `can switch to original order via sidebar while on new order page`: Verifies navigation flexibility
+  - **Edge cases** tests (2 tests):
+    - `invalid order ID in URL shows appropriate error`: Verifies error handling for non-existent orders
+    - `orders with different statuses can coexist`: Verifies pending and completed orders can coexist
+
+### Verification
+- IDE diagnostics show no TypeScript errors for multi-order.spec.ts
+- `npx playwright test --list` discovers 378 total tests (16 new multi-order tests)
+- Tests follow established patterns from existing order-management test files
+- Tests use dynamic test data from getTestProducts()
+- Tests verify both UI state and WooCommerce API state via OrdersAPI.getOrder()
+- Tests use test.skip() for graceful handling when test data unavailable
+
+### Notes
+- Multi-order tests verify orders maintain independent state across: line items, totals, payments
+- Tests use clickOrderInSidebar() helper for reliable order switching
+- URL-based routing tests verify deep linking works correctly
+- Tests verify sidebar reflects all active orders
+- Tests cover edge cases: invalid order IDs, orders with different statuses
+
+### Commit
+- feat: implement multi-order management e2e tests

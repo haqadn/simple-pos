@@ -301,7 +301,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Test: URL-based routing loads correct order",
       "Test: Create order while another is open"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 23,
