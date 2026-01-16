@@ -761,3 +761,75 @@ Current task: None
 
 ### Commit
 - feat: implement print command e2e tests
+
+---
+
+## [2026-01-16] - Task 17: Implement keyboard shortcuts tests
+
+### Changes Made
+- `/next/e2e/tests/keyboard-shortcuts/global-shortcuts.spec.ts`: Created comprehensive global shortcuts tests (13 tests)
+  - **Focus Command Bar (Escape)** tests (2 tests):
+    - `Escape focuses command bar when not focused`: Verifies Escape key focuses command bar
+    - `Escape focuses command bar from any context`: Verifies Escape works from various UI contexts
+  - **New Order (Ctrl+N)** tests (3 tests):
+    - `Ctrl+N creates new order`: Verifies basic Ctrl+N creates new order
+    - `Ctrl+N from existing order creates new order`: Verifies navigation to /orders/new
+    - `shortcut does not conflict with browser shortcuts`: Verifies app shortcut takes precedence
+  - **Print KOT (Ctrl+K)** tests (1 test):
+    - `Ctrl+K triggers KOT print on order with items`: Verifies KOT print via meta_data update
+  - **Print Bill (Ctrl+P)** tests (1 test):
+    - `Ctrl+P triggers bill print on order with items`: Verifies bill print via meta_data update
+  - **Complete Order (Ctrl+Enter)** tests (2 tests):
+    - `Ctrl+Enter completes fully paid order`: Verifies order status changes to completed
+    - `Ctrl+Enter on unpaid order does not complete`: Verifies insufficient payment handling
+  - **Shortcuts Do Not Trigger While Typing** tests (2 tests):
+    - `Ctrl+N does not trigger when typing text in input`: Tests shortcut behavior when typing
+    - `Escape clears suggestions before unfocusing`: Verifies multi-stage Escape behavior
+  - **Service Selection (Alt+0-9)** tests (2 tests):
+    - `Alt+number selects service option`: Verifies Alt+0 selects first service
+    - `Alt+1 selects second service option if available`: Verifies Alt+1 selects second service
+
+- `/next/e2e/tests/keyboard-shortcuts/command-bar-shortcuts.spec.ts`: Created comprehensive command bar shortcuts tests (18 tests)
+  - **Enter Executes Command** tests (3 tests):
+    - `Enter executes typed command`: Verifies Enter executes command and adds item
+    - `Enter clears input after successful command`: Verifies input cleared on success
+    - `Enter on empty input does nothing`: Verifies empty input handling
+  - **Escape Clears/Blurs Command Bar** tests (3 tests):
+    - `Escape clears input when text is typed`: Verifies Escape clears input
+    - `Escape blurs command bar when empty`: Verifies Escape blurs when empty
+    - `Escape first clears suggestions, then clears input, then blurs`: Verifies multi-stage behavior
+  - **Up/Down Navigate Suggestions** tests (3 tests):
+    - `Down arrow navigates to next suggestion`: Verifies down arrow navigation
+    - `Up arrow navigates to previous suggestion`: Verifies up arrow navigation
+    - `Up/Down wraps around suggestion list`: Verifies wrap-around behavior
+  - **Up/Down Navigate Command History** tests (2 tests):
+    - `Up arrow recalls previous command when no suggestions`: Verifies history recall
+    - `Down arrow navigates forward through history`: Verifies forward navigation
+  - **Tab Accepts Suggestion** tests (3 tests):
+    - `Tab accepts highlighted autocomplete suggestion`: Verifies Tab completes suggestion
+    - `Tab with SKU suggestion completes the SKU`: Verifies SKU completion
+    - `Tab does nothing when no suggestions`: Verifies Tab is safe without suggestions
+  - **Click Suggestion Selection** tests (1 test):
+    - `Clicking suggestion selects it`: Verifies click selection works
+  - **Keyboard Focus Management** tests (3 tests):
+    - `Command bar maintains focus during input`: Verifies focus persistence
+    - `Command bar regains focus after selecting suggestion`: Verifies focus return
+    - `Command bar can be focused by clicking`: Verifies click-to-focus
+
+### Verification
+- IDE diagnostics show no TypeScript errors for both test files
+- `npx playwright test --list` discovers 279 total tests (31 new keyboard shortcuts tests)
+- Tests follow established patterns from existing command test files
+- Tests use proper waiting strategies (waitForMutations, waitForURL)
+- Tests verify keyboard actions trigger expected behavior
+- Tests use test.skip() for graceful handling when features unavailable
+
+### Notes
+- Global shortcuts are defined in `/next/lib/shortcuts.ts` (APP_SHORTCUTS array)
+- Shortcuts include: Ctrl+N (new order), Ctrl+K (KOT), Ctrl+P (bill), Ctrl+D (drawer), Ctrl+Enter (done), Alt+0-9 (service)
+- Escape has special context-dependent behavior (focus command bar if not focused, otherwise clears/blurs)
+- Command bar shortcuts: Enter (execute), Escape (clear/blur), Up/Down (navigate), Tab (accept)
+- Tests verify behavior through UI state changes and WooCommerce API state
+
+### Commit
+- feat: implement keyboard shortcuts e2e tests

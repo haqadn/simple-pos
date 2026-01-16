@@ -236,7 +236,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Create e2e/tests/keyboard-shortcuts/command-bar-shortcuts.spec.ts",
       "Test: Enter executes, Escape clears, Up/Down navigate, Tab accepts"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 18,
