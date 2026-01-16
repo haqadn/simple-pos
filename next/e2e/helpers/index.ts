@@ -5,6 +5,7 @@
  *
  * Usage:
  *   import { executeCommand, createNewOrder, getOrderTotal } from '../helpers';
+ *   import { POSAssert, assertOrder } from '../helpers';
  */
 
 // Command helpers
@@ -85,3 +86,16 @@ export {
   type LineItem,
   type OrderSummary,
 } from './orders';
+
+// Custom assertions
+export {
+  // Main assertion object
+  POSAssert,
+  // Fluent assertion builder
+  assertOrder,
+  // Waiting utilities
+  waitForStable,
+  waitForSettled,
+  // Types
+  type AssertionOptions,
+} from './assertions';

@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 24
+Tasks completed: 25
 Current task: None
 
 ---
@@ -1187,3 +1187,52 @@ Current task: None
 
 ### Commit
 - feat: implement full order flow integration test
+
+---
+
+## [2026-01-16] - Task 25: Add custom assertions and improve test reliability
+
+### Changes Made
+- `/next/e2e/helpers/assertions.ts`: Created custom assertion helpers module
+  - `POSAssert` object with comprehensive assertion methods:
+    - `toHaveLineItem(page, name, quantity)` - Verifies line item exists with specific quantity
+    - `toHaveLineItemCount(page, count)` - Verifies number of line items
+    - `toNotHaveLineItem(page, name)` - Verifies line item does NOT exist
+    - `toHaveTotal(page, total)` - Verifies order total with tolerance support
+    - `toHavePayment(page, payment)` - Verifies payment amount recorded
+    - `toBePaid(page)` / `toNotBePaid(page)` - Verifies payment status
+    - `toHaveBalance(page, balance)` - Verifies order balance (total - payment)
+    - `toHaveChange(page, change)` - Verifies change amount
+    - `toBeEmpty(page)` - Verifies order has no line items
+    - `toHaveZeroTotal(page)` - Verifies order total is zero
+    - `toBeOnOrderPage(page, orderId?)` - Verifies we're on order page
+    - `toHaveLineItems(page, items[])` - Batch verification of multiple items
+    - `commandBarIsFocused(page)` / `commandBarIsNotFocused(page)` - Focus assertions
+    - `orderInSidebar(page, orderId)` / `orderNotInSidebar(page, orderId)` - Sidebar assertions
+  - `assertOrder(page)` fluent builder for chaining assertions:
+    - Chainable methods: `.hasLineItem()`, `.hasTotal()`, `.hasPayment()`, `.isPaid()`, etc.
+    - Configuration: `.withTimeout()`, `.withTolerance()`
+    - Execute with `.verify()`
+  - `waitForStable(locator)` - Waits for element content to stabilize
+  - `waitForSettled(page)` - Combines network idle with stability delay
+  - `AssertionOptions` type with timeout, tolerance, and message options
+  - All assertions use polling-based waiting strategies (not arbitrary timeouts)
+- `/next/e2e/helpers/index.ts`: Updated to export all new assertion utilities
+  - Added exports: `POSAssert`, `assertOrder`, `waitForStable`, `waitForSettled`, `AssertionOptions`
+
+### Verification
+- TypeScript compilation passes for assertions.ts (no errors)
+- `npx playwright test --list` discovers all 405 tests successfully
+- Helper exports verified via index.ts and fixtures/index.ts re-export
+- Custom assertions provide proper waiting strategies with configurable timeouts
+- Fluent builder pattern allows expressive test assertions
+
+### Notes
+- Custom assertions use `waitForCondition()` with polling to replace arbitrary `waitForTimeout()` calls
+- All assertions include configurable timeout (default 10s) and tolerance (default 0.01) options
+- Existing arbitrary waits in test files are acceptable but can now be gradually replaced with new assertions
+- The small waits (100-200ms) in helpers for optimistic update settling are intentional and acceptable
+- Pre-existing TypeScript errors in other test files are unrelated to this task
+
+### Commit
+- testing: add custom assertions and improve test reliability
