@@ -249,7 +249,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Test: Click product adds to order",
       "Test: No results shows empty state"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 19,

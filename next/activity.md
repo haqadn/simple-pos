@@ -833,3 +833,54 @@ Current task: None
 
 ### Commit
 - feat: implement keyboard shortcuts e2e tests
+
+---
+
+## [2026-01-16] - Task 18: Implement product search tests
+
+### Changes Made
+- `/next/e2e/tests/features/product-search.spec.ts`: Created comprehensive product search tests (17 tests)
+  - **Search by product name shows results** tests (3 tests):
+    - `typing product name in command bar shows autocomplete suggestions`: Verifies name-based autocomplete
+    - `product cards with matching name are visible in product grid`: Verifies product visibility in grid
+    - `product name search is case-insensitive`: Verifies case-insensitive search
+  - **Search by SKU shows matching product** tests (3 tests):
+    - `typing SKU in command bar shows matching product in autocomplete`: Verifies SKU-based autocomplete
+    - `full SKU entry via command adds the correct product`: Verifies SKU command adds correct product
+    - `SKU shown in product card matches expected product`: Verifies SKU display in product cards
+  - **Click product adds to order** tests (4 tests):
+    - `clicking product card adds item to order with quantity 1`: Verifies click-to-add functionality
+    - `clicking product card multiple times increments quantity`: Verifies quantity increment on click
+    - `clicking product persists to WooCommerce order`: Verifies click-add persistence to API
+    - `product badge shows quantity when added to order`: Verifies quantity badge on product card
+  - **Category filtering** tests (2 tests):
+    - `clicking a category filters products`: Verifies category selection filters product grid
+    - `clicking All shows all products`: Verifies All category shows all products
+  - **No results shows empty state** tests (3 tests):
+    - `searching for non-existent product shows no results in autocomplete`: Verifies no match behavior
+    - `invalid SKU via command does not add item`: Verifies invalid SKU handling
+    - `empty product grid shows appropriate message`: Verifies empty state display
+  - **Product card displays correct information** tests (2 tests):
+    - `product card shows name, SKU, and price`: Verifies product card content
+    - `out of stock products show appropriate indicator`: Verifies stock status indicators
+- Created `/next/e2e/tests/features/` directory for feature-specific tests
+
+### Verification
+- IDE diagnostics show no TypeScript errors for product-search.spec.ts
+- `npx playwright test --list` discovers 296 total tests (17 new product-search tests)
+- Tests follow established patterns from existing test files
+- Tests use dynamic test data from getTestProducts()
+- Tests verify both UI state and WooCommerce API state
+- Tests use test.skip() for graceful handling when products/features unavailable
+
+### Notes
+- Product search in Simple POS works through multiple mechanisms:
+  - Command bar autocomplete for SKU/product name search
+  - Category filtering via category links
+  - Direct product card clicks to add items
+- Product cards display: name, SKU (in Kbd element), price, stock status indicators
+- Product cards have ring-2 indicator and quantity badge when added to order
+- Tests cover: name search, SKU search, click-to-add, category filtering, empty states
+
+### Commit
+- feat: implement product search e2e tests
