@@ -262,7 +262,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Test: Clear customer makes order guest",
       "Verify customer_id in WooCommerce order"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 20,

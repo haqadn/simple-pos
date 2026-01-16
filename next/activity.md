@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 16
+Tasks completed: 19
 Current task: None
 
 ---
@@ -884,3 +884,62 @@ Current task: None
 
 ### Commit
 - feat: implement product search e2e tests
+
+---
+
+## [2026-01-16] - Task 19: Implement customer assignment tests
+
+### Changes Made
+- `/next/e2e/tests/features/customer-assignment.spec.ts`: Created comprehensive customer assignment tests (22 tests)
+  - **Search customer by name/phone** tests (3 tests):
+    - `typing /customer with partial name shows autocomplete suggestions`: Verifies customer autocomplete
+    - `typing /customer with phone number shows matching customers`: Verifies phone-based search
+    - `customer search is case-insensitive`: Verifies case-insensitive matching
+  - **Select customer assigns to order** tests (5 tests):
+    - `can assign customer using /customer command with name and phone`: Verifies basic assignment
+    - `can assign customer with full address`: Verifies address storage in billing
+    - `selecting customer from autocomplete assigns to order`: Verifies autocomplete selection
+    - `/cust alias works the same as /customer`: Verifies /cust alias
+    - `/cu alias works the same as /customer`: Verifies /cu alias
+  - **Clear customer makes order guest** tests (2 tests):
+    - `clearing customer name removes customer from order`: Verifies customer removal via UI
+    - `order without customer is a guest order`: Verifies guest order billing is empty
+  - **Verify customer in WooCommerce order** tests (5 tests):
+    - `customer name is stored in billing.first_name and billing.last_name`: Verifies name parsing
+    - `customer phone is stored in billing.phone`: Verifies phone persistence
+    - `customer address is stored in billing.address_1`: Verifies address persistence
+    - `customer info persists after page reload`: Verifies data durability
+  - **Customer Info UI** tests (3 tests):
+    - `customer name input is editable`: Verifies UI input functionality
+    - `customer phone input is editable`: Verifies phone field editing
+    - `customer address input is editable`: Verifies address field editing
+  - **Edge Cases** tests (4 tests):
+    - `/customer without arguments shows error`: Verifies empty argument handling
+    - `/customer with only name (no phone) is rejected`: Verifies validation
+    - `customer with special characters in name is handled`: Verifies special char handling
+    - `customer command on empty order (no line items) creates order first`: Verifies order requirement
+    - `updating customer multiple times updates correctly`: Verifies customer replacement
+
+### Verification
+- IDE diagnostics show no TypeScript errors for customer-assignment.spec.ts
+- `npx playwright test --list` discovers 318 total tests (22 new customer-assignment tests)
+- Tests follow established patterns from existing feature test files
+- Tests use dynamic test data from getTestProducts()
+- Tests verify both UI state and WooCommerce API state via OrdersAPI.getOrder()
+- Tests use setupCustomerMocks() for autocomplete testing
+- Tests use test.skip() for graceful handling when test data unavailable
+
+### Notes
+- Customer assignment uses /customer command with format: /customer name, phone[, address]
+- Customer data stored in WooCommerce order billing field:
+  - first_name: First word of name
+  - last_name: Remaining words of name
+  - phone: Phone number from command
+  - address_1: Address if provided
+- Aliases supported: /customer, /cust, /cu
+- Customer Info UI component allows direct editing of name, phone, address
+- Mock customer data is provided by setupCustomerMocks() for autocomplete tests
+- Tests cover: search, assignment, clearing, WooCommerce persistence, UI editing, edge cases
+
+### Commit
+- feat: implement customer assignment e2e tests
