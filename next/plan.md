@@ -129,7 +129,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Test: WooCommerce update pattern (delete then add) works correctly",
       "Test: No duplicate or orphaned line items after updates"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 10,

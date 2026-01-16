@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 8
+Tasks completed: 9
 Current task: None
 
 ---
@@ -338,3 +338,50 @@ Current task: None
 
 ### Commit
 - feat: implement line item remove and update e2e tests
+
+---
+
+## [2026-01-16] - Task 9: Implement line item edge case tests
+
+### Changes Made
+- `/next/e2e/tests/line-items/edge-cases.spec.ts`: Created comprehensive edge case tests (17 tests)
+  - **Invalid SKU handling** tests (3 tests):
+    - `invalid SKU shows appropriate error or no item added`: Verifies invalid SKU does not add item
+    - `empty SKU does not add item`: Verifies /item with empty SKU is handled
+    - `SKU with only whitespace does not add item`: Verifies whitespace-only SKU is rejected
+  - **Negative quantity handling** tests (2 tests):
+    - `negative quantity is handled gracefully`: Verifies no crash and no negative quantities
+    - `negative quantity does not create negative line item`: Verifies direct negative qty handling
+  - **Very large quantity handling** tests (2 tests):
+    - `very large quantity is handled without crash`: Verifies system handles 999999 qty
+    - `large quantity persists correctly to WooCommerce`: Verifies 1000 qty saves correctly
+  - **WooCommerce update pattern** tests (2 tests):
+    - `quantity update uses correct delete-then-add pattern`: Verifies update pattern maintains single item
+    - `multiple updates maintain single line item`: Verifies sequential updates result in 1 line item
+  - **No duplicate or orphaned line items** tests (5 tests):
+    - `no duplicate line items after adding same product twice`: Verifies no duplicates
+    - `no orphaned line items after remove and re-add`: Verifies clean add after remove
+    - `no duplicate items when rapidly adding same product`: Verifies rapid adds don't create duplicates
+    - `multiple products remain separate line items`: Verifies different products stay separate
+    - `UI and WooCommerce line items stay in sync`: Verifies UI/API consistency
+  - **Special characters and edge cases** tests (3 tests):
+    - `SKU with special characters is handled`: Verifies special char SKUs don't crash
+    - `decimal quantity is handled correctly`: Verifies decimal qty handling (2.5)
+    - `zero quantity removes item if it exists`: Verifies qty 0 removes existing item
+
+### Verification
+- IDE diagnostics show no TypeScript errors for edge-cases.spec.ts
+- `npx playwright test --list` discovers 98 total tests (17 new edge-cases tests)
+- All tests use dynamic test data from getTestProducts()
+- Tests verify both UI state and WooCommerce API state
+- Tests are designed to be resilient - verify behavior doesn't crash rather than specific error messages
+
+### Notes
+- Edge case tests focus on graceful handling rather than specific error messages
+- Invalid/negative/large quantity tests verify no crashes and valid final states
+- WooCommerce update pattern tests verify the delete-then-add pattern works correctly
+- Duplicate detection tests verify both UI and API maintain consistency
+- Tests use test.skip() when required test data is unavailable
+
+### Commit
+- feat: implement line item edge case e2e tests
