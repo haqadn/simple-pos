@@ -441,7 +441,7 @@ test.describe('Multi-Input Mode', () => {
 
       // Get order ID and verify in WooCommerce
       const orderId = await getCurrentOrderId(page);
-      const savedOrder = await OrdersAPI.getOrder(parseInt(orderId, 10));
+      const savedOrder = await OrdersAPI.getOrder(orderId);
 
       expect(savedOrder).not.toBeNull();
       expect(savedOrder!.line_items.length).toBe(1);
@@ -455,7 +455,7 @@ test.describe('Multi-Input Mode', () => {
       const { simple: product } = getTestProducts();
       const sku = getTestSku(product);
 
-      if (!sku || !product.price || parseFloat(product.price) <= 0) {
+      if (!sku || !product.price || product.price <= 0) {
         test.skip(true, 'No product with valid SKU and price available');
         return;
       }
@@ -473,9 +473,9 @@ test.describe('Multi-Input Mode', () => {
 
       // Verify in WooCommerce
       const orderId = await getCurrentOrderId(page);
-      const savedOrder = await OrdersAPI.getOrder(parseInt(orderId, 10));
+      const savedOrder = await OrdersAPI.getOrder(orderId);
 
-      const expectedTotal = parseFloat(product.price) * 4;
+      const expectedTotal = product.price * 4;
       const actualTotal = parseFloat(savedOrder!.total);
 
       // Allow small tolerance for tax/rounding
@@ -515,7 +515,7 @@ test.describe('Multi-Input Mode', () => {
 
       // Verify in WooCommerce - should be exactly 1 line item
       const orderId = await getCurrentOrderId(page);
-      const savedOrder = await OrdersAPI.getOrder(parseInt(orderId, 10));
+      const savedOrder = await OrdersAPI.getOrder(orderId);
 
       expect(savedOrder).not.toBeNull();
       expect(savedOrder!.line_items.length).toBe(1);

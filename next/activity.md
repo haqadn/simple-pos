@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 5
+Tasks completed: 6
 Current task: None
 
 ---
@@ -146,3 +146,21 @@ Current task: None
 
 ### Commit
 - chore: add unified E2E test setup script
+
+---
+
+## [2026-01-16] - Task 6: Fix TypeScript errors in multi-input-mode.spec.ts
+
+### Changes Made
+- Updated `/Users/adnan/Projects/simple-pos-e2e/next/e2e/tests/commands/multi-input-mode.spec.ts`:
+  - Removed `parseInt()` wrapper from all `OrdersAPI.getOrder()` calls (lines 444, 476, 518)
+    - The `getOrder()` method expects a string, and `getCurrentOrderId()` already returns a string
+  - Removed `parseFloat()` wrapper from `product.price` comparisons (lines 458, 478)
+    - The `product.price` is already transformed to a number by the Zod schema
+
+### Verification
+- Ran `npx tsc --noEmit 2>&1 | grep "multi-input-mode.spec.ts"` - no errors returned
+- All 5 TypeScript errors in multi-input-mode.spec.ts are now fixed
+
+### Commit
+- fix: resolve TypeScript errors in multi-input-mode.spec.ts
