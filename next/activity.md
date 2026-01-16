@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 7
+Tasks completed: 8
 Current task: None
 
 ---
@@ -183,3 +183,22 @@ Current task: None
 
 ### Commit
 - fix: resolve TypeScript errors in customer-assignment.spec.ts
+
+---
+
+## [2026-01-16] - Task 8: Fix TypeScript errors in clear-command.spec.ts
+
+### Changes Made
+- Updated `/Users/adnan/Projects/simple-pos-e2e/next/api/orders.ts`:
+  - Added `customer_id: z.number().default(0)` to the `OrderSchema`
+  - This field is a standard WooCommerce order field that was missing from the schema
+  - The test file accesses `savedOrder!.customer_id` at lines 485 and 493
+  - Adding the field to the schema is cleaner than casting, since customer_id is a real WooCommerce field
+
+### Verification
+- Ran `npx tsc --noEmit 2>&1 | grep "clear-command.spec.ts"` - no errors returned
+- Ran `npx tsc --noEmit 2>&1 | grep "api/orders.ts"` - no errors returned
+- Both TypeScript errors in clear-command.spec.ts are now fixed
+
+### Commit
+- fix: add customer_id to OrderSchema to fix clear-command.spec.ts TypeScript errors

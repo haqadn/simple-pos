@@ -54,6 +54,7 @@ const CouponLineSchema = z.object({
 export const OrderSchema = z.object({
   id: z.number(),
   status: z.string(),
+  customer_id: z.number().default(0),
   date_created: z.string().optional(),
   line_items: z.array(LineItemSchema),
   shipping_lines: z.array(ShippingLineSchema).default([]),
