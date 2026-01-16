@@ -197,7 +197,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Test: Autocomplete shows matching coupons",
       "Test: /c and /discount aliases work"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 15,

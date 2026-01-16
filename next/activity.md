@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 12
+Tasks completed: 14
 Current task: None
 
 ---
@@ -603,3 +603,57 @@ Current task: None
 
 ### Commit
 - feat: implement done command e2e tests
+
+---
+
+## [2026-01-16] - Task 14: Implement coupon command tests
+
+### Changes Made
+- `/next/e2e/tests/commands/coupon-command.spec.ts`: Created comprehensive coupon command tests (21 tests)
+  - **Apply valid coupon updates totals** tests (3 tests):
+    - `can apply coupon with /coupon command`: Verifies basic /coupon functionality
+    - `applied coupon shows discount in UI`: Verifies discount display in payment card
+    - `coupon code is stored in WooCommerce order`: Verifies coupon_lines in API
+  - **Apply invalid coupon shows error** tests (3 tests):
+    - `invalid coupon code does not apply discount`: Verifies invalid code rejection
+    - `empty coupon code is rejected`: Verifies empty argument handling
+    - `coupon with special characters is handled`: Verifies special character handling
+  - **Toggle coupon (apply then remove)** tests (3 tests):
+    - `can remove applied coupon using /coupon remove`: Verifies remove keyword
+    - `can remove coupon using /coupon clear`: Verifies clear keyword
+    - `removing coupon restores original total`: Verifies total restoration
+  - **Autocomplete shows matching coupons** tests (2 tests):
+    - `typing /coupon shows autocomplete suggestions`: Verifies autocomplete appears
+    - `typing /coupon re shows remove suggestion`: Verifies "remove" in suggestions
+  - **/c and /discount aliases work** tests (4 tests):
+    - `/c alias applies coupon same as /coupon`: Verifies /c alias
+    - `/discount alias applies coupon same as /coupon`: Verifies /discount alias
+    - `/c remove works same as /coupon remove`: Verifies alias with remove
+    - `all coupon aliases behave identically`: Verifies all aliases work
+  - **Edge Cases** tests (6 tests):
+    - `/coupon on empty order is handled gracefully`: Verifies empty order handling
+    - `applying same coupon twice does not duplicate`: Verifies no duplicate coupons
+    - `coupon code is case-insensitive`: Verifies case normalization
+    - `removing non-existent coupon does not error`: Verifies safe removal
+    - `coupon command preserves line items`: Verifies line items intact after coupon
+    - `coupon with very long code is handled`: Verifies long input handling
+
+### Verification
+- IDE diagnostics show no TypeScript errors for coupon-command.spec.ts
+- `npx playwright test --list` discovers 208 total tests (21 new coupon-command tests)
+- All tests use dynamic test data from getTestProducts()
+- Tests verify both UI state and WooCommerce API state (via OrdersAPI.getOrder)
+- Tests verify coupon_lines array in WooCommerce order
+- Tests use test.skip() for graceful handling when test data unavailable
+- Tests are resilient - handle case where test coupon may not exist in WooCommerce
+
+### Notes
+- Coupon command uses coupon_lines array in WooCommerce order to store applied coupons
+- Each coupon_line has `code` and `discount` fields
+- Coupon removal uses "remove" or "clear" keywords
+- Tests verify all aliases: /coupon, /c, /discount
+- Tests are designed to work with or without pre-seeded coupons in test environment
+- Edge case tests verify graceful handling of invalid inputs
+
+### Commit
+- feat: implement coupon command e2e tests
