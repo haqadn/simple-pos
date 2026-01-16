@@ -10,7 +10,10 @@
     "lint": "next lint",
     "electron:dev": "node scripts/electron-dev.js",
     "electron:build": "next build && electron-builder",
-    "electron:start": "electron ."
+    "electron:start": "electron .",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug"
   },
   "dependencies": {
     "@heroui/react": "2.7.8",
@@ -29,6 +32,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.57.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
