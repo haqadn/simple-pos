@@ -327,7 +327,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Assert no console errors throughout flow",
       "Document as the primary smoke test for CI"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 25,

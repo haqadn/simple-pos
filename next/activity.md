@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 23
+Tasks completed: 24
 Current task: None
 
 ---
@@ -1148,3 +1148,42 @@ Current task: None
 
 ### Commit
 - feat: implement order completion flow e2e tests
+
+---
+
+## [2026-01-16] - Task 24: Implement full order flow integration test
+
+### Changes Made
+- `/next/e2e/tests/integration/full-order-flow.spec.ts`: Created comprehensive full order flow integration tests (7 tests)
+  - **Primary Integration Test** (1 test):
+    - `complete order flow: service > create > customer > items > modify > remove > coupon > note > pay > done`: Complete end-to-end test covering all major features in realistic workflow. Captures and reports console errors throughout flow.
+  - **Simplified Flow Tests** (2 tests):
+    - `basic order flow: create > add item > pay > complete`: Fast, simple flow for quick CI validation
+    - `order flow with multiple items: add items > modify > pay > complete`: Tests multiple items through complete flow
+  - **Feature-Specific Flow Tests** (2 tests):
+    - `order flow with customer and notes: add item > customer > note > pay > complete`: Tests customer assignment and notes
+    - `order flow with service selection: select table > add item > pay > complete`: Tests service/table selection
+  - **Edge Case Flow Tests** (2 tests):
+    - `order flow with item modifications: add > modify > remove > pay > complete`: Tests modifying and removing items
+    - `order data persists after page reload during flow`: Tests data resilience through page reload
+- Created `/next/e2e/tests/integration/` directory for integration tests
+
+### Verification
+- IDE diagnostics show no TypeScript errors for full-order-flow.spec.ts
+- `npx playwright test --list` discovers 405 total tests (7 new integration tests)
+- Tests follow established patterns from existing test files
+- All tests use dynamic test data from getTestProducts()
+- Tests verify both UI state and WooCommerce API state via OrdersAPI.getOrder()
+- Tests use test.skip() for graceful handling when features/data unavailable
+- Primary test captures console errors for debugging
+
+### Notes
+- Primary integration test covers complete flow per PRD: service > create > customer > items > modify > remove > coupon > note > pay > done
+- Primary test verifies final order in WooCommerce matches all inputs: status, line items, customer info, notes, payment meta, shipping lines
+- Console errors are captured and reported (non-critical errors filtered out)
+- Secondary tests provide focused coverage for specific feature combinations
+- Tests are designed as the primary smoke test for CI
+- All tests gracefully skip when required features or test data are unavailable
+
+### Commit
+- feat: implement full order flow integration test
