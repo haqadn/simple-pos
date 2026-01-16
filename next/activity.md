@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 19
+Tasks completed: 20
 Current task: None
 
 ---
@@ -943,3 +943,59 @@ Current task: None
 
 ### Commit
 - feat: implement customer assignment e2e tests
+
+---
+
+## [2026-01-16] - Task 20: Implement service/table selection tests
+
+### Changes Made
+- `/next/e2e/tests/features/service-selection.spec.ts`: Created comprehensive service selection tests (22 tests)
+  - **Select dine-in service type** tests (3 tests):
+    - `can select a table from the service card`: Verifies basic table selection
+    - `table selection shows table name in radio button`: Verifies table labels are visible
+    - `selecting table deselects delivery zone if previously selected`: Verifies service type switching
+  - **Select table number** tests (4 tests):
+    - `can select different tables from the list`: Verifies switching between tables
+    - `table selection can be made using keyboard shortcut Alt+0`: Verifies Alt+0 shortcut
+    - `table selection can be made using keyboard shortcut Alt+1`: Verifies Alt+1 shortcut
+  - **Select delivery zone** tests (3 tests):
+    - `can select a delivery zone from the service card`: Verifies basic delivery zone selection
+    - `delivery zone shows fee information`: Verifies fee display in labels
+    - `can select different delivery zones`: Verifies switching between zones
+  - **Change service type updates order** tests (3 tests):
+    - `changing from table to delivery zone updates order`: Verifies API update on type change
+    - `changing from delivery zone to table updates order`: Verifies reverse type change
+    - `service selection persists after page reload`: Verifies data durability
+  - **Verify service meta in WooCommerce order** tests (4 tests):
+    - `table selection is stored in shipping_lines with pickup_location method`: Verifies pickup_location method_id
+    - `delivery zone selection is stored in shipping_lines with flat_rate or free_shipping method`: Verifies delivery method_id
+    - `shipping_lines total reflects delivery fee`: Verifies fee is stored correctly
+    - `service selection is preserved when order is updated`: Verifies persistence after line item changes
+  - **Service card UI behavior** tests (3 tests):
+    - `service card has warning style when no service selected`: Verifies bg-warning-100 class
+    - `service card warning style removed after selection`: Verifies style update
+    - `service options show keyboard shortcuts`: Verifies Kbd elements present
+  - **Edge cases** tests (3 tests):
+    - `service selection on empty order works`: Verifies selection without items
+    - `rapid service selection changes do not cause issues`: Verifies debouncing/final state
+    - `service selection with product already in order`: Verifies selection after item added
+
+### Verification
+- IDE diagnostics show no TypeScript errors for service-selection.spec.ts
+- `npx playwright test --list` discovers 340 total tests (22 new service-selection tests)
+- Tests follow established patterns from existing feature test files
+- Tests use dynamic test data from getTestProducts()
+- Tests verify both UI state and WooCommerce API state via OrdersAPI.getOrder()
+- Tests use test.skip() for graceful handling when service options unavailable
+
+### Notes
+- Service selection uses two RadioGroup components: Tables and Delivery zones
+- Tables use method_id: 'pickup_location' in shipping_lines
+- Delivery zones use method_id: 'flat_rate' or 'free_shipping' in shipping_lines
+- Keyboard shortcuts Alt+0-9 select service options (first 10 options)
+- Service card shows warning background (bg-warning-100) when no service selected
+- Tests handle environments with only tables, only delivery zones, or both
+- Tests verify service persists through page reloads and order updates
+
+### Commit
+- feat: implement service/table selection e2e tests

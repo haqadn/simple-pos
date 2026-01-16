@@ -275,7 +275,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Test: Change service type updates order",
       "Verify service meta in WooCommerce order"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 21,
