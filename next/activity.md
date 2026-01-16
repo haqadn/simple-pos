@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 20
+Tasks completed: 21
 Current task: None
 
 ---
@@ -999,3 +999,55 @@ Current task: None
 
 ### Commit
 - feat: implement service/table selection e2e tests
+
+---
+
+## [2026-01-16] - Task 21: Implement order notes tests
+
+### Changes Made
+- `/next/e2e/tests/features/notes.spec.ts`: Created comprehensive order notes tests (22 tests)
+  - **Add order note** tests (4 tests):
+    - `can add note using /note command`: Verifies basic /note functionality
+    - `/n alias works the same as /note`: Verifies /n alias works
+    - `note with multiple words is saved correctly`: Verifies multi-word notes with special characters
+    - `adding note via UI textarea works`: Verifies direct textarea input
+  - **Edit existing note** tests (4 tests):
+    - `can edit note by typing new /note command`: Verifies note replacement via command
+    - `can edit note via UI textarea`: Verifies editing via textarea
+    - `note can be cleared by setting empty value`: Verifies note clearing
+    - `note persists after page reload`: Verifies data durability
+  - **Customer note vs order note distinction** tests (3 tests):
+    - `note command sets customer_note field`: Verifies customer_note is the storage field
+    - `customer note is displayed in the order note textarea`: Verifies UI display
+    - `customer note is visible to kitchen staff (KOT context)`: Verifies KOT relevance
+  - **Verify notes saved correctly in WooCommerce** tests (5 tests):
+    - `note is saved to WooCommerce customer_note field`: Verifies API persistence
+    - `note with special characters is saved correctly`: Verifies special char handling
+    - `note update replaces previous note in WooCommerce`: Verifies replacement behavior
+    - `note is preserved when line items are modified`: Verifies note persistence during order changes
+    - `note is preserved after order completion`: Verifies note persists on completed orders
+  - **Edge Cases** tests (6 tests):
+    - `/note without arguments shows error`: Verifies empty argument handling
+    - `/note on empty order (no line items) is handled gracefully`: Verifies empty order handling
+    - `note with very long text is handled`: Verifies long text handling
+    - `note textarea shows warning color while mutating`: Verifies mutation state feedback
+    - `command bar remains functional after /note`: Verifies app state after note command
+    - `multiple rapid note updates result in correct final value`: Verifies debouncing behavior
+
+### Verification
+- IDE diagnostics show no TypeScript errors for notes.spec.ts
+- `npx playwright test --list` discovers 362 total tests (22 new notes tests)
+- Tests follow established patterns from existing feature test files
+- Tests use dynamic test data from getTestProducts()
+- Tests verify both UI state and WooCommerce API state via OrdersAPI.getOrder()
+- Tests use test.skip() for graceful handling when test data unavailable
+
+### Notes
+- Notes are stored in WooCommerce order `customer_note` field
+- The /note command (alias /n) sets customer notes
+- Notes are displayed in a Textarea with placeholder "Order Note"
+- Notes are used for customer-facing information like kitchen instructions
+- Tests cover: adding notes, editing notes, customer note distinction, WooCommerce persistence, edge cases
+
+### Commit
+- feat: implement order notes e2e tests

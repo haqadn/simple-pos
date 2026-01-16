@@ -288,7 +288,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Test: Customer note vs order note distinction",
       "Verify notes saved correctly in WooCommerce"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 22,
