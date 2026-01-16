@@ -6,6 +6,7 @@
  * Usage in tests:
  *   import { test, expect, POSPage } from '../fixtures';
  *   import { getTestProducts, getTestSku, getTestPrice } from '../fixtures';
+ *   import { setupMockRoutes, mockProducts, mockCustomers, mockCoupons } from '../fixtures';
  */
 
 export { test, expect, POSPage } from './test-base';
@@ -26,3 +27,31 @@ export {
   type TestProductWithVariations,
   type TestData,
 } from './test-data';
+
+// API mock exports
+export {
+  // Mock data factories
+  mockProducts,
+  mockVariations,
+  mockCustomers,
+  mockCoupons,
+  // Route interception helpers
+  setupMockRoutes,
+  setupProductMocks,
+  setupCustomerMocks,
+  setupCouponMocks,
+  clearMockRoutes,
+  // Convenience getters
+  getValidCouponCode,
+  getInvalidCouponCode,
+  getExpiredCouponCode,
+  getSimpleMockProduct,
+  getVariableMockProduct,
+  getMockCustomerByName,
+  // Types
+  type MockProduct,
+  type MockVariation,
+  type MockCustomer,
+  type MockCoupon,
+  type MockConfig,
+} from './api-mocks';

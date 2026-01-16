@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 3
+Tasks completed: 4
 Current task: None
 
 ---
@@ -106,3 +106,42 @@ Current task: None
 
 ### Commit
 - chore: implement dynamic test data fetching from WooCommerce
+
+---
+
+## [2026-01-16] - Task 4: Create API mock factories for read-only endpoints
+
+### Changes Made
+- `/next/e2e/fixtures/api-mocks.ts`: Created API mock factories module
+  - Type definitions: MockProduct, MockVariation, MockCustomer, MockCoupon, MockConfig
+  - `mockProducts()`: Creates realistic product data including simple products, variable products, out-of-stock items, and products without SKU for edge case testing
+  - `mockVariations()`: Creates size variations (S, M, L, XL) for variable products with mixed stock status
+  - `mockCustomers()`: Creates sample customer data with names and phone numbers
+  - `mockCoupons()`: Creates valid and invalid coupon scenarios including percentage discounts, fixed cart discounts, expired coupons, maxed-out coupons, and minimum amount requirements
+  - `setupMockRoutes()`: Main route interception helper that mocks products, customers, and coupons endpoints
+  - `setupProductMocks()`: Individual route interception for products only
+  - `setupCustomerMocks()`: Individual route interception for customers only
+  - `setupCouponMocks()`: Individual route interception for coupons only
+  - `clearMockRoutes()`: Utility to clear all mock routes
+  - Convenience getters: getValidCouponCode(), getInvalidCouponCode(), getExpiredCouponCode(), getSimpleMockProduct(), getVariableMockProduct(), getMockCustomerByName()
+- `/next/e2e/fixtures/index.ts`: Updated to export all API mock functions and types
+- `/next/e2e/tests/api-mocks.spec.ts`: Verification tests for mock factories (16 tests)
+  - Mock Data Factories tests: verify product, variation, customer, and coupon data structure
+  - Convenience Getters tests: verify helper functions return expected data
+  - Route Interception tests: verify Playwright route mocking works correctly
+
+### Verification
+- IDE diagnostics show no TypeScript errors for api-mocks.ts and api-mocks.spec.ts
+- `npx playwright test --list` discovers 35 total tests (16 new api-mocks tests)
+- TypeScript compilation passes without errors
+- All mock data factories return properly structured data matching WooCommerce API responses
+
+### Notes
+- Mock data follows WooCommerce API response structure for products, coupons
+- Customer mock follows Simple POS custom endpoint structure (/simple-pos/customers)
+- Route interception only intercepts GET requests; mutations pass through to real API
+- Mocks include edge cases: out-of-stock items, expired coupons, maxed-out coupons, products without SKU
+- Pattern matches both WooCommerce API (**/wp-json/wc/v3/**) and Simple POS API (**/wp-json/wc/v3/simple-pos/**)
+
+### Commit
+- chore: create API mock factories for read-only endpoints

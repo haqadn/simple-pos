@@ -61,7 +61,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Implement mockCoupons() with valid and invalid coupon scenarios",
       "Add route interception setup helper for tests"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 5,
