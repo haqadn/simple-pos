@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 6
+Tasks completed: 7
 Current task: None
 
 ---
@@ -164,3 +164,22 @@ Current task: None
 
 ### Commit
 - fix: resolve TypeScript errors in multi-input-mode.spec.ts
+
+---
+
+## [2026-01-16] - Task 7: Fix TypeScript errors in customer-assignment.spec.ts
+
+### Changes Made
+- Updated `/Users/adnan/Projects/simple-pos-e2e/next/e2e/tests/features/customer-assignment.spec.ts`:
+  - Removed `parseInt()` wrapper from all 13 `OrdersAPI.getOrder()` calls
+    - Lines 185, 262, 295, 341, 369, 404, 439, 471, 503, 598, 690, 721, 777
+    - The `getOrder()` method expects a string, and `match![1]` already returns a string from the regex match
+  - Removed unused `mockCustomers` import (line 32)
+    - The import was not used directly in the test file (only `setupCustomerMocks` and `getMockCustomerByName` are used)
+
+### Verification
+- Ran `npx tsc --noEmit 2>&1 | grep "customer-assignment.spec.ts"` - no errors returned
+- All 13 TypeScript errors in customer-assignment.spec.ts are now fixed
+
+### Commit
+- fix: resolve TypeScript errors in customer-assignment.spec.ts

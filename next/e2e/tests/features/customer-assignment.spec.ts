@@ -29,7 +29,6 @@ import {
 } from '../../fixtures';
 import {
   setupCustomerMocks,
-  mockCustomers,
   getMockCustomerByName,
 } from '../../fixtures';
 import OrdersAPI from '../../../api/orders';
@@ -183,7 +182,7 @@ test.describe('Customer Assignment', () => {
       const url = page.url();
       const match = url.match(/\/orders\/(\d+)/);
       expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const orderId = match![1];
 
       // Verify in WooCommerce API
       const savedOrder = await OrdersAPI.getOrder(orderId);
@@ -260,7 +259,7 @@ test.describe('Customer Assignment', () => {
       const url = page.url();
       const match = url.match(/\/orders\/(\d+)/);
       expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const orderId = match![1];
 
       const savedOrder = await OrdersAPI.getOrder(orderId);
       expect(savedOrder).not.toBeNull();
@@ -293,7 +292,7 @@ test.describe('Customer Assignment', () => {
       const url = page.url();
       const match = url.match(/\/orders\/(\d+)/);
       expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const orderId = match![1];
 
       const savedOrder = await OrdersAPI.getOrder(orderId);
       expect(savedOrder).not.toBeNull();
@@ -339,7 +338,7 @@ test.describe('Customer Assignment', () => {
       const url = page.url();
       const match = url.match(/\/orders\/(\d+)/);
       expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const orderId = match![1];
 
       const savedOrder = await OrdersAPI.getOrder(orderId);
       expect(savedOrder).not.toBeNull();
@@ -367,7 +366,7 @@ test.describe('Customer Assignment', () => {
       const url = page.url();
       const match = url.match(/\/orders\/(\d+)/);
       expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const orderId = match![1];
 
       const savedOrder = await OrdersAPI.getOrder(orderId);
       expect(savedOrder).not.toBeNull();
@@ -402,7 +401,7 @@ test.describe('Customer Assignment', () => {
       const url = page.url();
       const match = url.match(/\/orders\/(\d+)/);
       expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const orderId = match![1];
 
       // Verify in WooCommerce
       const savedOrder = await OrdersAPI.getOrder(orderId);
@@ -437,7 +436,7 @@ test.describe('Customer Assignment', () => {
       const url = page.url();
       const match = url.match(/\/orders\/(\d+)/);
       expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const orderId = match![1];
 
       // Verify in WooCommerce
       const savedOrder = await OrdersAPI.getOrder(orderId);
@@ -469,7 +468,7 @@ test.describe('Customer Assignment', () => {
       const url = page.url();
       const match = url.match(/\/orders\/(\d+)/);
       expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const orderId = match![1];
 
       // Verify in WooCommerce
       const savedOrder = await OrdersAPI.getOrder(orderId);
@@ -501,7 +500,7 @@ test.describe('Customer Assignment', () => {
       const url = page.url();
       const match = url.match(/\/orders\/(\d+)/);
       expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const orderId = match![1];
 
       // Reload the page
       await page.reload();
@@ -596,7 +595,7 @@ test.describe('Customer Assignment', () => {
       const url = page.url();
       const match = url.match(/\/orders\/(\d+)/);
       if (match) {
-        const orderId = parseInt(match[1], 10);
+        const orderId = match[1];
         const savedOrder = await OrdersAPI.getOrder(orderId);
         expect(savedOrder?.billing.phone).toBe('555-EDIT');
       }
@@ -688,7 +687,7 @@ test.describe('Customer Assignment', () => {
       const url = page.url();
       const match = url.match(/\/orders\/(\d+)/);
       expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const orderId = match![1];
 
       const savedOrder = await OrdersAPI.getOrder(orderId);
       // Customer should not have been set since both name and phone are required
@@ -719,7 +718,7 @@ test.describe('Customer Assignment', () => {
       const url = page.url();
       const match = url.match(/\/orders\/(\d+)/);
       expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const orderId = match![1];
 
       const savedOrder = await OrdersAPI.getOrder(orderId);
       expect(savedOrder).not.toBeNull();
@@ -775,7 +774,7 @@ test.describe('Customer Assignment', () => {
       const url = page.url();
       const match = url.match(/\/orders\/(\d+)/);
       expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const orderId = match![1];
 
       const savedOrder = await OrdersAPI.getOrder(orderId);
       expect(savedOrder).not.toBeNull();

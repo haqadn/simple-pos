@@ -100,7 +100,7 @@ Set up wp-env for self-contained E2E testing, seed WooCommerce with test product
       "Fix any other type errors in file",
       "Run tsc --noEmit to confirm fixes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 8,
