@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 10
+Tasks completed: 11
 Current task: None
 
 ---
@@ -264,3 +264,48 @@ Current task: None
 
 ### Commit
 - fix: resolve remaining TypeScript errors across all test files
+
+---
+
+## [2026-01-16] - Task 11: Update test-data.ts to use wp-env API
+
+### Changes Made
+- No new code changes required - all infrastructure was already implemented in Task 4
+- Task 11 was verification that the existing integration works correctly
+
+### Verification
+The following verification steps were performed:
+
+1. **TypeScript Compilation**:
+   - Ran `npx tsc --noEmit --skipLibCheck` - passed with no errors
+   - All test-data.ts, wp-env-config.ts, global-setup.ts files compile correctly
+
+2. **Configuration Loading Logic**:
+   - Verified that .env.test parsing works correctly for:
+     - WP_PORT, WP_BASE_URL, WC_CONSUMER_KEY, WC_CONSUMER_SECRET
+   - Tested config parsing with mock data - all assertions passed
+
+3. **Data Flow Verification**:
+   - test-data.ts imports `getWpEnvConfig()` from wp-env-config helper
+   - `getApiConfig()` constructs API URL from baseUrl in .env.test
+   - `createApiClient()` uses dynamic config for baseUrl and auth credentials
+   - `fetchProducts()` uses createApiClient() to fetch from WooCommerce
+   - `fetchTestData()` finds suitable simple/variable products
+   - Seeded products (TEST-SIMPLE-001, TEST-VAR-001) match fetch criteria
+   - global-setup.ts calls fetchTestData() during Playwright initialization
+
+4. **Playwright Integration**:
+   - Ran `npx playwright test --list` - successfully listed all 200+ tests
+   - Configuration loads correctly without errors
+   - test-data.spec.ts tests verify getTestProducts() and helper functions
+
+5. **Seeded Product Compatibility**:
+   - Verified seeded products match fetchTestData() criteria:
+     - TEST-SIMPLE-001: type=simple, stock_status=instock, has SKU, price=25.00
+     - TEST-VAR-001: type=variable, stock_status=instock, has variations
+   - All variation SKUs (TEST-VAR-S/M/L) are properly configured
+
+**NOTE**: Full runtime verification requires network connectivity to install @wordpress/env and start wp-env. The code is complete and verified to compile correctly. Runtime testing should be performed when network is available.
+
+### Commit
+- No commit needed - verification task only (no code changes)

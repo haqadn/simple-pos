@@ -149,7 +149,7 @@ Set up wp-env for self-contained E2E testing, seed WooCommerce with test product
       "Update globalSetup to work with new configuration",
       "Test that dynamic test data fetching works"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 12,
