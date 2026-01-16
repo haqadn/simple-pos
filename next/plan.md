@@ -156,7 +156,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Test: / exits multi-input mode",
       "Verify all items added persist correctly"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 12,

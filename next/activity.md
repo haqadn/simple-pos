@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 10
+Tasks completed: 11
 Current task: None
 
 ---
@@ -450,3 +450,56 @@ Current task: None
 
 ### Commit
 - feat: implement item command comprehensive e2e tests
+
+---
+
+## [2026-01-16] - Task 11: Implement multi-input mode tests
+
+### Changes Made
+- `/next/e2e/tests/commands/multi-input-mode.spec.ts`: Created comprehensive multi-input mode tests (22 tests)
+  - **Enter Multi-Input Mode** tests (4 tests):
+    - `/item with no args enters multi-input mode`: Verifies /item without arguments enters multi-input mode
+    - `prompt changes to item> when entering item multi-input mode`: Verifies prompt text changes
+    - `/i alias also enters multi-input mode`: Verifies alias works for entering mode
+    - `command bar remains focused after entering multi-input mode`: Verifies focus is maintained
+  - **Multi-Input Mode Entry** tests (3 tests):
+    - `can add item by typing SKU in multi-input mode`: Verifies SKU entry without /item prefix
+    - `can add item with quantity in multi-input mode`: Verifies SKU + quantity entry
+    - `prompt remains as item> after adding item`: Verifies staying in multi-input mode
+  - **Rapid Entry of Multiple SKUs** tests (4 tests):
+    - `can add multiple different items rapidly`: Verifies adding different products
+    - `can add same item multiple times to increment quantity`: Verifies increment behavior
+    - `rapid entry with mixed quantities`: Verifies mixed increment/set operations
+    - `stays in multi-input mode throughout rapid entry`: Verifies mode persistence
+  - **Exit Multi-Input Mode** tests (4 tests):
+    - `/ exits multi-input mode`: Verifies exit via /
+    - `prompt returns to > after exiting`: Verifies prompt reset
+    - `can exit after adding items`: Verifies items persist after exit
+    - `switching to another command exits multi-input mode`: Verifies command switching
+  - **Persistence to WooCommerce** tests (3 tests):
+    - `all items added in multi-input mode persist correctly`: Verifies API persistence
+    - `order total is correct after multi-input mode entries`: Verifies total calculation
+    - `no duplicate line items after multiple multi-input operations`: Verifies no duplicates
+  - **Edge Cases** tests (4 tests):
+    - `invalid SKU in multi-input mode shows error but stays in mode`: Verifies error handling
+    - `empty entry in multi-input mode does not crash`: Verifies empty input handling
+    - `can re-enter multi-input mode after exiting`: Verifies re-entry works
+    - `multi-input mode works with products added before entering mode`: Verifies compatibility
+
+### Verification
+- IDE diagnostics show no TypeScript errors for multi-input-mode.spec.ts
+- `npx playwright test --list` discovers 150 total tests (22 new multi-input-mode tests)
+- Test file follows established patterns from existing command test files
+- All tests use dynamic test data from getTestProducts()
+- Tests verify both UI state and WooCommerce API state
+- Tests use test.skip() for graceful handling when test data unavailable
+
+### Notes
+- Multi-input mode allows rapid SKU entry without repeating the command prefix
+- Prompt changes from ">" to "item>" to indicate active mode
+- Exit via "/" or by executing a different command
+- Tests cover: entering mode, entries, rapid entry, exiting, persistence, and edge cases
+- Helper functions from commands.ts are used: enterMultiInputMode, exitMultiInputMode, isInMultiInputMode, executeMultiModeEntry
+
+### Commit
+- feat: implement multi-input mode e2e tests
