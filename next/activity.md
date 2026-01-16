@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 2
+Tasks completed: 3
 Current task: None
 
 ---
@@ -63,3 +63,46 @@ Current task: None
 
 ### Commit
 - chore: create test fixtures and POSPage helper class
+
+---
+
+## [2026-01-16] - Task 3: Implement dynamic test data fetching from WooCommerce
+
+### Changes Made
+- `/next/e2e/fixtures/test-data.ts`: Created test data module for fetching real products from WooCommerce API
+  - `TestProductSchema` and `TestVariationSchema` Zod schemas for type-safe data parsing
+  - `fetchTestData()` function that fetches products and variations from WooCommerce API
+  - `getTestProducts()` returns simple and variable products for test use
+  - `getTestSku()` returns appropriate SKU (variation SKU for variable products)
+  - `getTestPrice()` returns appropriate price for product type
+  - `getFirstInStockVariation()` finds in-stock variation for variable products
+  - `getAllSkus()` returns all SKUs including variation SKUs
+  - `findProductBySku()` and `findVariationBySku()` lookup helpers
+  - `getProductForScenario()` returns product based on test scenario type
+  - Cache management functions: `saveTestDataCache()`, `loadTestDataCache()`, `clearTestDataCache()`
+  - In-memory store for test data with `setTestData()` and `getTestData()`
+- `/next/e2e/global-setup.ts`: Playwright global setup that runs before all tests
+  - Fetches test data from WooCommerce API
+  - Caches data for 1 hour to avoid redundant API calls
+  - Falls back to stale cache if API is unavailable
+- `/next/e2e/fixtures/index.ts`: Updated to export all test data functions and types
+- `/next/e2e/tests/test-data.spec.ts`: Verification tests for test data functionality (12 tests)
+- `/next/playwright.config.ts`: Added `globalSetup` configuration to run data fetching before tests
+- `/next/.gitignore`: Added `/e2e/.test-data-cache.json` to ignore cache file
+
+### Verification
+- IDE diagnostics show no TypeScript errors for all new files
+- `npx playwright test --list` discovers 19 total tests (12 new test-data tests)
+- Playwright configuration correctly references global-setup.ts
+- All TypeScript code compiles without errors
+
+### Notes
+- Test data is fetched once during global setup and cached for all tests
+- Cache expires after 1 hour to ensure data freshness
+- Simple product: must have SKU, price > 0, and be in stock
+- Variable product: must have variations loaded for variation selection tests
+- Uses same API credentials as the main application (from api/config.ts)
+- HTTPS agent configured to handle self-signed certificates in development
+
+### Commit
+- chore: implement dynamic test data fetching from WooCommerce

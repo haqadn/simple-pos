@@ -48,7 +48,7 @@ Implement comprehensive Playwright E2E testing for Simple POS to prevent regress
       "Add product SKU and variation ID extraction helpers",
       "Use globalSetup to fetch and cache test data"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 4,

@@ -5,6 +5,9 @@ import { defineConfig, devices } from '@playwright/test';
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
+  // Global setup - fetches test data from WooCommerce before tests run
+  globalSetup: require.resolve('./e2e/global-setup'),
+
   // Directory containing test files
   testDir: './e2e/tests',
 

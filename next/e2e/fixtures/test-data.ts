@@ -1,0 +1,440 @@
+/**
+ * Test Data Fixtures
+ *
+ * Fetches real product data from WooCommerce API for use in E2E tests.
+ * Products are fetched once during global setup and cached for all tests.
+ *
+ * This approach ensures tests use real product data (SKUs, prices, variations)
+ * rather than hardcoded values that may become stale.
+ */
+
+import axios from 'axios';
+import { z } from 'zod';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// WooCommerce API configuration (same as application config)
+const API_CONFIG = {
+  baseUrl: 'https://wordpress.simple-pos.orb.local/wp-json/wc/v3',
+  consumerKey: 'ck_857f37fac852b7cb5d03711cfa8041f6b9766016',
+  consumerSecret: 'cs_9f3abbe9282c208645b6b8aa49c254c4bc3c3cdd',
+};
+
+// Path to cache test data between runs
+const TEST_DATA_CACHE_PATH = path.join(__dirname, '..', '.test-data-cache.json');
+
+// ==========================================
+// Schema Definitions
+// ==========================================
+
+/**
+ * Schema for WooCommerce product data we need for testing
+ */
+const TestProductSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  sku: z.string(),
+  price: z.string().transform((val) => parseFloat(val) || 0),
+  regular_price: z.string().transform((val) => parseFloat(val) || 0),
+  type: z.enum(['simple', 'variable', 'grouped', 'external']).default('simple'),
+  variations: z.array(z.number()).optional().default([]),
+  stock_status: z.enum(['instock', 'outofstock', 'onbackorder']).default('instock'),
+  manage_stock: z.boolean().default(false),
+  stock_quantity: z.number().nullable().default(null),
+});
+
+/**
+ * Schema for WooCommerce variation data
+ */
+const TestVariationSchema = z.object({
+  id: z.number(),
+  sku: z.string(),
+  price: z.string().transform((val) => parseFloat(val) || 0),
+  regular_price: z.string().transform((val) => parseFloat(val) || 0),
+  stock_status: z.enum(['instock', 'outofstock', 'onbackorder']).default('instock'),
+  attributes: z.array(z.object({
+    id: z.number(),
+    name: z.string(),
+    option: z.string(),
+  })).default([]),
+});
+
+export type TestProduct = z.infer<typeof TestProductSchema>;
+export type TestVariation = z.infer<typeof TestVariationSchema>;
+
+// ==========================================
+// Test Data Types
+// ==========================================
+
+/**
+ * Full test product with optional variations loaded
+ */
+export interface TestProductWithVariations extends TestProduct {
+  loadedVariations?: TestVariation[];
+}
+
+/**
+ * Test data structure containing products for different test scenarios
+ */
+export interface TestData {
+  /** Simple product (no variations) for basic item tests */
+  simpleProduct: TestProductWithVariations;
+  /** Variable product with variations for variation selection tests */
+  variableProduct: TestProductWithVariations;
+  /** All available products for search/selection tests */
+  allProducts: TestProduct[];
+  /** Timestamp when data was fetched */
+  fetchedAt: string;
+}
+
+// ==========================================
+// API Client
+// ==========================================
+
+/**
+ * Create an Axios client for WooCommerce API
+ */
+function createApiClient() {
+  return axios.create({
+    baseURL: API_CONFIG.baseUrl,
+    timeout: 30000,
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    auth: {
+      username: API_CONFIG.consumerKey,
+      password: API_CONFIG.consumerSecret,
+    },
+    // Handle self-signed certificates in development
+    httpsAgent: new (require('https').Agent)({
+      rejectUnauthorized: false,
+    }),
+  });
+}
+
+// ==========================================
+// Data Fetching Functions
+// ==========================================
+
+/**
+ * Fetch products from WooCommerce API
+ */
+async function fetchProducts(): Promise<TestProduct[]> {
+  const client = createApiClient();
+
+  try {
+    const response = await client.get('/products', {
+      params: {
+        per_page: 100,
+        status: 'publish',
+        orderby: 'popularity',
+      },
+    });
+
+    const products = z.array(TestProductSchema).parse(response.data);
+    return products;
+  } catch (error) {
+    console.error('Failed to fetch products from WooCommerce:', error);
+    throw new Error('Failed to fetch test products from WooCommerce API');
+  }
+}
+
+/**
+ * Fetch variations for a variable product
+ */
+async function fetchVariations(productId: number): Promise<TestVariation[]> {
+  const client = createApiClient();
+
+  try {
+    const response = await client.get(`/products/${productId}/variations`, {
+      params: {
+        per_page: 100,
+        status: 'publish',
+      },
+    });
+
+    const variations = z.array(TestVariationSchema).parse(response.data);
+    return variations;
+  } catch (error) {
+    console.error(`Failed to fetch variations for product ${productId}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Fetch and assemble test data from WooCommerce
+ */
+export async function fetchTestData(): Promise<TestData> {
+  console.log('Fetching test data from WooCommerce API...');
+
+  const products = await fetchProducts();
+
+  if (products.length === 0) {
+    throw new Error('No products found in WooCommerce. Please ensure the store has products.');
+  }
+
+  // Find a simple product (in stock, has SKU, has price)
+  const simpleProduct = products.find(
+    (p) =>
+      p.type === 'simple' &&
+      p.stock_status === 'instock' &&
+      p.sku &&
+      p.price > 0
+  );
+
+  if (!simpleProduct) {
+    throw new Error('No suitable simple product found. Need a simple product with SKU and price.');
+  }
+
+  // Find a variable product with variations
+  const variableProduct = products.find(
+    (p) =>
+      p.type === 'variable' &&
+      p.stock_status === 'instock' &&
+      p.variations &&
+      p.variations.length > 0
+  );
+
+  let variableProductWithVariations: TestProductWithVariations;
+
+  if (variableProduct) {
+    // Fetch variations for the variable product
+    const variations = await fetchVariations(variableProduct.id);
+    variableProductWithVariations = {
+      ...variableProduct,
+      loadedVariations: variations,
+    };
+  } else {
+    // If no variable product, use simple product as fallback
+    console.warn('No variable product found. Using simple product for variation tests (may skip some tests).');
+    variableProductWithVariations = { ...simpleProduct, loadedVariations: [] };
+  }
+
+  const testData: TestData = {
+    simpleProduct: { ...simpleProduct },
+    variableProduct: variableProductWithVariations,
+    allProducts: products,
+    fetchedAt: new Date().toISOString(),
+  };
+
+  console.log(`Test data fetched successfully:`);
+  console.log(`  - Simple product: ${testData.simpleProduct.name} (SKU: ${testData.simpleProduct.sku})`);
+  console.log(`  - Variable product: ${testData.variableProduct.name} (${testData.variableProduct.loadedVariations?.length || 0} variations)`);
+  console.log(`  - Total products: ${testData.allProducts.length}`);
+
+  return testData;
+}
+
+// ==========================================
+// Cache Management
+// ==========================================
+
+/**
+ * Save test data to cache file
+ */
+export function saveTestDataCache(data: TestData): void {
+  try {
+    fs.writeFileSync(TEST_DATA_CACHE_PATH, JSON.stringify(data, null, 2));
+    console.log(`Test data cached to ${TEST_DATA_CACHE_PATH}`);
+  } catch (error) {
+    console.warn('Failed to cache test data:', error);
+  }
+}
+
+/**
+ * Load test data from cache file
+ */
+export function loadTestDataCache(): TestData | null {
+  try {
+    if (!fs.existsSync(TEST_DATA_CACHE_PATH)) {
+      return null;
+    }
+
+    const cached = fs.readFileSync(TEST_DATA_CACHE_PATH, 'utf-8');
+    const data = JSON.parse(cached) as TestData;
+
+    // Check if cache is too old (older than 1 hour)
+    const fetchedAt = new Date(data.fetchedAt);
+    const now = new Date();
+    const ageMs = now.getTime() - fetchedAt.getTime();
+    const maxAgeMs = 60 * 60 * 1000; // 1 hour
+
+    if (ageMs > maxAgeMs) {
+      console.log('Test data cache is stale, will refetch');
+      return null;
+    }
+
+    console.log(`Using cached test data from ${data.fetchedAt}`);
+    return data;
+  } catch (error) {
+    console.warn('Failed to load test data cache:', error);
+    return null;
+  }
+}
+
+/**
+ * Clear the test data cache
+ */
+export function clearTestDataCache(): void {
+  try {
+    if (fs.existsSync(TEST_DATA_CACHE_PATH)) {
+      fs.unlinkSync(TEST_DATA_CACHE_PATH);
+      console.log('Test data cache cleared');
+    }
+  } catch (error) {
+    console.warn('Failed to clear test data cache:', error);
+  }
+}
+
+// ==========================================
+// Main Test Data Access
+// ==========================================
+
+// In-memory store for test data (populated by global setup)
+let testDataStore: TestData | null = null;
+
+/**
+ * Set the test data (called by global setup)
+ */
+export function setTestData(data: TestData): void {
+  testDataStore = data;
+}
+
+/**
+ * Get test data for use in tests
+ *
+ * This function should be called from tests after global setup has run.
+ * It will try to load from in-memory store first, then from cache file.
+ */
+export function getTestData(): TestData {
+  // Try in-memory store first
+  if (testDataStore) {
+    return testDataStore;
+  }
+
+  // Try loading from cache
+  const cached = loadTestDataCache();
+  if (cached) {
+    testDataStore = cached;
+    return cached;
+  }
+
+  throw new Error(
+    'Test data not available. Ensure global setup has run or cache exists.'
+  );
+}
+
+/**
+ * Get test products convenience function
+ * Returns both simple and variable products for test use
+ */
+export function getTestProducts(): { simple: TestProductWithVariations; variable: TestProductWithVariations } {
+  const data = getTestData();
+  return {
+    simple: data.simpleProduct,
+    variable: data.variableProduct,
+  };
+}
+
+// ==========================================
+// Helper Functions
+// ==========================================
+
+/**
+ * Get the first in-stock variation for a variable product
+ */
+export function getFirstInStockVariation(product: TestProductWithVariations): TestVariation | null {
+  if (!product.loadedVariations || product.loadedVariations.length === 0) {
+    return null;
+  }
+
+  return product.loadedVariations.find((v) => v.stock_status === 'instock') || product.loadedVariations[0];
+}
+
+/**
+ * Get a product SKU for testing
+ * Returns variation SKU for variable products, product SKU for simple products
+ */
+export function getTestSku(product: TestProductWithVariations): string {
+  if (product.type === 'variable' && product.loadedVariations?.length) {
+    const variation = getFirstInStockVariation(product);
+    if (variation && variation.sku) {
+      return variation.sku;
+    }
+  }
+  return product.sku;
+}
+
+/**
+ * Get the price for a test product
+ * Returns variation price for variable products, product price for simple products
+ */
+export function getTestPrice(product: TestProductWithVariations): number {
+  if (product.type === 'variable' && product.loadedVariations?.length) {
+    const variation = getFirstInStockVariation(product);
+    if (variation) {
+      return variation.price;
+    }
+  }
+  return product.price;
+}
+
+/**
+ * Get all SKUs available for a product (including variations)
+ */
+export function getAllSkus(product: TestProductWithVariations): string[] {
+  const skus: string[] = [];
+
+  if (product.sku) {
+    skus.push(product.sku);
+  }
+
+  if (product.loadedVariations) {
+    for (const variation of product.loadedVariations) {
+      if (variation.sku && !skus.includes(variation.sku)) {
+        skus.push(variation.sku);
+      }
+    }
+  }
+
+  return skus;
+}
+
+/**
+ * Find a product by SKU from all products
+ */
+export function findProductBySku(sku: string): TestProduct | null {
+  const data = getTestData();
+  return data.allProducts.find((p) => p.sku === sku) || null;
+}
+
+/**
+ * Find a variation by SKU within a variable product
+ */
+export function findVariationBySku(
+  product: TestProductWithVariations,
+  sku: string
+): TestVariation | null {
+  if (!product.loadedVariations) {
+    return null;
+  }
+  return product.loadedVariations.find((v) => v.sku === sku) || null;
+}
+
+/**
+ * Get a product suitable for testing a specific scenario
+ */
+export function getProductForScenario(scenario: 'simple' | 'variable' | 'any'): TestProductWithVariations {
+  const data = getTestData();
+
+  switch (scenario) {
+    case 'simple':
+      return data.simpleProduct;
+    case 'variable':
+      return data.variableProduct;
+    case 'any':
+    default:
+      return data.simpleProduct;
+  }
+}
