@@ -49,7 +49,7 @@ Set up wp-env for self-contained E2E testing, seed WooCommerce with test product
       "Create variable product: TEST-VAR-001 with S/M/L variations",
       "Add npm script test:e2e:seed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 4,

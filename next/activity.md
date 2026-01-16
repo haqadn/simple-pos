@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-16
-Tasks completed: 2
+Tasks completed: 3
 Current task: None
 
 ---
@@ -53,3 +53,29 @@ Current task: None
 
 ### Commit
 - chore: add WooCommerce API credentials setup script
+
+---
+
+## [2026-01-16] - Task 3: Create product seeding script
+
+### Changes Made
+- Created `/Users/adnan/Projects/simple-pos-e2e/next/e2e/scripts/seed-products.js`
+  - Reads API credentials from .env.test file (WC_CONSUMER_KEY, WC_CONSUMER_SECRET, WP_BASE_URL)
+  - Uses native Node.js http/https modules (no external dependencies)
+  - Implements idempotent product creation by checking SKU existence before creating
+  - Creates simple product: TEST-SIMPLE-001 with price 25.00, stock 100
+  - Creates variable product: TEST-VAR-001 with Size attribute (Small/Medium/Large)
+  - Creates variations: TEST-VAR-S (30.00), TEST-VAR-M (35.00), TEST-VAR-L (40.00)
+  - Verifies all products and variations exist after creation
+  - Supports --force flag for future use
+  - Clear error messages when .env.test is missing or API connection fails
+- Updated `/Users/adnan/Projects/simple-pos-e2e/next/package.json`:
+  - Added `test:e2e:seed` npm script to run the seeding script
+
+### Verification
+- Validated JavaScript syntax with `node --check e2e/scripts/seed-products.js` - passed
+- Validated package.json is valid JSON via Node.js require() - passed
+- Ran script to confirm it properly detects missing .env.test and provides clear instructions
+
+### Commit
+- chore: add WooCommerce product seeding script
