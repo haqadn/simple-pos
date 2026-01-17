@@ -1,7 +1,7 @@
 # Activity Log
 
-Last updated: 2026-01-17T05:00:00Z
-Tasks completed: 8
+Last updated: 2026-01-17T09:00:00Z
+Tasks completed: 9
 Current task: None
 
 ---
@@ -257,3 +257,56 @@ Current task: None
 
 ### Commit
 - `feat: create offline order store with Dexie integration`
+
+---
+
+## [2026-01-17] - Task 9: Create sync service for order synchronization
+
+### Changes Made
+- `/next/services/sync.ts`:
+  - Created new sync service module for order synchronization with WooCommerce
+  - Implemented `SyncResult` interface with success, frontendId, serverId, and error fields
+  - Implemented `SyncOptions` interface with force option
+  - Implemented `syncOrder()` function:
+    - Syncs a single order to WooCommerce server
+    - Marks order as syncing during sync attempt
+    - Creates new order (POST) or updates existing order (PUT) based on serverId presence
+    - Updates syncStatus to synced on success with serverId
+    - Updates syncStatus to error on failure with error message
+    - Adds failed syncs to sync queue for retry
+  - Implemented `prepareOrderForSync()` helper function:
+    - Prepares order data for WooCommerce API
+    - Extracts relevant fields: status, customer_id, line_items, shipping_lines, coupon_lines, customer_note, billing, meta_data
+  - Implemented `addToSyncQueue()` function:
+    - Adds or updates sync queue entry for failed syncs
+    - Increments retry count on subsequent failures
+    - Uses exponential backoff from db/index.ts
+  - Implemented `removeFromSyncQueue()` function:
+    - Removes order from sync queue after successful sync
+  - Implemented `getQueuedOrdersReadyForRetry()` function:
+    - Gets orders from sync queue where nextRetryAt <= now
+  - Implemented `processSyncQueue()` function:
+    - Processes all orders ready for retry from the queue
+    - Also syncs orders with 'local' status not in queue
+  - Implemented `syncAllPendingOrders()` function:
+    - Syncs all orders that need syncing (local or error status)
+  - Implemented `getSyncQueueCount()` and `getSyncQueueEntries()` functions:
+    - Query sync queue for status monitoring
+  - Implemented `clearSyncQueue()` function:
+    - Clears entire sync queue
+  - Implemented background sync interval management:
+    - `startBackgroundSync()`: Starts 30-second interval, accepts callback for sync completion
+    - `stopBackgroundSync()`: Stops interval and clears callbacks
+    - `isBackgroundSyncRunning()`: Checks if background sync is active
+    - `triggerImmediateSync()`: Triggers sync outside regular interval
+    - `removeBackgroundSyncCallback()`: Removes specific callback
+  - Background sync only runs when navigator.onLine is true
+- `/next/services/index.ts`:
+  - Created index file to export all services
+
+### Verification
+- `npm run build` - Completed successfully with no errors
+- `npm run lint` - No ESLint warnings or errors
+
+### Commit
+- `feat: create sync service for order synchronization`

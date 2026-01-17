@@ -119,7 +119,7 @@ Enhance Simple POS with configurable payment methods, coupon validation card, of
       "Add exponential backoff (30s, 1m, 2m, 5m, max 10m)",
       "Create background sync interval (every 30s when online)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 10,
