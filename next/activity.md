@@ -668,3 +668,39 @@ npx playwright test print-command.spec.ts:684
 
 ### Commit
 - No new commit needed - fix was implemented in previous session
+
+---
+
+## [2026-01-17] - Task 4: Fix customer clearing when name is emptied
+
+### Changes Made
+- No new code changes required - fix was already implemented in a previous session
+- Verified code changes are in place in `/Users/adnan/Projects/simple-pos-e2e/next/app/orders/[orderId]/components/customer-info.tsx`:
+  - Lines 23-35: `handleNameChange()` function explicitly handles empty/whitespace input
+  - Line 27: `if (!value.trim())` checks for empty or whitespace-only values
+  - Lines 28-34: Explicitly clears both `first_name` and `last_name` by calling mutation with empty strings
+
+### Code Review
+The implementation correctly handles the clearing scenario:
+1. When user clears the customer name field (sets to empty string)
+2. `handleNameChange('')` is called
+3. `!value.trim()` evaluates to `true` (empty string after trim is falsy)
+4. Mutation is called with `{ billing: { first_name: '', last_name: '' } }`
+5. The stores/orders.ts `useCustomerInfoQuery` mutation properly sends this to WooCommerce API
+
+### Verification
+1. TypeScript compilation: `npx tsc --noEmit` - passed with no errors
+2. Code review verified the logic is correct for clearing customer names
+3. The test at `e2e/tests/features/customer-assignment.spec.ts:306`:
+   - Fills customer name field with empty string
+   - Triggers blur/tab to save
+   - Expects `savedOrder!.billing.first_name` to be empty string
+4. Docker/wp-env not available - E2E runtime test cannot be executed
+
+**NOTE**: E2E test verification requires Docker/wp-env. When available, run:
+```bash
+npx playwright test customer-assignment.spec.ts:306
+```
+
+### Commit
+- chore: verify Task 4 customer clearing fix (code was already implemented)
