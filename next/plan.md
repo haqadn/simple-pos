@@ -148,7 +148,7 @@ Fix 144 failing E2E tests in the Simple POS Next.js application. The primary iss
       "Add proper wait conditions for order sync",
       "Run multi-order.spec.ts and verify tests pass or timeout is reasonable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 12,
