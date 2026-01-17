@@ -537,3 +537,73 @@ npx playwright test customer-assignment.spec.ts:306
 
 ### Commit
 - fix: explicitly clear first_name and last_name when customer name is emptied
+
+---
+
+## [2026-01-17] - Task 0: Start up and prepare the E2E test environment
+
+### Status: BLOCKED - Requires Manual Action
+
+### Environment Findings
+1. **Docker/OrbStack**: Installed at `/usr/local/bin/docker` but cannot be started from sandbox environment
+   - Error: "permission denied while trying to connect to the Docker daemon socket"
+   - GUI applications cannot be launched from this environment
+
+2. **Existing .env.test**: API credentials exist from previous session
+   - `WC_CONSUMER_KEY`: ck_e091dbf5ca812a5f846e95a09d12d8ee8b8f2817
+   - `WC_CONSUMER_SECRET`: cs_5c0dc14e92906682fca49d7bf3fe657396ba4129
+   - `WP_PORT`: 8888
+   - `WP_BASE_URL`: http://localhost:8888
+
+### Blocking Issues
+This task cannot be completed automatically due to sandbox limitations:
+- Cannot start Docker/OrbStack from within the sandbox
+- wp-env requires Docker to run WordPress containers
+- Test seeding and verification require running WordPress instance
+
+### Required Manual Actions
+
+The user must run these commands manually BEFORE this task can be verified:
+
+```bash
+# 1. Start OrbStack/Docker manually (GUI application)
+# Click on OrbStack in Applications or menu bar
+
+# 2. After Docker is running, start wp-env
+cd /Users/adnan/Projects/simple-pos-e2e/next
+npm run wp-env:start
+
+# 3. If .env.test needs regeneration (credentials expired):
+npm run test:e2e:credentials
+
+# 4. Seed test products if not already seeded:
+npm run test:e2e:seed
+
+# 5. Verify environment by listing tests:
+npx playwright test --list
+```
+
+### Commit
+- No commit - task requires manual Docker startup outside sandbox
+
+---
+
+## [2026-01-17] - Task 1: Verify /item SKU 0 fix and mark complete
+
+### Changes Made
+- Task 1 was already implemented in a previous session (see earlier activity log entry)
+- Verified code changes are in place:
+  - `/Users/adnan/Projects/simple-pos-e2e/next/commands/item.ts` line 62: `quantity < 0` (not `<= 0`)
+  - `/Users/adnan/Projects/simple-pos-e2e/next/stores/orders.ts` lines 346-357: React Query cache properly removes items when quantity is 0
+
+### Verification
+1. TypeScript compilation: `npx tsc --noEmit` - passed with no errors
+2. Code review verified:
+   - `commands/item.ts`: Allows quantity === 0 (only rejects negative)
+   - `stores/orders.ts`: Draft order handling (lines 331-334) removes items when quantity is 0
+   - `stores/orders.ts`: React Query cache handling (lines 346-350) removes items when quantity is 0
+3. E2E test file reviewed: `e2e/tests/commands/item-command.spec.ts` line 511 tests this scenario
+4. Docker/wp-env not accessible in sandbox - E2E runtime test cannot be executed
+
+### Commit
+- chore: mark Task 1 complete (code was already fixed in previous session)

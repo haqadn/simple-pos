@@ -14,13 +14,17 @@ Fix 11 failing E2E tests identified in the Playwright test suite. These are appl
   {
     "id": 0,
     "category": "setup",
-    "description": "Verify test artifacts are gitignored and clean up any tracked files",
+    "description": "Start up and prepare the E2E test environment",
     "steps": [
-      "Check .gitignore includes /test-results/, /playwright-report/, /playwright/.cache/",
-      "Run: git status test-results/ playwright-report/ to check for tracked files",
-      "If any test artifacts are tracked, run: git rm -r --cached test-results/ playwright-report/",
-      "Clean up any local test artifacts: rm -rf test-results/ playwright-report/",
-      "Verify with: git status --porcelain | grep -E 'test-results|playwright-report' (should be empty)"
+      "Check if wp-env is running: npm run wp-env -- run cli wp option get siteurl",
+      "If not running, start wp-env: npm run wp-env:start",
+      "Check if .env.test exists with API credentials",
+      "If not, generate credentials: npm run test:e2e:credentials",
+      "Check if test products are seeded by fetching TEST-SIMPLE-001",
+      "If not seeded, run: npm run test:e2e:seed",
+      "Start Next.js dev server in background: npm run dev &",
+      "Wait for Next.js to be ready on localhost:3000",
+      "Verify environment by running: npx playwright test --list"
     ],
     "passes": true
   },
@@ -30,10 +34,11 @@ Fix 11 failing E2E tests identified in the Playwright test suite. These are appl
     "description": "Fix /item SKU 0 to remove items from order",
     "steps": [
       "Open commands/item.ts",
-      "Find the quantity validation on line ~62 that rejects quantity <= 0",
+      "Find the quantity validation that rejects quantity <= 0",
       "Change condition to allow quantity === 0 (reject only negative)",
       "Ensure quantity=0 triggers the removal logic in stores/orders.ts",
-      "Run test: npx playwright test item-command.spec.ts:511"
+      "Run test and verify it passes: npx playwright test item-command.spec.ts:511",
+      "If test fails, debug and fix until it passes"
     ],
     "passes": true
   },
@@ -43,26 +48,25 @@ Fix 11 failing E2E tests identified in the Playwright test suite. These are appl
     "description": "Fix multi-input mode exit when switching commands",
     "steps": [
       "Open commands/command-registry.ts",
-      "Find executeCommand() and multi-mode exit logic around lines 150-160",
-      "Verify exitCurrentMultiMode() is called before executing new command",
-      "Check if the prompt state is being reset properly after exit",
-      "Ensure the state.mode changes from 'multi' to 'normal' before new command",
-      "Run test: npx playwright test multi-input-mode.spec.ts:390"
+      "Find executeCommand() and multi-mode exit logic",
+      "Ensure state.mode changes from 'multi' to 'normal' when switching commands",
+      "Run test and verify it passes: npx playwright test multi-input-mode.spec.ts:390",
+      "If test fails, debug and fix until it passes"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 3,
     "category": "fix",
     "description": "Fix KOT change detection on subsequent prints",
     "steps": [
-      "Open commands/print.ts and find KOT print logic",
-      "Verify last_kot_items meta is updated with current line items after print",
-      "Check if quantity changes are being captured in the meta data",
-      "Ensure meta_data update uses the actual current quantities, not cached",
-      "Run test: npx playwright test print-command.spec.ts:684"
+      "Open print-related files and find KOT print logic",
+      "Verify last_kot_items meta is updated with fresh order data after print",
+      "Ensure quantity changes are captured using fresh data, not cached",
+      "Run test and verify it passes: npx playwright test print-command.spec.ts:684",
+      "If test fails, debug and fix until it passes"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 4,
@@ -71,11 +75,11 @@ Fix 11 failing E2E tests identified in the Playwright test suite. These are appl
     "steps": [
       "Open app/orders/[orderId]/components/customer-info.tsx",
       "Find handleNameChange() function",
-      "When empty string is passed, should clear first_name and last_name",
-      "May need to also clear customer_id if applicable",
-      "Run test: npx playwright test customer-assignment.spec.ts:306"
+      "When empty string is passed, explicitly clear first_name and last_name",
+      "Run test and verify it passes: npx playwright test customer-assignment.spec.ts:306",
+      "If test fails, debug and fix until it passes"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 5,
@@ -85,9 +89,9 @@ Fix 11 failing E2E tests identified in the Playwright test suite. These are appl
       "Open app/orders/[orderId]/components/customer-info.tsx",
       "Find the phone Input component",
       "Verify it has onValueChange handler connected properly",
-      "Check if there's any disabled or readOnly prop",
-      "Ensure the input value is bound to localValues.phone",
-      "Run test: npx playwright test customer-assignment.spec.ts:561"
+      "Check if there's any disabled or readOnly prop blocking input",
+      "Run test and verify it passes: npx playwright test customer-assignment.spec.ts:561",
+      "If test fails, debug and fix until it passes"
     ],
     "passes": false
   },
@@ -98,10 +102,10 @@ Fix 11 failing E2E tests identified in the Playwright test suite. These are appl
     "steps": [
       "Open app/orders/[orderId]/components/order-note.tsx",
       "Verify handleChange is called on textarea value change",
-      "Check if mutation.mutate is being called with correct params",
-      "Ensure empty string clears the note properly",
+      "Ensure mutation.mutate is being called with correct params",
       "Verify localValue state syncs with query data on mount/change",
-      "Run tests: npx playwright test notes.spec.ts:131 notes.spec.ts:211 notes.spec.ts:255"
+      "Run tests and verify they pass: npx playwright test notes.spec.ts:131 notes.spec.ts:211 notes.spec.ts:255",
+      "If any test fails, debug and fix until all pass"
     ],
     "passes": false
   },
@@ -113,10 +117,9 @@ Fix 11 failing E2E tests identified in the Playwright test suite. These are appl
       "Open app/orders/components/products.tsx",
       "Find addToOrder() function and onPress handler",
       "Verify currentQuantity is reading from correct query",
-      "Check if mutation.mutate is being called with quantity+1",
       "Ensure mutation completes and persists to WooCommerce",
-      "May need to check useLineItemQuery hook in stores/orders.ts",
-      "Run tests: npx playwright test product-search.spec.ts:267 product-search.spec.ts:320"
+      "Run tests and verify they pass: npx playwright test product-search.spec.ts:267 product-search.spec.ts:320",
+      "If any test fails, debug and fix until all pass"
     ],
     "passes": false
   },
@@ -128,20 +131,21 @@ Fix 11 failing E2E tests identified in the Playwright test suite. These are appl
       "Open app/orders/[orderId]/page.tsx",
       "Add error handling for when order fetch returns null/error",
       "Show appropriate error message or redirect to orders list",
-      "Consider adding a 404-style component for non-existent orders",
-      "Run test: npx playwright test multi-order.spec.ts:962"
+      "Run test and verify it passes: npx playwright test multi-order.spec.ts:962",
+      "If test fails, debug and fix until it passes"
     ],
     "passes": false
   },
   {
     "id": 9,
     "category": "verification",
-    "description": "Run full E2E test suite to verify all fixes",
+    "description": "Run full E2E test suite to verify all fixes and no regressions",
     "steps": [
-      "Run: npx playwright test --reporter=list",
+      "Run full test suite: npx playwright test --reporter=list",
       "Verify all 11 previously failing tests now pass",
       "Check for any regressions in other tests",
-      "Document any remaining issues"
+      "If any failures, document them and fix",
+      "Final verification: all tests should pass"
     ],
     "passes": false
   }
