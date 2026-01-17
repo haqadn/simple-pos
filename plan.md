@@ -204,7 +204,7 @@ Enhance Simple POS with configurable payment methods, coupon validation card, of
       "Show server ID only as small reference if synced",
       "Update print command to pass frontend ID"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 17,

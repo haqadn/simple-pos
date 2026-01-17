@@ -11,12 +11,17 @@ export default function BillPrint({ data }: BillPrintProps) {
     items = [],
     customer,
     orderReference,
+    frontendId,
+    serverId,
     orderTime,
     payment = 0,
     discountTotal = 0,
     cartName,
     serviceType,
   } = data;
+
+  // Use frontend ID as primary order identifier, fall back to orderReference for legacy orders
+  const displayOrderNumber = frontendId || orderReference;
 
   const filteredItems = items.filter(item => item.quantity > 0);
 
@@ -91,7 +96,10 @@ export default function BillPrint({ data }: BillPrintProps) {
               </>
             )}
           </p>
-          <p className="text-sm my-1">Invoice#: {orderReference}</p>
+          <p className="text-sm my-1">Invoice#: {displayOrderNumber}</p>
+          {serverId && frontendId && (
+            <p className="text-xs text-gray-500 my-0.5">Ref: #{serverId}</p>
+          )}
           <p className="text-sm my-1">
             Date: <strong>{formatDate(orderTime)}</strong>{' '}
             Time: <strong>{formatTime(orderTime)}</strong>

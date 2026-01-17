@@ -91,10 +91,15 @@ export async function renderBill(
     }
   }
 
-  // Order reference
-  if (customization.showOrderNumber && data.orderReference) {
+  // Order reference - use frontend ID as primary, fall back to orderReference for legacy
+  const displayOrderNumber = data.frontendId || data.orderReference;
+  if (customization.showOrderNumber && displayOrderNumber) {
     builder.alignCenter();
-    builder.text(`Invoice#: ${data.orderReference}`).newline();
+    builder.text(`Invoice#: ${displayOrderNumber}`).newline();
+    // Show server ID as small reference if synced
+    if (data.serverId && data.frontendId) {
+      builder.text(`Ref: #${data.serverId}`).newline();
+    }
   }
 
   // Date and time

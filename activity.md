@@ -543,3 +543,53 @@ Current task: None
 
 ### Commit
 - `feat: implement server order import with frontend IDs`
+
+---
+
+## [2026-01-17] - Task 16: Update printing to use frontend ID
+
+### Changes Made
+- `/next/stores/print.ts`:
+  - Added `frontendId` (6-char alphanumeric) and `serverId` (WooCommerce order ID) fields to `PrintJobData` interface
+
+- `/next/lib/escpos/types.ts`:
+  - Added `frontendId` and `serverId` fields to `BillData` interface
+  - Added `frontendId` and `serverId` fields to `KotData` interface
+
+- `/next/components/print/BillPrint.tsx`:
+  - Destructured `frontendId` and `serverId` from data
+  - Added `displayOrderNumber` computed value that uses frontend ID as primary, falls back to orderReference
+  - Updated Invoice# line to use `displayOrderNumber`
+  - Added server ID reference line ("Ref: #{serverId}") shown only when both frontendId and serverId exist
+
+- `/next/components/print/KotPrint.tsx`:
+  - Destructured `frontendId` and `serverId` from data
+  - Added `displayOrderNumber` computed value that uses frontend ID as primary
+  - Updated Order# line to use `displayOrderNumber`
+  - Added server ID reference line with `.server-ref` CSS class
+  - Added CSS styling for `.server-ref` (12px, gray color)
+
+- `/next/lib/escpos/bill-renderer.ts`:
+  - Updated order reference section to use frontend ID as primary identifier
+  - Added server ID reference line when both frontendId and serverId exist
+  - Maintains backward compatibility with legacy orders using orderReference
+
+- `/next/lib/escpos/kot-renderer.ts`:
+  - Updated order number section to use frontend ID as primary identifier
+  - Added server ID reference line when both frontendId and serverId exist
+  - Maintains backward compatibility with legacy orders using orderReference
+
+- `/next/app/components/command-bar.tsx`:
+  - Updated `handlePrint` function to extract frontend ID from:
+    - URL params (if valid frontend ID format)
+    - Order meta_data (`pos_frontend_id` key)
+  - Sets `serverId` only for non-draft orders (when orderId !== DRAFT_ORDER_ID)
+  - Passes `frontendId` and `serverId` to `PrintJobData`
+  - Added `params` to useCallback dependency array
+
+### Verification
+- `npm run lint` - No ESLint warnings or errors
+- `npm run build` - Completed successfully with no errors
+
+### Commit
+- `feat: update printing to use frontend ID`

@@ -45,11 +45,17 @@ export function renderKot(data: KotData, options: KotRenderOptions): Uint8Array 
     builder.newline();
   }
 
-  // Order number (smaller, below service type)
-  if (settings.showOrderNumber && data.orderReference) {
+  // Order number (smaller, below service type) - use frontend ID as primary
+  const displayOrderNumber = data.frontendId || data.orderReference;
+  if (settings.showOrderNumber && displayOrderNumber) {
     builder.alignCenter();
-    builder.text(`Order #${data.orderReference}`);
+    builder.text(`Order #${displayOrderNumber}`);
     builder.newline();
+    // Show server ID as small reference if synced
+    if (data.serverId && data.frontendId) {
+      builder.text(`Ref: #${data.serverId}`);
+      builder.newline();
+    }
   }
 
   builder.separator('=', charWidth);

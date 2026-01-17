@@ -427,10 +427,21 @@ export default function CommandBar() {
     const shippingLine = order.shipping_lines?.find(s => s.method_title);
     const isTable = shippingLine?.method_id === 'pickup_location';
 
+    // Get frontend ID from URL params or order meta_data
+    const urlOrderId = params?.orderId as string | undefined;
+    const frontendIdFromUrl = urlOrderId && isValidFrontendId(urlOrderId) ? urlOrderId : undefined;
+    const frontendIdFromMeta = order.meta_data?.find(m => m.key === 'pos_frontend_id')?.value as string | undefined;
+    const frontendId = frontendIdFromUrl || frontendIdFromMeta;
+
+    // Server ID is the WooCommerce order ID (only set if it's a real synced order)
+    const serverId = orderId !== DRAFT_ORDER_ID ? orderId : undefined;
+
     // Build print data based on type
     const printData: PrintJobData = {
       orderId,
       orderReference: orderId.toString(),
+      frontendId,
+      serverId,
       cartName: shippingLine?.method_title || 'Order',
       serviceType: shippingLine ? (isTable ? 'table' : 'delivery') : undefined,
       orderTime: order.date_created,
@@ -548,7 +559,7 @@ export default function CommandBar() {
     await OrdersAPI.updateOrder(orderId.toString(), {
       meta_data: metaUpdates
     });
-  }, [orderQuery, printStore, shouldSkipForKot]);
+  }, [orderQuery, printStore, shouldSkipForKot, params]);
 
   // Open cash drawer
   const handleOpenDrawer = useCallback(async () => {

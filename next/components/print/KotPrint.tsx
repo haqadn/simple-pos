@@ -10,17 +10,25 @@ export default function KotPrint({ data }: KotPrintProps) {
   const {
     kotItems = [],
     orderReference,
+    frontendId,
+    serverId,
     cartName,
     customerNote,
   } = data;
+
+  // Use frontend ID as primary order identifier, fall back to orderReference for legacy orders
+  const displayOrderNumber = frontendId || orderReference;
 
   return (
     <div className="kot-print">
       {/* Header */}
       <header>
         <p className="cart-name">{cartName}</p>
-        {orderReference && (
-          <p className="order-ref">Order# {orderReference}</p>
+        {displayOrderNumber && (
+          <p className="order-ref">Order# {displayOrderNumber}</p>
+        )}
+        {serverId && frontendId && (
+          <p className="server-ref">Ref: #{serverId}</p>
         )}
       </header>
 
@@ -89,6 +97,12 @@ export default function KotPrint({ data }: KotPrintProps) {
         .order-ref {
           font-size: 18px;
           font-weight: bold;
+        }
+
+        .server-ref {
+          font-size: 12px;
+          color: #666;
+          margin-top: 2px;
         }
 
         .kot-items {

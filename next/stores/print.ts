@@ -15,6 +15,8 @@ export interface PrintJobData {
   // Common fields
   orderId?: number;
   orderReference?: string;
+  frontendId?: string;     // 6-char alphanumeric frontend ID (e.g., "A3X9K2")
+  serverId?: number;       // WooCommerce server ID (only if synced)
   cartName?: string;
   serviceType?: 'table' | 'delivery';
   orderTime?: string;
