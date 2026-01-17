@@ -16,6 +16,7 @@ import { useEffect } from "react";
 import { isValidFrontendId } from "@/lib/frontend-id";
 import { getLocalOrder, getLocalOrderByServerId, updateLocalOrder } from "./offline-orders";
 import type { LocalOrder } from "@/db";
+import { syncOrder } from "@/services/sync";
 
 function generateOrderQueryKey(context: string, order?: OrderSchema, product?: ProductSchema) {
 	switch (context) {
@@ -306,6 +307,11 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 
 			// Invalidate local order query to refresh UI
 			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+
+			// Queue sync operation (async - don't await)
+			syncOrder(urlOrderId).catch(err => {
+				console.error('Failed to queue sync for order:', urlOrderId, err);
+			});
 
 			return updatedLocalOrder.data;
 		}
@@ -643,6 +649,11 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			// Invalidate local order query to refresh UI
 			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
 
+			// Queue sync operation (async - don't await)
+			syncOrder(urlOrderId).catch(err => {
+				console.error('Failed to queue sync for order:', urlOrderId, err);
+			});
+
 			return updatedLocalOrder.data;
 		}
 
@@ -850,6 +861,12 @@ export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | 
 				customer_note: note,
 			});
 			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+
+			// Queue sync operation (async - don't await)
+			syncOrder(urlOrderId).catch(err => {
+				console.error('Failed to queue sync for order:', urlOrderId, err);
+			});
+
 			return updatedLocalOrder.data;
 		}
 
@@ -973,6 +990,12 @@ export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema
 				billing: mergedBilling,
 			});
 			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+
+			// Queue sync operation (async - don't await)
+			syncOrder(urlOrderId).catch(err => {
+				console.error('Failed to queue sync for order:', urlOrderId, err);
+			});
+
 			return updatedLocalOrder.data;
 		}
 
@@ -1110,6 +1133,12 @@ export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 				meta_data: updatedMetaData,
 			});
 			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+
+			// Queue sync operation (async - don't await)
+			syncOrder(urlOrderId).catch(err => {
+				console.error('Failed to queue sync for order:', urlOrderId, err);
+			});
+
 			return updatedLocalOrder.data;
 		}
 

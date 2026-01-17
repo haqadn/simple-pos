@@ -168,7 +168,7 @@ Enhance Simple POS with configurable payment methods, coupon validation card, of
       "Update usePaymentQuery mutations for local storage",
       "Queue sync operation after each mutation"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 14,

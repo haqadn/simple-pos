@@ -441,3 +441,34 @@ Current task: None
 
 ### Commit
 - `feat: update order queries to read from local DB first`
+
+---
+
+## [2026-01-17] - Task 13: Update order mutations to save locally and queue sync
+
+### Changes Made
+- `/next/stores/orders.ts`:
+  - Added import for `syncOrder` from `@/services/sync`
+  - Updated `useLineItemQuery`:
+    - After saving line item changes to Dexie for frontend ID orders, now queues a sync operation
+    - Sync is fired asynchronously (not awaited) to avoid blocking UI
+    - Errors are caught and logged to console
+  - Updated `useServiceQuery`:
+    - After saving shipping line changes to Dexie for frontend ID orders, now queues a sync operation
+    - Same async pattern with error handling
+  - Updated `useOrderNoteQuery`:
+    - After saving customer note to Dexie for frontend ID orders, now queues a sync operation
+    - Same async pattern with error handling
+  - Updated `useCustomerInfoQuery`:
+    - After saving billing info to Dexie for frontend ID orders, now queues a sync operation
+    - Same async pattern with error handling
+  - Updated `usePaymentQuery`:
+    - After saving payment meta_data to Dexie for frontend ID orders, now queues a sync operation
+    - Same async pattern with error handling
+
+### Verification
+- `npm run lint` - No ESLint warnings or errors
+- `npm run build` - Completed successfully with no errors
+
+### Commit
+- `feat: update order mutations to save locally and queue sync`
