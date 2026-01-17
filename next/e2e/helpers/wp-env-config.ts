@@ -60,8 +60,8 @@ export function loadEnvTestConfig(): WpEnvConfig | null {
     return null;
   }
 
-  // Set defaults if not present
-  config.port = config.port || '8888';
+  // Set defaults if not present (use test container port 8889)
+  config.port = config.port || '8889';
   config.baseUrl = config.baseUrl || `http://localhost:${config.port}`;
 
   return config as WpEnvConfig;
@@ -74,16 +74,17 @@ export function loadEnvTestConfig(): WpEnvConfig | null {
 export function getWpEnvPortFromCli(): string {
   try {
     const projectRoot = path.join(__dirname, '../..');
-    const output = execSync('npx wp-env run cli wp option get siteurl', {
+    // Use tests-cli to get the test container port (8889)
+    const output = execSync('npx wp-env run tests-cli wp option get siteurl', {
       cwd: projectRoot,
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
       timeout: 10000,
     });
     const match = output.match(/:(\d+)/);
-    return match ? match[1] : '8888';
+    return match ? match[1] : '8889';
   } catch {
-    return '8888';
+    return '8889';
   }
 }
 
@@ -93,7 +94,8 @@ export function getWpEnvPortFromCli(): string {
 export function isWpEnvRunning(): boolean {
   try {
     const projectRoot = path.join(__dirname, '../..');
-    const output = execSync('npx wp-env run cli wp option get siteurl', {
+    // Use tests-cli to check the test container
+    const output = execSync('npx wp-env run tests-cli wp option get siteurl', {
       cwd: projectRoot,
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -143,8 +145,8 @@ export function getWpPort(): string {
     return envConfig.port;
   }
 
-  // Default port
-  return '8888';
+  // Default port (test container)
+  return '8889';
 }
 
 /**

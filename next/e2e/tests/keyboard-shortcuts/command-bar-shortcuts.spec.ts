@@ -54,7 +54,7 @@ test.describe('Command Bar Shortcuts', () => {
       await page.keyboard.press('Enter');
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify item was added
@@ -78,7 +78,7 @@ test.describe('Command Bar Shortcuts', () => {
       await commandInput.fill(`/item ${sku}`);
       await page.keyboard.press('Enter');
 
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Input should be cleared after successful execution
@@ -333,7 +333,7 @@ test.describe('Command Bar Shortcuts', () => {
       await commandInput.fill(`/item ${sku}`);
       await page.keyboard.press('Enter');
 
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Clear input
@@ -366,7 +366,7 @@ test.describe('Command Bar Shortcuts', () => {
       await commandInput.fill(`/item ${sku}`);
       await page.keyboard.press('Enter');
 
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Execute second command

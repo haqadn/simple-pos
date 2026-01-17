@@ -46,6 +46,6 @@ test.describe('POSPage Fixture', () => {
     await posPage.createNewOrder();
 
     // Verify we're on a new order page
-    await expect(posPage.page).toHaveURL(/\/orders\/(new|\d+)/);
+    await expect(posPage.page).toHaveURL(/\/orders\/(new|[A-Z0-9]+)/);
   });
 });

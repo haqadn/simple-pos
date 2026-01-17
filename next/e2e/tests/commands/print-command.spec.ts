@@ -74,7 +74,7 @@ test.describe('Print Command', () => {
 
       // Add items to create an order (print requires items)
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -104,7 +104,7 @@ test.describe('Print Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -140,7 +140,7 @@ test.describe('Print Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Execute print and verify no crash
@@ -169,7 +169,7 @@ test.describe('Print Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 3);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -199,7 +199,7 @@ test.describe('Print Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -231,7 +231,7 @@ test.describe('Print Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -268,7 +268,7 @@ test.describe('Print Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -298,7 +298,7 @@ test.describe('Print Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -328,7 +328,7 @@ test.describe('Print Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -371,7 +371,7 @@ test.describe('Print Command', () => {
 
       // Add items (needed for command to be valid)
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Type partial print command
@@ -407,7 +407,7 @@ test.describe('Print Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Type partial print command with 'b'
@@ -442,7 +442,7 @@ test.describe('Print Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -477,7 +477,7 @@ test.describe('Print Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -547,7 +547,7 @@ test.describe('Print Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Record payment
@@ -579,7 +579,7 @@ test.describe('Print Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -618,7 +618,7 @@ test.describe('Print Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -654,7 +654,7 @@ test.describe('Print Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 3);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -694,7 +694,7 @@ test.describe('Print Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);

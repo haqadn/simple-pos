@@ -69,7 +69,7 @@ test.describe('Order Creation', () => {
         await posPage.commandInput.press('Enter');
 
         // Wait for the order to be saved and URL to change
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
 
         // Verify URL now contains a numeric order ID (not 'new')
@@ -97,7 +97,7 @@ test.describe('Order Creation', () => {
       // The order only gets saved when we modify it
       // For now, just verify we can navigate to the new order page
       const url = page.url();
-      expect(url).toMatch(/\/orders\/(new|\d+)/);
+      expect(url).toMatch(/\/orders\/(new|[A-Z0-9]+)/);
     });
   });
 
@@ -258,7 +258,7 @@ test.describe('Order Creation', () => {
         await posPage.commandInput.press('Enter');
 
         // Wait for order to be saved
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
 
         // Get the order ID
@@ -303,7 +303,7 @@ test.describe('Order Creation', () => {
         await posPage.commandInput.press('Enter');
 
         // Wait for order to be saved
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
 
         const orderId = await getCurrentOrderId(page);
@@ -333,7 +333,7 @@ test.describe('Order Creation', () => {
         await posPage.commandInput.press('Enter');
 
         // Wait for order to be saved
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
 
         const orderId = await getCurrentOrderId(page);
@@ -366,7 +366,7 @@ test.describe('Order Creation', () => {
         await posPage.commandInput.press('Enter');
 
         // Wait for order to be saved
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
 
         const orderId = await getCurrentOrderId(page);

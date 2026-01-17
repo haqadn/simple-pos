@@ -55,7 +55,7 @@ test.describe('Item Command', () => {
       await posPage.commandInput.press('Enter');
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify item was added with quantity 1
@@ -77,7 +77,7 @@ test.describe('Item Command', () => {
       await executeCommandAndWait(page, 'item', [sku]);
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify quantity is exactly 1
@@ -101,7 +101,7 @@ test.describe('Item Command', () => {
       await executeCommandAndWait(page, 'item', [sku]);
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify item was added
@@ -127,7 +127,7 @@ test.describe('Item Command', () => {
       await posPage.typeCommand(`/item ${sku} 5`);
       await posPage.commandInput.press('Enter');
 
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify item was added with quantity 5
@@ -147,7 +147,7 @@ test.describe('Item Command', () => {
 
       await executeCommandAndWait(page, 'item', [sku, '1']);
 
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       await OrderVerify.lineItem(page, product.name, 1);
@@ -166,7 +166,7 @@ test.describe('Item Command', () => {
 
       await executeCommandAndWait(page, 'item', [sku, '10']);
 
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       await OrderVerify.lineItem(page, product.name, 10);
@@ -185,7 +185,7 @@ test.describe('Item Command', () => {
 
       await executeCommandAndWait(page, 'item', [sku, '100']);
 
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       await OrderVerify.lineItem(page, product.name, 100);
@@ -209,7 +209,7 @@ test.describe('Item Command', () => {
       await posPage.typeCommand(`/i ${sku}`);
       await posPage.commandInput.press('Enter');
 
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify item was added with quantity 1
@@ -232,7 +232,7 @@ test.describe('Item Command', () => {
       await posPage.typeCommand(`/i ${sku} 3`);
       await posPage.commandInput.press('Enter');
 
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify item was added with quantity 3
@@ -255,7 +255,7 @@ test.describe('Item Command', () => {
       await posPage.typeCommand(`/i ${sku} 2`);
       await posPage.commandInput.press('Enter');
 
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       await OrderVerify.lineItem(page, product.name, 2);
@@ -348,7 +348,7 @@ test.describe('Item Command', () => {
         // Execute the command
         await posPage.commandInput.press('Enter');
 
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
 
         // Verify an item was added
@@ -358,7 +358,7 @@ test.describe('Item Command', () => {
         // Fall back to direct SKU entry
         await posPage.clearCommandInput();
         await CommandShortcuts.addItem(page, sku);
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
 
         const count = await getLineItemCount(page);
@@ -389,7 +389,7 @@ test.describe('Item Command', () => {
         // Execute
         await posPage.commandInput.press('Enter');
 
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
 
         const count = await getLineItemCount(page);
@@ -415,7 +415,7 @@ test.describe('Item Command', () => {
       // Add item without quantity (should add 1)
       await CommandShortcuts.addItem(page, sku);
 
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify quantity is 1
@@ -435,7 +435,7 @@ test.describe('Item Command', () => {
 
       // Add item first time
       await CommandShortcuts.addItem(page, sku);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify initial quantity is 1
@@ -462,7 +462,7 @@ test.describe('Item Command', () => {
 
       // Add item with quantity 2
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       await OrderVerify.lineItem(page, product.name, 2);
@@ -488,7 +488,7 @@ test.describe('Item Command', () => {
 
       // First add
       await CommandShortcuts.addItem(page, sku);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
       await OrderVerify.lineItem(page, product.name, 1);
 
@@ -521,7 +521,7 @@ test.describe('Item Command', () => {
 
       // Add item first
       await CommandShortcuts.addItem(page, sku, 3);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       await OrderVerify.lineItem(page, product.name, 3);
@@ -547,7 +547,7 @@ test.describe('Item Command', () => {
 
       // Increment: add 1
       await CommandShortcuts.addItem(page, sku);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
       await OrderVerify.lineItem(page, product.name, 1);
 
@@ -591,7 +591,7 @@ test.describe('Item Command', () => {
       expect(hasItem).toBe(true);
 
       // Wait for full persistence
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
     });
 
@@ -608,7 +608,7 @@ test.describe('Item Command', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 4);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Get UI state
@@ -638,7 +638,7 @@ test.describe('Item Command', () => {
 
       // Add item with qty 2
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Increment
@@ -681,7 +681,7 @@ test.describe('Item Command', () => {
 
       // Add item with quantity 3
       await CommandShortcuts.addItem(page, sku, 3);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Get UI total
@@ -709,7 +709,7 @@ test.describe('Item Command', () => {
 
       // Add item with qty 2
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -740,7 +740,7 @@ test.describe('Item Command', () => {
 
       // Perform multiple operations
       await CommandShortcuts.addItem(page, sku);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       await CommandShortcuts.addItem(page, sku);
@@ -827,7 +827,7 @@ test.describe('Item Command', () => {
 
       // Wait for potential order save
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 5000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 5000 });
         await waitForMutations(page);
 
         // If it saved, verify reasonable quantity (could be 2 or 3 depending on implementation)
@@ -854,7 +854,7 @@ test.describe('Item Command', () => {
 
       // Add item first
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Try negative quantity

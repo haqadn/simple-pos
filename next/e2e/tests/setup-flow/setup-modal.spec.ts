@@ -134,8 +134,9 @@ test.describe('Setup Modal - Fresh State', () => {
     await expect(saveButton).toBeDisabled();
 
     // Fill in some credentials but don't test connection
+    // Using test container port (8889) for consistency
     const urlInput = page.getByLabel('Website URL');
-    await urlInput.fill('http://localhost:8888');
+    await urlInput.fill('http://localhost:8889');
 
     const keyInput = page.getByLabel('Consumer Key');
     await keyInput.fill('ck_test_key');

@@ -62,7 +62,7 @@ test.describe('Global Keyboard Shortcuts', () => {
 
       // Add an item to have something on the page
       await CommandShortcuts.addItem(page, sku);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Click on line item table area
@@ -109,7 +109,7 @@ test.describe('Global Keyboard Shortcuts', () => {
 
       // Add item to current order
       await CommandShortcuts.addItem(page, sku);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Get current order ID
@@ -156,7 +156,7 @@ test.describe('Global Keyboard Shortcuts', () => {
 
       // Add item first
       await CommandShortcuts.addItem(page, sku);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -196,7 +196,7 @@ test.describe('Global Keyboard Shortcuts', () => {
 
       // Add item first
       await CommandShortcuts.addItem(page, sku);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -236,7 +236,7 @@ test.describe('Global Keyboard Shortcuts', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -271,7 +271,7 @@ test.describe('Global Keyboard Shortcuts', () => {
 
       // Add item without payment
       await CommandShortcuts.addItem(page, sku);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);

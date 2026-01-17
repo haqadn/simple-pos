@@ -52,6 +52,7 @@ export {
   createNewOrder,
   waitForOrderPageReady,
   getCurrentOrderId,
+  getServerOrderId,
   verifyOnOrderPage,
   // Line item functions
   getLineItems,
@@ -80,8 +81,10 @@ export {
   // Utility functions
   waitForMutations,
   screenshot,
-  // Selectors
+  // Selectors and patterns
   ORDER_SELECTORS,
+  ORDER_URL_PATTERN,
+  ORDER_ID_PATTERN,
   // Types
   type LineItem,
   type OrderSummary,

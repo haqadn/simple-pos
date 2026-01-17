@@ -51,7 +51,7 @@ test.describe('Multi-Order Management', () => {
 
       // Wait for order to be saved
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not save first order - skipping test');
@@ -76,7 +76,7 @@ test.describe('Multi-Order Management', () => {
 
       // Wait for second order to be saved
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not save second order - skipping test');
@@ -125,7 +125,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku]);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create first order - skipping test');
@@ -143,7 +143,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku, '2']);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create second order - skipping test');
@@ -211,7 +211,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku1, '2']);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create first order - skipping test');
@@ -230,7 +230,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku2, '5']);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create second order - skipping test');
@@ -291,7 +291,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku]);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create first order - skipping test');
@@ -309,7 +309,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku, '3']);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create second order - skipping test');
@@ -359,7 +359,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku, '2']);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create first order - skipping test');
@@ -377,7 +377,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku, '2']);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create second order - skipping test');
@@ -431,7 +431,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku, '2']);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create first order - skipping test');
@@ -454,7 +454,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku]);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create second order - skipping test');
@@ -505,7 +505,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku, '7']);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create order - skipping test');
@@ -550,7 +550,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku]);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create first order - skipping test');
@@ -568,7 +568,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku, '2']);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create second order - skipping test');
@@ -606,7 +606,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku]);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create first order - skipping test');
@@ -624,7 +624,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku, '2']);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create second order - skipping test');
@@ -669,7 +669,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku, '4']);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create order - skipping test');
@@ -717,7 +717,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku, '3']);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create first order - skipping test');
@@ -747,7 +747,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku, '1']);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not save new order - skipping test');
@@ -783,7 +783,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku, '5']);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create first order - skipping test');
@@ -811,7 +811,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku, '2']);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not save new order - skipping test');
@@ -854,7 +854,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku]);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create first order - skipping test');
@@ -872,7 +872,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku]);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create second order - skipping test');
@@ -889,7 +889,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku]);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create third order - skipping test');
@@ -926,7 +926,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku, '6']);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create first order - skipping test');
@@ -993,7 +993,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku]);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create first order - skipping test');
@@ -1011,7 +1011,7 @@ test.describe('Multi-Order Management', () => {
       await executeCommand(page, 'item', [sku]);
 
       try {
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
       } catch {
         test.skip(true, 'Could not create second order - skipping test');

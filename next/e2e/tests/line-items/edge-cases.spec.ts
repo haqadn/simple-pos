@@ -107,7 +107,7 @@ test.describe('Line Item Edge Cases', () => {
 
       // First add an item
       await CommandShortcuts.addItem(page, sku, 3);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify item was added
@@ -221,7 +221,7 @@ test.describe('Line Item Edge Cases', () => {
       const largeQuantity = 1000;
 
       await CommandShortcuts.addItem(page, sku, largeQuantity);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Get order ID and verify in WooCommerce
@@ -250,7 +250,7 @@ test.describe('Line Item Edge Cases', () => {
 
       // Add item with initial quantity
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Get order ID
@@ -294,7 +294,7 @@ test.describe('Line Item Edge Cases', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -330,7 +330,7 @@ test.describe('Line Item Edge Cases', () => {
 
       // Add same item multiple times
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       await CommandShortcuts.addItem(page, sku, 3);
@@ -364,7 +364,7 @@ test.describe('Line Item Edge Cases', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 3);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -416,7 +416,7 @@ test.describe('Line Item Edge Cases', () => {
       await posPage.commandInput.press('Enter');
 
       // Wait for order to save and all mutations to settle
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify single line item in UI
@@ -456,7 +456,7 @@ test.describe('Line Item Edge Cases', () => {
 
       // Add first product
       await CommandShortcuts.addItem(page, simpleSku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       if (secondSku) {
@@ -500,7 +500,7 @@ test.describe('Line Item Edge Cases', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 4);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -605,7 +605,7 @@ test.describe('Line Item Edge Cases', () => {
 
       // Add item first
       await CommandShortcuts.addItem(page, sku, 5);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify item exists

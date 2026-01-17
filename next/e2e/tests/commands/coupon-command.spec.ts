@@ -86,7 +86,7 @@ test.describe('Coupon Command', () => {
 
       // Add items to create an order with a total
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Get the initial order total
@@ -131,7 +131,7 @@ test.describe('Coupon Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 3);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const initialTotal = await getOrderTotal(page);
@@ -169,7 +169,7 @@ test.describe('Coupon Command', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const couponCode = 'testcoupon';
@@ -207,7 +207,7 @@ test.describe('Coupon Command', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const initialTotal = await getOrderTotal(page);
@@ -242,7 +242,7 @@ test.describe('Coupon Command', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Try to apply coupon without code
@@ -274,7 +274,7 @@ test.describe('Coupon Command', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Try to apply coupon with special characters
@@ -302,7 +302,7 @@ test.describe('Coupon Command', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // First apply a coupon
@@ -342,7 +342,7 @@ test.describe('Coupon Command', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // First apply a coupon
@@ -378,7 +378,7 @@ test.describe('Coupon Command', () => {
 
       // Add items
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const initialTotal = await getOrderTotal(page);
@@ -419,7 +419,7 @@ test.describe('Coupon Command', () => {
 
       // Add item first to have a valid order
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Type partial command
@@ -451,7 +451,7 @@ test.describe('Coupon Command', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Type partial command that should match "remove"
@@ -487,7 +487,7 @@ test.describe('Coupon Command', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Use /c alias
@@ -521,7 +521,7 @@ test.describe('Coupon Command', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Use /discount alias
@@ -554,7 +554,7 @@ test.describe('Coupon Command', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Apply coupon first
@@ -589,7 +589,7 @@ test.describe('Coupon Command', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Test all three aliases - they should all work
@@ -639,7 +639,7 @@ test.describe('Coupon Command', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Apply coupon twice
@@ -670,7 +670,7 @@ test.describe('Coupon Command', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Apply coupon with different cases
@@ -702,7 +702,7 @@ test.describe('Coupon Command', () => {
 
       // Add item (no coupon applied)
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Try to remove coupon when none is applied
@@ -732,7 +732,7 @@ test.describe('Coupon Command', () => {
 
       // Add multiple items
       await CommandShortcuts.addItem(page, sku, 3);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);
@@ -761,7 +761,7 @@ test.describe('Coupon Command', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 1);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Apply coupon with very long code

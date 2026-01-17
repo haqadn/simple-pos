@@ -49,7 +49,7 @@ test.describe('Line Item Addition', () => {
       await CommandShortcuts.addItem(page, sku);
 
       // Wait for order to be saved (URL changes from /orders/new to /orders/[id])
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify line item appears in UI
@@ -81,7 +81,7 @@ test.describe('Line Item Addition', () => {
       await posPage.commandInput.press('Enter');
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify item was added with quantity 1
@@ -107,7 +107,7 @@ test.describe('Line Item Addition', () => {
       await CommandShortcuts.addItem(page, sku, 5);
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify item was added with quantity 5
@@ -133,7 +133,7 @@ test.describe('Line Item Addition', () => {
       await posPage.commandInput.press('Enter');
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify quantity is 3
@@ -161,7 +161,7 @@ test.describe('Line Item Addition', () => {
       await CommandShortcuts.addItem(page, sku);
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify initial quantity is 1
@@ -192,7 +192,7 @@ test.describe('Line Item Addition', () => {
 
       // First add
       await posPage.executeCommandAndWait(`/item ${sku}`);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       await OrderVerify.lineItem(page, product.name, 1);
@@ -236,7 +236,7 @@ test.describe('Line Item Addition', () => {
       await CommandShortcuts.addItem(page, firstVariation.sku);
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify item was added - the name should include the variation details
@@ -274,7 +274,7 @@ test.describe('Line Item Addition', () => {
       await posPage.executeCommandAndWait(`/item ${variation.sku}`);
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify line item exists
@@ -301,7 +301,7 @@ test.describe('Line Item Addition', () => {
       await CommandShortcuts.addItem(page, sku);
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Get order ID from URL
@@ -335,7 +335,7 @@ test.describe('Line Item Addition', () => {
       await CommandShortcuts.addItem(page, sku, 7);
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Get order ID and verify via API
@@ -362,7 +362,7 @@ test.describe('Line Item Addition', () => {
 
       // Add first item
       await CommandShortcuts.addItem(page, simpleSku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Try to add a second item if we have a variable product with variations
@@ -415,7 +415,7 @@ test.describe('Line Item Addition', () => {
       await CommandShortcuts.addItem(page, sku, 3);
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify order total via API
@@ -464,7 +464,7 @@ test.describe('Line Item Addition', () => {
         await posPage.commandInput.press('Enter');
 
         // Wait for order to save
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
 
         // Verify an item was added
@@ -474,7 +474,7 @@ test.describe('Line Item Addition', () => {
         // If autocomplete doesn't work as expected, try direct SKU entry
         await posPage.clearCommandInput();
         await posPage.executeCommandAndWait(`/item ${sku}`);
-        await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+        await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
         await waitForMutations(page);
 
         const lineItemCount = await getLineItemCount(page);
@@ -503,7 +503,7 @@ test.describe('Line Item Addition', () => {
       await posPage.commandInput.press('Enter');
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify item was added
@@ -529,7 +529,7 @@ test.describe('Line Item Addition', () => {
       await posPage.commandInput.press('Enter');
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify item was added with correct quantity

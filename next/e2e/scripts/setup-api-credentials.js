@@ -16,10 +16,10 @@ const path = require("path");
 const ENV_FILE = path.join(__dirname, "../../.env.test");
 
 /**
- * Execute a wp-env CLI command and return the output
+ * Execute a wp-env CLI command on the tests container and return the output
  */
 function wpEnvRun(command, options = {}) {
-  const fullCommand = `npx wp-env run cli ${command}`;
+  const fullCommand = `npx wp-env run tests-cli ${command}`;
   console.log(`Running: ${fullCommand}`);
   try {
     const output = execSync(fullCommand, {
@@ -37,11 +37,11 @@ function wpEnvRun(command, options = {}) {
 }
 
 /**
- * Check if wp-env is running
+ * Check if wp-env test container is running
  */
 function isWpEnvRunning() {
   try {
-    const output = execSync("npx wp-env run cli wp option get siteurl", {
+    const output = execSync("npx wp-env run tests-cli wp option get siteurl", {
       cwd: path.join(__dirname, "../.."),
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
@@ -53,19 +53,19 @@ function isWpEnvRunning() {
 }
 
 /**
- * Get the WordPress port from wp-env
+ * Get the WordPress port from wp-env test container
  */
 function getWpEnvPort() {
   try {
-    const output = execSync("npx wp-env run cli wp option get siteurl", {
+    const output = execSync("npx wp-env run tests-cli wp option get siteurl", {
       cwd: path.join(__dirname, "../.."),
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
     });
     const match = output.match(/:(\d+)/);
-    return match ? match[1] : "8888";
+    return match ? match[1] : "8889";
   } catch {
-    return "8888";
+    return "8889";
   }
 }
 

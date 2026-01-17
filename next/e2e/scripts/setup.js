@@ -96,11 +96,12 @@ function runScript(scriptPath, args = []) {
 // ==========================================
 
 /**
- * Check if wp-env is running by testing the WordPress site
+ * Check if wp-env test container is running by testing the WordPress site
+ * Uses tests-cli to check the test container (port 8889)
  */
 function isWpEnvRunning() {
   try {
-    const output = execSync("npx wp-env run cli wp option get siteurl", {
+    const output = execSync("npx wp-env run tests-cli wp option get siteurl", {
       cwd: PROJECT_ROOT,
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],

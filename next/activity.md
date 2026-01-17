@@ -260,3 +260,63 @@ Current task: None
 
 ### Commit
 - fix: replace getCurrentOrderId with getServerOrderId in multi-input-mode.spec.ts
+
+---
+
+## [2026-01-17] - Task 9: Investigate setup-modal.spec.ts Fresh State test failures
+
+### Investigation Summary
+
+**Problem**: All "Fresh State" and "Valid Credentials Flow" tests in setup-modal.spec.ts fail with timeout waiting for the Setup Modal dialog to appear.
+
+**Root Cause Analysis**:
+
+1. **clearBrowserStorage function works correctly** - The `page.addInitScript()` approach successfully clears localStorage before the page loads.
+
+2. **The actual issue is environment variable fallback**:
+   - In `stores/settings.ts` (lines 87-101), the `loadSettings()` function has a fallback:
+     ```typescript
+     const envBaseUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
+     const envConsumerKey = process.env.NEXT_PUBLIC_CONSUMER_KEY || '';
+     const envConsumerSecret = process.env.NEXT_PUBLIC_CONSUMER_SECRET || '';
+     if (envBaseUrl || envConsumerKey || envConsumerSecret) {
+       return { ...DEFAULT_SETTINGS, api: { ... } };
+     }
+     ```
+   - `playwright.config.ts` (lines 38-42, 160-162) sets these `NEXT_PUBLIC_*` environment variables
+   - These env vars are baked into the Next.js JavaScript bundle at build time
+   - Even when localStorage is cleared, the app detects credentials from env vars
+
+3. **Result**: `isConfigured()` always returns `true` because env vars provide valid credentials, so the SetupModal never appears.
+
+### Files Analyzed
+- `/Users/adnan/Projects/simple-pos/next/e2e/tests/setup-flow/setup-modal.spec.ts` - Test file with clearBrowserStorage
+- `/Users/adnan/Projects/simple-pos/next/e2e/fixtures/test-base.ts` - Base test fixture (not used by setup-modal tests)
+- `/Users/adnan/Projects/simple-pos/next/stores/settings.ts` - Settings store with env var fallback (root cause)
+- `/Users/adnan/Projects/simple-pos/next/playwright.config.ts` - Config that sets NEXT_PUBLIC_* env vars
+- `/Users/adnan/Projects/simple-pos/next/app/components/setup-guard.tsx` - Component that conditionally shows SetupModal
+- `/Users/adnan/Projects/simple-pos/next/app/components/setup-modal.tsx` - The modal component itself
+
+### Proposed Solutions for Task 10
+
+**Option A (Recommended)**: Modify `stores/settings.ts` to expose a method that distinguishes between localStorage credentials vs env var credentials. Then update `SetupGuard` to check specifically for localStorage credentials when determining whether to show the modal in test mode.
+
+**Option B**: Add a query parameter like `?forceSetup=true` or `?e2e-fresh=true` that the SetupGuard checks to force showing the modal regardless of env vars.
+
+**Option C**: Use `page.evaluate()` after navigation to directly modify the Zustand store state, setting the API config to empty values.
+
+**Option D**: Create a separate test build of Next.js without the NEXT_PUBLIC_* env vars - more complex and harder to maintain.
+
+### Test Results Before Fix
+- "Fresh State" tests: 6 FAILED (all timing out waiting for dialog)
+- "Valid Credentials Flow" tests: 3 FAILED (all timing out waiting for dialog)
+- "Existing Users" tests: 2 PASSED (these correctly expect no modal)
+
+### Verification
+- Ran setup-modal.spec.ts tests: 9 failed, 2 passed
+- Examined test failure screenshot: Shows fully loaded app with orders (no Setup Modal)
+- Confirmed localStorage clearing via addInitScript is working
+- Confirmed root cause is env var fallback in settings store
+
+### Commit
+- (investigation only - no code changes)

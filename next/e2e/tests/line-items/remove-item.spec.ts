@@ -45,7 +45,7 @@ test.describe('Line Item Removal', () => {
       await CommandShortcuts.addItem(page, sku);
 
       // Wait for order to be saved (URL changes from /orders/new to /orders/[id])
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify item is in order
@@ -78,7 +78,7 @@ test.describe('Line Item Removal', () => {
       await CommandShortcuts.addItem(page, sku, 5);
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify item was added
@@ -109,7 +109,7 @@ test.describe('Line Item Removal', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify item exists
@@ -143,7 +143,7 @@ test.describe('Line Item Removal', () => {
 
       // Add single item
       await CommandShortcuts.addItem(page, sku);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify order has 1 item
@@ -172,7 +172,7 @@ test.describe('Line Item Removal', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Remove the item
@@ -209,7 +209,7 @@ test.describe('Line Item Removal', () => {
 
       // Add first item
       await CommandShortcuts.addItem(page, simpleSku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       if (secondSku) {
@@ -259,7 +259,7 @@ test.describe('Line Item Removal', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 3);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Get order ID
@@ -296,7 +296,7 @@ test.describe('Line Item Removal', () => {
 
       // Add item
       await CommandShortcuts.addItem(page, sku, 2);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Get order ID

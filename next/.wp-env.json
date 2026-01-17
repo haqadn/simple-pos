@@ -11,6 +11,6 @@
   },
   "mappings": {},
   "lifecycleScripts": {
-    "afterStart": "wp option update woocommerce_calc_taxes no && wp option update woocommerce_currency USD && wp option update woocommerce_store_address '123 Test Street' && wp option update woocommerce_store_city 'Test City' && wp option update woocommerce_default_country 'US:CA'"
+    "afterStart": "npx wp-env run cli wp option update woocommerce_calc_taxes no && npx wp-env run cli wp option update woocommerce_currency USD && npx wp-env run cli wp option update woocommerce_store_address '123 Test Street' && npx wp-env run cli wp option update woocommerce_store_city 'Test City' && npx wp-env run cli wp option update woocommerce_default_country 'US:CA'"
   }
 }

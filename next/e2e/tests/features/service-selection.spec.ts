@@ -76,7 +76,7 @@ async function saveOrderWithItem(page: import('@playwright/test').Page): Promise
 
   await executeCommand(page, 'item', [sku]);
   try {
-    await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+    await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
     await waitForMutations(page);
     return await getCurrentOrderId(page);
   } catch {
@@ -913,7 +913,7 @@ test.describe('Service Selection', () => {
       }
 
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       const orderId = await getCurrentOrderId(page);

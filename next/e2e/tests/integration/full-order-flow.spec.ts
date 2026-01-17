@@ -142,7 +142,7 @@ test.describe('Full Order Flow Integration', () => {
     await CommandShortcuts.addItem(page, simpleSku, 2);
 
     // Wait for order creation and URL update
-    await page.waitForURL(/\/orders\/\d+/, { timeout: 15000 });
+    await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 15000 });
     await waitForMutations(page);
 
     testData.orderId = await getCurrentOrderId(page);
@@ -374,7 +374,7 @@ test.describe('Full Order Flow Integration', () => {
 
     // Add item
     await CommandShortcuts.addItem(page, sku, 1);
-    await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+    await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
     await waitForMutations(page);
 
     const orderId = await getCurrentOrderId(page);
@@ -418,7 +418,7 @@ test.describe('Full Order Flow Integration', () => {
 
     // Add first item
     await CommandShortcuts.addItem(page, simpleSku, 2);
-    await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+    await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
     await waitForMutations(page);
 
     const orderId = await getCurrentOrderId(page);
@@ -481,7 +481,7 @@ test.describe('Full Order Flow Integration', () => {
 
     // Add item
     await CommandShortcuts.addItem(page, sku, 1);
-    await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+    await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
     await waitForMutations(page);
 
     const orderId = await getCurrentOrderId(page);
@@ -559,7 +559,7 @@ test.describe('Full Order Flow Integration', () => {
 
     // Add item
     await CommandShortcuts.addItem(page, sku, 1);
-    await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+    await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
     await waitForMutations(page);
 
     const orderId = await getCurrentOrderId(page);
@@ -602,7 +602,7 @@ test.describe('Full Order Flow Integration', () => {
 
     // Add item with quantity 5
     await CommandShortcuts.addItem(page, simpleSku, 5);
-    await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+    await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
     await waitForMutations(page);
 
     const orderId = await getCurrentOrderId(page);
@@ -664,7 +664,7 @@ test.describe('Full Order Flow Integration', () => {
     // Navigate and add item
     await gotoNewOrder(page);
     await CommandShortcuts.addItem(page, sku, 2);
-    await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+    await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
     await waitForMutations(page);
 
     const orderId = await getCurrentOrderId(page);

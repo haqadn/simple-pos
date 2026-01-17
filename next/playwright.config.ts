@@ -5,6 +5,10 @@ import { getWpPort, getWpBaseUrl, getWpEnvConfig } from './e2e/helpers/wp-env-co
  * Playwright configuration for Simple POS E2E tests
  * @see https://playwright.dev/docs/test-configuration
  *
+ * IMPORTANT: E2E tests use the wp-env TEST container (port 8889),
+ * not the development container (port 8888). This keeps test data
+ * separate from development data.
+ *
  * Environment Setup:
  * 1. Run `npm run wp-env:start` to start WordPress with wp-env
  * 2. Run `npm run test:e2e:credentials` to generate API credentials
@@ -25,7 +29,7 @@ import { getWpPort, getWpBaseUrl, getWpEnvConfig } from './e2e/helpers/wp-env-co
  *   npm run test:e2e:trace    # Force trace recording on all tests
  */
 
-// Get WordPress port from .env.test or environment
+// Get WordPress test container port from .env.test or environment (default: 8889)
 const WP_PORT = getWpPort();
 const WP_BASE_URL = getWpBaseUrl();
 const WP_ENV_CONFIG = getWpEnvConfig();
@@ -128,12 +132,13 @@ export default defineConfig({
 
   // Web server configuration
   // Start both wp-env (WordPress) and Next.js dev server before tests
+  // E2E tests use the TEST container (port 8889) to keep test data separate
   // Set SKIP_WEB_SERVER=1 to skip if servers are already running externally
   webServer: process.env.SKIP_WEB_SERVER ? undefined : [
-    // WordPress via wp-env
+    // WordPress via wp-env (starts both dev and test containers)
     {
       command: 'npm run wp-env:start',
-      url: `${WP_BASE_URL}/wp-admin/`,
+      url: `${WP_BASE_URL}/wp-admin/`, // Uses test container URL (port 8889)
       reuseExistingServer: true, // Always reuse if already running
       timeout: 180000, // 3 minutes for WordPress to start
       stdout: 'pipe',

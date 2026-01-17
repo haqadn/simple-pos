@@ -469,7 +469,7 @@ export const POSAssert = {
     if (orderId) {
       await expect(page).toHaveURL(`/orders/${orderId}`, { timeout });
     } else {
-      await expect(page).toHaveURL(/\/orders\/(\d+|new)/, { timeout });
+      await expect(page).toHaveURL(/\/orders\/([A-Z0-9]+|new)/, { timeout });
     }
 
     const orderTitle = page.locator(ORDER_SELECTORS.orderTitle);

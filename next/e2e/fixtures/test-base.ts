@@ -97,7 +97,7 @@ export class POSPage {
   async createNewOrder() {
     await this.newOrderButton.click();
     // Wait for navigation to new order page
-    await this.page.waitForURL(/\/orders\/(new|\d+)/);
+    await this.page.waitForURL(/\/orders\/(new|[A-Z0-9]+)/);
     await this.page.waitForLoadState('networkidle');
   }
 
@@ -321,10 +321,11 @@ export class POSPage {
 
   /**
    * Get the current order ID from the URL
+   * Supports both numeric server IDs and 6-char alphanumeric frontend IDs
    */
   async getCurrentOrderId(): Promise<string> {
     const url = this.page.url();
-    const match = url.match(/\/orders\/(\d+|new)/);
+    const match = url.match(/\/orders\/([A-Z0-9]+|new)/);
     return match ? match[1] : '';
   }
 
@@ -332,7 +333,7 @@ export class POSPage {
    * Verify we're on an order page
    */
   async verifyOnOrderPage() {
-    await expect(this.page).toHaveURL(/\/orders\/(\d+|new)/);
+    await expect(this.page).toHaveURL(/\/orders\/([A-Z0-9]+|new)/);
     await expect(this.orderTitle).toBeVisible();
   }
 

@@ -184,7 +184,7 @@ test.describe('Product Search', () => {
       await commandInput.press('Enter');
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify the correct product was added
@@ -257,7 +257,7 @@ test.describe('Product Search', () => {
       }
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify item was added with quantity 1
@@ -296,7 +296,7 @@ test.describe('Product Search', () => {
 
       // First click
       await cardButton.click();
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Verify quantity is 1
@@ -350,12 +350,12 @@ test.describe('Product Search', () => {
       await cardButton.click();
 
       // Wait for order to save
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Get order ID from URL
       const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
+      const match = url.match(/\/orders\/([A-Z0-9]+)/);
       expect(match).not.toBeNull();
       const orderId = match![1];
 
@@ -400,7 +400,7 @@ test.describe('Product Search', () => {
       await cardButton.click();
 
       // Wait for order
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Check for badge with quantity (HeroUI Badge component)
