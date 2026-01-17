@@ -93,7 +93,7 @@ Enhance Simple POS with configurable payment methods, coupon validation card, of
       "Format as 6 alphanumeric characters (A-Z, 0-9)",
       "Add collision check function against Dexie DB"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 8,

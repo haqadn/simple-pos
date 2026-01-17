@@ -1,7 +1,7 @@
 # Activity Log
 
-Last updated: 2026-01-17T03:00:00Z
-Tasks completed: 6
+Last updated: 2026-01-17T04:00:00Z
+Tasks completed: 7
 Current task: None
 
 ---
@@ -169,3 +169,33 @@ Current task: None
 
 ### Commit
 - `chore: configure Dexie.js for offline storage`
+
+---
+
+## [2026-01-17] - Task 7: Implement frontend ID generation utility
+
+### Changes Made
+- `/next/lib/frontend-id.ts`:
+  - Created new utility file for frontend ID generation
+  - Implemented `generateFrontendId()` function:
+    - Uses `crypto.getRandomValues()` for cryptographically secure random generation
+    - Generates 6 alphanumeric characters (A-Z, 0-9 charset)
+    - Example outputs: "A3X9K2", "B7M2P4"
+  - Implemented `checkCollision()` function:
+    - Checks if a frontend ID already exists in Dexie database
+    - Returns boolean indicating collision status
+  - Implemented `generateUniqueFrontendId()` function:
+    - Combines generation and collision checking
+    - Retries up to maxAttempts (default: 10) if collision detected
+    - Throws error if unable to generate unique ID after max attempts
+  - Implemented `isValidFrontendId()` function:
+    - Validates ID format (exactly 6 chars, all alphanumeric A-Z, 0-9)
+    - Returns boolean for format validation
+  - Exports constants: CHARSET (36 chars), ID_LENGTH (6)
+
+### Verification
+- `npm run build` - Completed successfully with no errors
+- `npm run lint` - No ESLint warnings or errors
+
+### Commit
+- `feat: implement frontend ID generation utility`
