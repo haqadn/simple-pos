@@ -38,7 +38,8 @@ The wp-env configuration is in `/next/.wp-env.json` and automatically:
 
 ### Technology Stack
 - **Framework**: Next.js 15 with React 19
-- **State Management**: TanStack React Query (server state) + Zustand (client state - planned)
+- **State Management**: TanStack React Query (server state) + Zustand (client state)
+- **Local Database**: Dexie.js (IndexedDB wrapper for offline-first storage)
 - **UI Framework**: HeroUI + Tailwind CSS
 - **Type Safety**: TypeScript + Zod validation
 - **Icons**: Hugeicons React
@@ -47,6 +48,7 @@ The wp-env configuration is in `/next/.wp-env.json` and automatically:
 - **SOLID principles** - Single responsibility, interface segregation
 - **Command Pattern** - All POS operations implemented as commands
 - **Repository Pattern** - API layer abstracts data access
+- **Offline-First** - Local storage with background sync to server
 - **Optimistic Updates** - Immediate UI feedback with background sync
 - **Debounced Mutations** - Prevent excessive API calls
 
@@ -58,11 +60,21 @@ The wp-env configuration is in `/next/.wp-env.json` and automatically:
 │   ├── orders.ts           # Order operations + Zod schemas
 │   ├── products.ts         # Product catalog
 │   ├── customers.ts        # Customer management
-│   ├── coupons.ts          # Coupon operations
+│   ├── coupons.ts          # Coupon operations + validation
 │   └── shipping.ts         # Shipping methods
+├── db/                     # Local database (Dexie.js)
+│   └── index.ts            # Database schema and helpers
+├── lib/                    # Utility libraries
+│   ├── frontend-id.ts      # Frontend ID generation
+│   └── escpos/             # ESC/POS printer rendering
+├── services/               # Background services
+│   └── sync.ts             # Order synchronization service
 ├── stores/                 # State management (TanStack Query hooks)
 │   ├── orders.ts           # Order queries and mutations
+│   ├── offline-orders.ts   # Local order CRUD operations
 │   ├── products.ts         # Product catalog queries
+│   ├── settings.ts         # Settings store (payment methods, printers)
+│   ├── coupons.ts          # Coupon validation hook
 │   └── service.ts          # Table/delivery service queries
 ├── commands/               # Command pattern implementation
 │   ├── command.ts          # Base interfaces and classes
@@ -70,9 +82,13 @@ The wp-env configuration is in `/next/.wp-env.json` and automatically:
 │   ├── command-manager.ts  # Execution coordination
 │   └── [command].ts        # Individual command implementations
 ├── hooks/                  # Custom React hooks
+│   └── useConnectivity.ts  # Network status monitoring
 ├── components/             # Shared UI components
+│   └── print/              # Print preview components
 └── app/                    # Next.js App Router pages
     ├── components/         # App-level components
+    │   ├── settings/       # Settings modal tabs
+    │   └── OfflineIndicator.tsx  # Connectivity status
     └── orders/             # Order management pages
 ```
 
@@ -149,14 +165,17 @@ See `/next/FEATURES.md` for detailed feature documentation.
 - Service/table selection
 - Customer info and notes
 - Payment tracking via meta_data
+- Offline-first architecture with Dexie.js
+- Frontend ID system for local order identification
+- Configurable payment methods
+- Coupon validation card with real-time feedback
+- Printing system (Bill and KOT with ESC/POS support)
+- Settings management (payment methods, printers)
 
 ### In Progress
 - Additional command implementations
 
 ### Not Started
-- Printing system
-- Settings management
-- Offline support
 - Reporting
 
 ## Vue.js Reference
@@ -188,3 +207,159 @@ The `/front-end/` directory contains the legacy Vue.js implementation. Use it as
 2. Client components for interactivity
 3. Use HeroUI components for consistent styling
 4. Follow existing patterns in `/next/app/orders/`
+
+## Offline-First Architecture
+
+The POS operates with an offline-first approach, storing all order data locally in IndexedDB (via Dexie.js) and synchronizing with WooCommerce when online.
+
+### Frontend ID System
+
+Each order is assigned a unique 6-character alphanumeric **Frontend ID** (e.g., `A3X9K2`) for local identification.
+
+**Format**: 6 characters from charset `A-Z, 0-9` (36 possible characters per position)
+
+**Generation** (`/next/lib/frontend-id.ts`):
+```typescript
+// Generate cryptographically secure random ID
+const id = generateFrontendId();  // Returns "A3X9K2"
+
+// Generate unique ID with collision check against Dexie DB
+const uniqueId = await generateUniqueFrontendId();
+
+// Validate ID format
+const isValid = isValidFrontendId("A3X9K2");  // true
+```
+
+**Storage**: Frontend ID is stored in order `meta_data` as `pos_frontend_id` key and persists after sync.
+
+### Local Database Schema
+
+```typescript
+// /next/db/index.ts
+interface LocalOrder {
+  frontendId: string;      // Primary key (6-char alphanumeric)
+  serverId?: number;       // WooCommerce order ID (null until synced)
+  status: OrderStatus;     // draft, pending, processing, completed, failed
+  syncStatus: SyncStatus;  // local, syncing, synced, error
+  data: OrderSchema;       // Full order data
+  createdAt: Date;
+  updatedAt: Date;
+  lastSyncAttempt?: Date;
+  syncError?: string;
+}
+```
+
+### Order Lifecycle
+
+1. **Create**: Order created locally with frontend ID, stored in Dexie
+2. **Edit**: All changes saved to Dexie immediately, sync queued
+3. **Complete**: Order marked complete locally, sync attempted
+4. **Sync**: Background service pushes to WooCommerce, updates serverId
+
+### URL Routing
+
+- `/orders/{frontendId}` - Primary URL format (6-char ID)
+- `/orders/{serverId}` - Legacy support, redirects to frontend ID URL
+- Server orders are imported with generated frontend IDs
+
+### Sync Service
+
+```typescript
+// /next/services/sync.ts
+
+// Sync single order
+const result = await syncOrder(frontendId);
+
+// Process retry queue (exponential backoff: 30s, 1m, 2m, 5m, 10m max)
+await processSyncQueue();
+
+// Start background sync (every 30s when online)
+startBackgroundSync((results) => console.log('Synced:', results));
+```
+
+### Connectivity Detection
+
+The `useConnectivity` hook monitors network status:
+- Browser `navigator.onLine` status
+- API heartbeat check (30s interval)
+- Sync queue count and status
+
+The `OfflineIndicator` component displays status in the sidebar.
+
+## Payment Methods Configuration
+
+Payment methods are configurable via Settings > Payment Methods tab.
+
+### Data Model
+
+```typescript
+interface PaymentMethodConfig {
+  key: string;    // Unique identifier (auto-generated from label)
+  label: string;  // Display name
+}
+```
+
+### Settings Store
+
+```typescript
+// /next/stores/settings.ts
+const { paymentMethods, addPaymentMethod, removePaymentMethod } = useSettingsStore();
+
+// Add new method
+addPaymentMethod({ key: 'venmo', label: 'Venmo' });
+
+// Remove method
+removePaymentMethod('venmo');
+```
+
+### Default Methods
+
+- bKash
+- Nagad
+- Card
+
+Cash is always available and not configurable.
+
+### Storage
+
+Payment methods persist to localStorage via Zustand persist middleware.
+
+## Coupon Validation
+
+The CouponCard component provides real-time coupon validation before applying to orders.
+
+### Validation Hook
+
+```typescript
+// /next/stores/coupons.ts
+const {
+  code, setCode,           // Coupon code input
+  status,                  // idle, validating, valid, invalid, error
+  coupon,                  // Full coupon data if valid
+  summary,                 // Human-readable discount description
+  error,                   // Error message if invalid
+} = useCouponValidation();
+```
+
+### Discount Summary Examples
+
+- "10% off entire order"
+- "500 off orders over 2000"
+- "Free shipping"
+- "50 off selected products"
+
+## Printing System
+
+The printing system supports thermal printers via ESC/POS commands.
+
+### Print Types
+
+| Type | Component | Renderer |
+|------|-----------|----------|
+| Bill | `BillPrint.tsx` | `bill-renderer.ts` |
+| KOT | `KotPrint.tsx` | `kot-renderer.ts` |
+
+### Frontend ID in Prints
+
+- **Primary**: Frontend ID displayed as order number (e.g., "Order: A3X9K2")
+- **Secondary**: Server ID shown as small reference if synced (e.g., "Ref: #1234")

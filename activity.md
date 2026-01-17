@@ -593,3 +593,34 @@ Current task: None
 
 ### Commit
 - `feat: update printing to use frontend ID`
+
+---
+
+## [2026-01-17] - Task 17: Update documentation for new features
+
+### Changes Made
+- `/CLAUDE.md`:
+  - Updated Technology Stack to include Dexie.js for offline storage
+  - Added "Offline-First" design principle
+  - Expanded directory structure to include new modules (db/, lib/, services/, settings, offline-orders, coupons stores)
+  - Updated Implementation Status to reflect completed features (offline-first, payment methods, coupon validation, printing, settings)
+  - Added new section: "Offline-First Architecture" with Frontend ID system, Local Database Schema, Order Lifecycle, URL Routing, Sync Service, and Connectivity Detection
+  - Added new section: "Payment Methods Configuration" with Data Model, Settings Store, Default Methods, and Storage
+  - Added new section: "Coupon Validation" with Validation Hook and Discount Summary Examples
+  - Added new section: "Printing System" with Print Types and Frontend ID in Prints
+
+- `/next/FEATURES.md`:
+  - Updated Table of Contents to include "Offline-First Architecture" section
+  - Updated Payment Processing section (6) with configurable payment methods architecture and features
+  - Updated Coupon & Discount System section (9) with validation card details, flow diagram, and summary examples
+  - Updated Printing System section (10) with complete architecture, frontend ID support, and ESC/POS details
+  - Updated Settings & Configuration section (13) with partial implementation status and payment methods config
+  - Added new section 15: "Offline-First Architecture" with complete documentation of local database, frontend ID system, sync service, and connectivity detection
+  - Updated Implementation Priority phases to reflect completed work (Phases 3, 4 now complete)
+
+### Verification
+- `npm run build` - Completed successfully with no errors
+- Documentation accurately reflects the implemented features from tasks 1-16
+
+### Commit
+- `docs: update documentation for new features`

@@ -20,6 +20,7 @@ This document provides comprehensive documentation of all POS features, their im
 12. [Inventory Management](#12-inventory-management)
 13. [Settings & Configuration](#13-settings--configuration)
 14. [Reporting & Analytics](#14-reporting--analytics)
+15. [Offline-First Architecture](#15-offline-first-architecture)
 
 ---
 
@@ -519,15 +520,17 @@ mutation.mutate({
 ## 6. Payment Processing
 
 ### Overview
-Payments are tracked via order meta_data. The system records the amount received from the customer, supporting split payments across multiple methods.
+Payments are tracked via order meta_data. The system records the amount received from the customer, supporting split payments across multiple configurable methods.
 
 ### Architecture
 
-**Status: ✅ Complete**
+**Status: ✅ Complete (with configurable methods)**
 
 ```
 /next/stores/orders.ts                      # usePaymentQuery hook
+/next/stores/settings.ts                    # Payment methods configuration
 /next/app/orders/[orderId]/components/payment-card.tsx  # Payment UI
+/next/app/components/settings/PaymentMethodsTab.tsx     # Settings UI
 ```
 
 ### Payment Tracking
@@ -551,13 +554,36 @@ Payment Received: $50.00
 Change Due:       $5.00
 ```
 
+### Configurable Payment Methods
+
+Payment methods are now configurable via Settings > Payment Methods:
+
+```typescript
+interface PaymentMethodConfig {
+  key: string;    // Unique identifier (auto-slug from label)
+  label: string;  // Display name
+}
+
+// Default methods
+const defaultMethods = [
+  { key: 'bkash', label: 'bKash' },
+  { key: 'nagad', label: 'Nagad' },
+  { key: 'card', label: 'Card' },
+];
+```
+
+**Features:**
+- Add/remove payment methods in settings
+- Reorder methods with up/down arrows
+- Auto-generate key from label (lowercase, underscores)
+- Cash is always available (not configurable)
+- Methods persist to localStorage
+
 ### Split Payments
 
 The system supports split payments across multiple methods:
 - **Cash** - Always visible
-- **bKash** - Add via dropdown
-- **Nagad** - Add via dropdown
-- **Card** - Add via dropdown
+- **Configured methods** - Add via dropdown (bKash, Nagad, Card, etc.)
 
 Split payment data is stored in order meta_data as `split_payments` JSON.
 
@@ -571,7 +597,8 @@ Quick payment buttons are shown for common amounts:
 
 ### Features
 
-- [x] Multiple payment methods (cash, bKash, Nagad, card)
+- [x] Configurable payment methods via settings
+- [x] Multiple payment methods (cash + configured methods)
 - [x] Payment validation (amount >= total for completion)
 - [x] Change calculation display
 - [x] Quick payment buttons
@@ -685,16 +712,48 @@ Each order in the sidebar shows:
 ## 9. Coupon & Discount System
 
 ### Overview
-Coupons can be applied to orders for discounts. WooCommerce handles validation and calculation.
+Coupons can be applied to orders for discounts. The system provides real-time validation feedback before applying coupons.
 
 ### Architecture
 
-**Status: ✅ Command Implemented**
+**Status: ✅ Complete (Command + Validation Card)**
 
 ```
-/next/api/coupons.ts      # API client (exists)
-/next/commands/coupon.ts  # ✅ Coupon command
+/next/api/coupons.ts                        # API client with validation
+/next/stores/coupons.ts                     # Validation hook
+/next/commands/coupon.ts                    # Coupon command
+/next/app/orders/[orderId]/components/coupon-card.tsx  # Validation UI
 ```
+
+### Coupon Validation Card
+
+The CouponCard component provides real-time validation:
+
+```typescript
+const {
+  code, setCode,           // Coupon code input
+  status,                  // idle, validating, valid, invalid, error
+  coupon,                  // Full coupon data if valid
+  summary,                 // Human-readable discount description
+  error,                   // Error message if invalid
+} = useCouponValidation();
+```
+
+**Features:**
+- Debounced validation (500ms delay)
+- Color-coded status indicator (green/red/yellow)
+- Human-readable discount summary
+- Apply button to add coupon to order
+- Positioned below customer info card
+
+### Discount Summary Examples
+
+| Coupon Type | Summary |
+|-------------|---------|
+| Percentage | "10% off entire order" |
+| Fixed Cart | "500 off orders over 2000" |
+| Fixed Product | "50 off selected products" |
+| Free Shipping | "Free shipping" |
 
 ### Coupon Flow
 
@@ -703,11 +762,17 @@ User enters code
        │
        ▼
 ┌─────────────────┐
+│ Debounced       │
+│ validation      │
+└─────────────────┘
+       │
+       ▼
+┌─────────────────┐
 │ Validate coupon │
 │ via API         │
 └─────────────────┘
        │
-       ├── Invalid ──► Show error
+       ├── Invalid ──► Show error message
        │
        ▼
 ┌─────────────────┐
@@ -717,6 +782,13 @@ User enters code
        │
        ├── Failed ──► Show reason
        │
+       ▼
+┌─────────────────┐
+│ Show summary    │◄── User sees discount before applying
+│ Enable Apply    │
+└─────────────────┘
+       │
+       │ User clicks Apply
        ▼
 ┌─────────────────┐
 │ Add to order    │
@@ -741,14 +813,22 @@ User enters code
 ## 10. Printing System
 
 ### Overview
-The POS supports thermal printer output for receipts and kitchen orders.
+The POS supports thermal printer output for receipts and kitchen orders via ESC/POS commands.
 
 ### Architecture
 
-**Status: ⚠️ Command Implemented | Printer Integration Pending**
+**Status: ✅ Complete**
 
 ```
-/next/commands/print.ts   # ✅ Print command (placeholder)
+/next/commands/print.ts              # Print command
+/next/stores/print.ts                # Print queue store
+/next/lib/escpos/                    # ESC/POS rendering
+│   ├── types.ts                     # BillData, KotData interfaces
+│   ├── bill-renderer.ts             # Bill ESC/POS commands
+│   └── kot-renderer.ts              # KOT ESC/POS commands
+/next/components/print/
+│   ├── BillPrint.tsx                # Bill preview component
+│   └── KotPrint.tsx                 # KOT preview component
 ```
 
 ### Design
@@ -756,22 +836,29 @@ The POS supports thermal printer output for receipts and kitchen orders.
 ```typescript
 interface PrintJob {
   type: 'bill' | 'kot' | 'drawer';
-  data: PrintData;
+  data: PrintJobData;
 }
 
-interface PrintStore {
-  queue: PrintJob[];
-  push(job: PrintJob): Promise<void>;
-  pop(): PrintJob | undefined;
+interface PrintJobData {
+  frontendId?: string;    // 6-char local order ID
+  serverId?: number;      // WooCommerce order ID
+  // ... other fields
 }
 ```
+
+### Frontend ID in Prints
+
+Orders are identified by frontend ID in prints:
+
+- **Primary identifier**: Frontend ID displayed prominently (e.g., "Order: A3X9K2")
+- **Server reference**: Server ID shown as small reference when synced (e.g., "Ref: #1234")
 
 ### Print Types
 
 | Type | Purpose | Content |
 |------|---------|---------|
-| Bill | Customer receipt | Items, totals, payment, change |
-| KOT | Kitchen order | New/modified items only |
+| Bill | Customer receipt | Items, totals, payment, change, frontend ID |
+| KOT | Kitchen order | New/modified items, frontend ID |
 | Drawer | Cash drawer | Open command |
 
 ### Thermal Printer Support
@@ -779,6 +866,7 @@ interface PrintStore {
 - **Protocol**: ESC/POS commands
 - **Connection**: USB, Network, or Browser API
 - **Format**: Customizable templates
+- **Renderers**: Separate bill and KOT renderers for ESC/POS output
 
 ---
 
@@ -849,23 +937,54 @@ Stock levels can be viewed and updated directly from the POS.
 ## 13. Settings & Configuration
 
 ### Overview
-Configuration for API connections, printers, tables, and preferences.
+Configuration for API connections, printers, payment methods, and preferences.
 
 ### Architecture
 
-**Status: ❌ Not Implemented**
+**Status: ✅ Partial (Payment Methods, Printers)**
+
+```
+/next/stores/settings.ts                        # Zustand settings store
+/next/app/components/settings-modal.tsx         # Settings modal
+/next/app/components/settings/
+│   ├── PaymentMethodsTab.tsx                   # Payment methods config
+│   └── PrintersTab.tsx                         # Printer config
+```
 
 ### Configuration Areas
 
-| Area | Settings |
-|------|----------|
-| API | WooCommerce URL, Consumer Key/Secret, Auth method |
-| Tables | Table names and mappings |
-| Printers | Bill printer, KOT printer, drawer |
-| Categories | KOT skip categories |
-| UI | Theme, keyboard shortcuts |
+| Area | Status | Settings |
+|------|--------|----------|
+| Payment Methods | ✅ | Configurable list with add/remove/reorder |
+| Printers | ✅ | Bill printer, KOT printer, drawer |
+| API | ❌ | WooCommerce URL, Consumer Key/Secret, Auth method |
+| Tables | ❌ | Table names and mappings |
+| Categories | ❌ | KOT skip categories |
+| UI | ❌ | Theme, keyboard shortcuts |
 
-### Current Config (Hardcoded)
+### Payment Methods Configuration
+
+```typescript
+interface PaymentMethodConfig {
+  key: string;    // Unique identifier
+  label: string;  // Display name
+}
+
+// Store functions
+const {
+  paymentMethods,
+  addPaymentMethod,
+  updatePaymentMethod,
+  removePaymentMethod,
+  reorderPaymentMethods,
+} = useSettingsStore();
+```
+
+### Storage
+
+Settings persist to localStorage via Zustand persist middleware.
+
+### Current Config (Environment Variables)
 
 ```typescript
 // /next/api/config.ts
@@ -899,6 +1018,106 @@ Sales reports and analytics for business insights.
 
 ---
 
+## 15. Offline-First Architecture
+
+### Overview
+The POS operates with an offline-first approach, storing all order data locally in IndexedDB (via Dexie.js) and synchronizing with WooCommerce when online.
+
+### Architecture
+
+**Status: ✅ Complete**
+
+```
+/next/db/index.ts                    # Dexie database schema
+/next/lib/frontend-id.ts             # Frontend ID generation
+/next/stores/offline-orders.ts       # Local order CRUD
+/next/services/sync.ts               # Sync service
+/next/hooks/useConnectivity.ts       # Network status hook
+/next/app/components/OfflineIndicator.tsx  # Status UI
+```
+
+### Frontend ID System
+
+Each order is assigned a unique 6-character alphanumeric identifier:
+
+```typescript
+// Format: 6 chars from A-Z, 0-9 (e.g., "A3X9K2")
+const id = generateFrontendId();
+
+// Generate with collision check
+const uniqueId = await generateUniqueFrontendId();
+
+// Validate format
+const isValid = isValidFrontendId("A3X9K2");  // true
+```
+
+### Local Database Schema
+
+```typescript
+interface LocalOrder {
+  frontendId: string;      // Primary key
+  serverId?: number;       // WooCommerce ID (after sync)
+  status: OrderStatus;     // draft, pending, completed, etc.
+  syncStatus: SyncStatus;  // local, syncing, synced, error
+  data: OrderSchema;       // Full order data
+  createdAt: Date;
+  updatedAt: Date;
+  lastSyncAttempt?: Date;
+  syncError?: string;
+}
+```
+
+### Order Lifecycle
+
+1. **Create**: Generate frontend ID, store in Dexie
+2. **Edit**: Save to Dexie immediately, queue sync
+3. **Complete**: Mark complete locally, attempt sync
+4. **Sync**: Push to WooCommerce, update serverId
+
+### URL Routing
+
+- `/orders/{frontendId}` - Primary format (6-char ID)
+- `/orders/{serverId}` - Legacy support, redirects to frontend ID
+
+### Sync Service
+
+```typescript
+// Sync single order
+const result = await syncOrder(frontendId);
+
+// Process retry queue
+await processSyncQueue();
+
+// Background sync (30s interval)
+startBackgroundSync(callback);
+```
+
+### Exponential Backoff
+
+Failed syncs retry with increasing delays: 30s, 1m, 2m, 5m, 10m (max)
+
+### Connectivity Detection
+
+- Browser `navigator.onLine` status
+- API heartbeat check (30s interval)
+- Visual indicator in sidebar
+
+### Features
+
+- [x] Local order storage in IndexedDB
+- [x] Frontend ID generation and validation
+- [x] Order CRUD operations on local DB
+- [x] Sync service with retry queue
+- [x] Exponential backoff for failed syncs
+- [x] Background sync (30s interval)
+- [x] Connectivity detection (online/offline)
+- [x] Offline indicator component
+- [x] URL routing with frontend IDs
+- [x] Server order import with frontend IDs
+- [x] Print support for frontend IDs
+
+---
+
 ## Implementation Priority
 
 ### Phase 1: Core POS ✅ Complete
@@ -919,20 +1138,29 @@ Sales reports and analytics for business insights.
 11. ✅ Product card visual indicators
 12. ⬜ Customer search (autocomplete)
 
-### Phase 3: Operations (Current Focus)
+### Phase 3: Operations ✅ Complete
 
-13. ✅ Print command (placeholder - needs printer integration)
-14. ⬜ KOT tracking & change detection
-15. ⬜ Settings management
-16. ⬜ Drawer command
-17. ⬜ Simplified command interface (SKU entry without prefix)
+13. ✅ Print command with ESC/POS support
+14. ✅ Configurable payment methods
+15. ✅ Coupon validation card
+16. ⬜ KOT tracking & change detection
+17. ⬜ Drawer command
+18. ⬜ Simplified command interface (SKU entry without prefix)
 
-### Phase 4: Advanced
+### Phase 4: Offline-First ✅ Complete
 
-18. ⬜ Last order command
-19. ⬜ Reporting
-20. ⬜ Offline support
-21. ⬜ Inventory management
+19. ✅ Dexie.js local database
+20. ✅ Frontend ID system
+21. ✅ Offline order storage
+22. ✅ Sync service with retry
+23. ✅ Connectivity detection
+24. ✅ Server order import
+
+### Phase 5: Advanced
+
+25. ⬜ Last order command
+26. ⬜ Reporting
+27. ⬜ Inventory management
 
 ---
 

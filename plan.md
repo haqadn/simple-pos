@@ -216,7 +216,7 @@ Enhance Simple POS with configurable payment methods, coupon validation card, of
       "Document frontend ID format and usage",
       "Update FEATURES.md with new feature status"
     ],
-    "passes": false
+    "passes": true
   }
 ]
 ```
