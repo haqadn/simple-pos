@@ -21,7 +21,7 @@ Make the API credentials flow production-ready by removing hardcoded credentials
       "Verify .gitignore includes .env.local",
       "Test that app still loads (will show empty state or error - expected)"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 2,
