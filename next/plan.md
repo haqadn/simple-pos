@@ -134,7 +134,7 @@ Fix 11 failing E2E tests identified in the Playwright test suite. These are appl
       "Run test and verify it passes: SKIP_WEB_SERVER=1 npx playwright test multi-order.spec.ts:962",
       "If test fails, debug and fix until it passes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 9,

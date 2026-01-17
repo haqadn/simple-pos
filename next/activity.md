@@ -1,8 +1,8 @@
 # Activity Log
 
 Last updated: 2026-01-17
-Tasks completed: 6
-Current task: Task 6
+Tasks completed: 8
+Current task: Task 8
 
 ---
 
@@ -430,5 +430,57 @@ The new approach directly targets the Card button element and uses both product 
 
 ### Commit
 test: fix product click tests to use reliable button selector with SKU filtering
+
+---
+
+## [2026-01-17] - Task 8: Fix invalid order ID error handling
+
+### Status: COMPLETE - TEST PASSING
+
+### Analysis
+The invalid order ID error handling was already correctly implemented in `useCurrentOrder` hook (stores/orders.ts lines 112-116):
+
+```typescript
+useEffect(() => {
+  if (!isDraft && orderId && orderQuery.isSuccess && orderQuery.data === null) {
+    router.replace('/orders');
+  }
+}, [isDraft, orderId, orderQuery.data, orderQuery.isSuccess, router]);
+```
+
+**How it works**:
+1. When navigating to an invalid order ID like `/orders/999999999`
+2. `useCurrentOrder()` is called with `orderId = "999999999"`
+3. Since it's not `"new"`, `isDraft = false`
+4. `queryOrderId = parseInt("999999999") = 999999999`
+5. `useOrderQuery(999999999)` fetches from WooCommerce API
+6. WooCommerce returns null for non-existent order (handled in useOrderQuery lines 81-96)
+7. `orderQuery.isSuccess = true` and `orderQuery.data = null`
+8. The `useEffect` triggers `router.replace('/orders')` which redirects
+
+**Test expectation** (multi-order.spec.ts lines 962-976):
+- Navigate to `/orders/999999999`
+- Either show error message (text containing "not found", "error", or "does not exist")
+- OR redirect away from `/orders/999999999`
+
+The test passes because the redirect to `/orders` satisfies the second condition.
+
+### Files Reviewed
+- `/Users/adnan/Projects/simple-pos-e2e/next/app/orders/[orderId]/page.tsx`
+- `/Users/adnan/Projects/simple-pos-e2e/next/stores/orders.ts` (useCurrentOrder, useOrderQuery)
+- `/Users/adnan/Projects/simple-pos-e2e/next/e2e/tests/order-management/multi-order.spec.ts`
+
+### Verification
+- Playwright test: PASSED (3 consecutive runs)
+  ```
+  SKIP_WEB_SERVER=1 PORT=3002 npx playwright test multi-order.spec.ts:962 --repeat-each=3
+  3 passed (6.4s)
+  ```
+
+### Changes Made
+- Updated `/Users/adnan/Projects/simple-pos-e2e/next/plan.md` to set Task 8 `"passes": true`
+
+### Commit
+chore: verify Task 8 invalid order ID error handling is correctly implemented
 
 ---
