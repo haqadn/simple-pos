@@ -414,3 +414,30 @@ Current task: None
 
 ### Commit
 - `feat: migrate order creation to local-first approach with frontend IDs`
+
+---
+
+## [2026-01-17] - Task 12: Update order queries to read from local DB first
+
+### Changes Made
+- `/next/stores/orders.ts`:
+  - Added import for `getLocalOrderByServerId` from offline-orders module
+  - Updated `useOrderQuery`:
+    - Now checks Dexie (local database) first for orders by server ID
+    - If found locally, returns the local order data immediately
+    - Falls back to server query only if not in local DB
+    - This ensures local changes are always shown even before sync
+  - Updated `useCurrentOrder`:
+    - Added `isServerId` detection for numeric order IDs in URLs
+    - Added `localOrderByServerIdQuery` to look up orders by server ID in Dexie
+    - Added redirect logic: server ID URLs (`/orders/123`) automatically redirect to frontend ID URLs (`/orders/A3X9K2`) when the order exists locally
+    - Updated not-found redirect logic to handle both server ID and frontend ID cases
+    - When accessing a server ID URL for a local order, returns local order data while waiting for redirect
+    - Supports both frontend ID (6-char alphanumeric) and server ID (numeric) in URLs
+
+### Verification
+- `npm run lint` - No ESLint warnings or errors
+- `npm run build` - Completed successfully with no errors
+
+### Commit
+- `feat: update order queries to read from local DB first`

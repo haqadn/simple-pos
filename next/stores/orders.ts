@@ -14,7 +14,7 @@ import { useDraftOrderState, useDraftOrderActions } from "@/hooks/useDraftOrderS
 import { isSkipError } from "./utils/mutation-helpers";
 import { useEffect } from "react";
 import { isValidFrontendId } from "@/lib/frontend-id";
-import { getLocalOrder, updateLocalOrder } from "./offline-orders";
+import { getLocalOrder, getLocalOrderByServerId, updateLocalOrder } from "./offline-orders";
 import type { LocalOrder } from "@/db";
 
 function generateOrderQueryKey(context: string, order?: OrderSchema, product?: ProductSchema) {
@@ -89,6 +89,15 @@ export const useOrderQuery = ( orderId: number ) => {
 			if (!orderId) {
 				return null;
 			}
+
+			// Check local Dexie database first for this server ID
+			const localOrder = await getLocalOrderByServerId(orderId);
+			if (localOrder) {
+				// Return the local order data
+				return localOrder.data;
+			}
+
+			// Fall back to server query if not in local DB
 			const order = await OrdersAPI.getOrder(orderId.toString());
 			if (!order) {
 				return null;
@@ -110,6 +119,9 @@ export const useCurrentOrder = () => {
 	// Check if this is a frontend ID (6-char alphanumeric)
 	const isFrontendId = orderId ? isValidFrontendId(orderId) : false;
 
+	// Check if this is a numeric server ID
+	const isServerId = orderId ? /^\d+$/.test(orderId) : false;
+
 	// For legacy 'new' route, return draft data from store
 	const isLegacyNew = orderId === 'new';
 
@@ -128,6 +140,17 @@ export const useCurrentOrder = () => {
 		staleTime: 1000,
 	});
 
+	// Query for local order by server ID (to redirect server ID URLs to frontend ID)
+	const localOrderByServerIdQuery = useQuery<LocalOrder | undefined>({
+		queryKey: ['localOrderByServerId', orderId],
+		queryFn: async () => {
+			if (!orderId || !isServerId) return undefined;
+			return await getLocalOrderByServerId(parseInt(orderId));
+		},
+		enabled: isServerId && !!orderId,
+		staleTime: 1000,
+	});
+
 	// Sync frontend ID to Zustand store when navigating to a frontend ID URL
 	useEffect(() => {
 		if (isFrontendId && orderId && orderId !== currentFrontendId) {
@@ -135,16 +158,25 @@ export const useCurrentOrder = () => {
 		}
 	}, [isFrontendId, orderId, currentFrontendId, setCurrentFrontendId]);
 
+	// Redirect server ID URLs to frontend ID URLs if order exists locally
+	useEffect(() => {
+		if (isServerId && localOrderByServerIdQuery.isSuccess && localOrderByServerIdQuery.data) {
+			// Order exists locally - redirect to frontend ID URL
+			router.replace(`/orders/${localOrderByServerIdQuery.data.frontendId}`);
+		}
+	}, [isServerId, localOrderByServerIdQuery.isSuccess, localOrderByServerIdQuery.data, router]);
+
 	useEffect(() => {
 		// Redirect to orders list if order not found (for server IDs)
-		if (!isLegacyNew && !isFrontendId && orderId && orderQuery.isSuccess && orderQuery.data === null) {
+		// Only redirect if the order is not found locally AND not found on server
+		if (!isLegacyNew && isServerId && orderId && orderQuery.isSuccess && orderQuery.data === null && localOrderByServerIdQuery.isSuccess && !localOrderByServerIdQuery.data) {
 			router.replace('/orders');
 		}
 		// Redirect if local order not found (for frontend IDs)
 		if (isFrontendId && localOrderQuery.isSuccess && !localOrderQuery.data) {
 			router.replace('/orders');
 		}
-	}, [isLegacyNew, isFrontendId, orderId, orderQuery.data, orderQuery.isSuccess, localOrderQuery.data, localOrderQuery.isSuccess, router]);
+	}, [isLegacyNew, isFrontendId, isServerId, orderId, orderQuery.data, orderQuery.isSuccess, localOrderQuery.data, localOrderQuery.isSuccess, localOrderByServerIdQuery.data, localOrderByServerIdQuery.isSuccess, router]);
 
 	// If it's a frontend ID, return local order data
 	if (isFrontendId && localOrderQuery.data) {
@@ -157,6 +189,21 @@ export const useCurrentOrder = () => {
 			isError: localOrderQuery.isError,
 			status: localOrderQuery.status,
 			error: localOrderQuery.error,
+		} as typeof orderQuery;
+	}
+
+	// If it's a server ID URL and the order exists locally, return local order data
+	// (while waiting for redirect to frontend ID URL)
+	if (isServerId && localOrderByServerIdQuery.data) {
+		return {
+			...orderQuery,
+			data: localOrderByServerIdQuery.data.data,
+			isLoading: false,
+			isPending: false,
+			isSuccess: true,
+			isError: false,
+			status: 'success',
+			error: null,
 		} as typeof orderQuery;
 	}
 

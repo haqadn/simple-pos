@@ -156,7 +156,7 @@ Enhance Simple POS with configurable payment methods, coupon validation card, of
       "Update useCurrentOrder for frontend ID support",
       "Handle both frontend ID and server ID in URLs"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 13,
