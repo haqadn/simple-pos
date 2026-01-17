@@ -711,8 +711,8 @@ test.describe('Print Command', () => {
 
       const firstKotItems = JSON.parse(String(kotItemsMeta!.value));
 
-      // Add more items
-      await CommandShortcuts.addItem(page, sku, 2); // Should increment to 4
+      // Add more items - set quantity to 4 (item command with quantity uses 'set' mode, not 'increment')
+      await CommandShortcuts.addItem(page, sku, 4); // Set quantity to 4
       await waitForMutations(page);
       await page.waitForTimeout(500);
 

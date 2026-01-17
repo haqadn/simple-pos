@@ -128,7 +128,8 @@ export default defineConfig({
 
   // Web server configuration
   // Start both wp-env (WordPress) and Next.js dev server before tests
-  webServer: [
+  // Set SKIP_WEB_SERVER=1 to skip if servers are already running externally
+  webServer: process.env.SKIP_WEB_SERVER ? undefined : [
     // WordPress via wp-env
     {
       command: 'npm run wp-env:start',
