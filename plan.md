@@ -70,7 +70,7 @@ Enhance Simple POS with configurable payment methods, coupon validation card, of
       "Add Apply button to add coupon to order",
       "Position below customer info card in order page layout"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 6,

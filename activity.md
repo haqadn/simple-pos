@@ -111,3 +111,34 @@ Current task: None
 
 ### Commit
 - `feat: add coupon validation API hook`
+
+---
+
+## [2026-01-17] - Task 5: Create CouponCard component and add to order page
+
+### Changes Made
+- `/next/app/orders/[orderId]/components/coupon-card.tsx`:
+  - Created new CouponCard component with:
+    - Input field for coupon code entry
+    - Real-time validation using `useCouponValidation` hook (debounced 500ms)
+    - Status indicator showing validation state (spinner for validating, checkmark for valid, X for invalid, warning for error)
+    - Color-coded input border based on status (success/danger/warning)
+    - Description field showing discount summary when valid or error message when invalid
+    - Apply button that adds coupon to the order via WooCommerce API
+    - Support for Enter key to apply valid coupons
+    - Info text showing count of already applied coupons
+  - Uses HugeiconsIcon components (CheckmarkCircle02Icon, Cancel01Icon, Alert02Icon)
+  - Follows existing card styling patterns (Card with border, CardBody, underlined inputs)
+  - Uses useMemo to optimize appliedCoupons dependency
+  - Proper TypeScript types with CouponLineSchema
+
+- `/next/app/orders/[orderId]/page.tsx`:
+  - Added import for CouponCard component
+  - Positioned CouponCard below CustomerInfo in the right column layout
+
+### Verification
+- `npm run build` - Completed successfully with no errors
+- `npm run lint` - No ESLint warnings or errors
+
+### Commit
+- `feat: add CouponCard component to order page`

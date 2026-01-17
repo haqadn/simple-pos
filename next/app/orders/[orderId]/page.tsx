@@ -1,5 +1,6 @@
 
 import Buttons from "./components/buttons";
+import CouponCard from "./components/coupon-card";
 import CustomerInfo from "./components/customer-info";
 import LineItems from "./components/line-items";
 import OrderNote from "./components/order-note";
@@ -22,6 +23,7 @@ export default async function OrderPage({ params }: { params: Promise<{ orderId:
                 <div className="w-1/2 overflow-y-auto h-full p-4">
                     <Service />
                     <CustomerInfo />
+                    <CouponCard />
                 </div>
             </div>
             <div className="mx-4">
