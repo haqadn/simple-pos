@@ -809,16 +809,20 @@ export default function CommandBar() {
 
   if (!isReady || !commandContext) {
     return (
-      <Input 
-        classNames={{ 
-          mainWrapper: 'w-full',
-        }} 
-        labelPlacement="outside-left" 
-        label="Command"
-        aria-label="Loading command system..."
-        placeholder="Loading..."
-        disabled
-      />
+      <div className="w-full space-y-2">
+        <Input
+          classNames={{
+            mainWrapper: 'w-full',
+          }}
+          labelPlacement="outside-left"
+          label="Command"
+          aria-label="Loading command system..."
+          placeholder="Loading..."
+          disabled
+        />
+        {/* Always show HelpTextBar so settings gear is accessible */}
+        <HelpTextBar multiMode={false} activeCommand={undefined} />
+      </div>
     );
   }
 
