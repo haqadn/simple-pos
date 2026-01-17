@@ -102,7 +102,7 @@ Make the API credentials flow production-ready by removing hardcoded credentials
       "Add --force flag to regenerate credentials",
       "Print clear success message with next steps"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 8,

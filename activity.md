@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-17
-Tasks completed: 6
+Tasks completed: 7
 Current task: None
 
 ---
@@ -141,3 +141,32 @@ Current task: None
 
 ### Commit
 - No code changes needed - task was verification only (implementation already complete)
+
+---
+
+## 2026-01-17 - Task 7: Create development setup script
+
+### Changes Made
+- Created `/next/scripts/dev-setup.js` - development environment setup script
+- Script features:
+  - Checks if wp-env is running and starts it automatically if not
+  - Waits for WordPress to be ready with timeout handling
+  - Generates WooCommerce API credentials by reusing `e2e/scripts/generate-wc-keys.php`
+  - Tests credentials work before saving
+  - Writes credentials to `.env.local` with `NEXT_PUBLIC_*` prefix:
+    - `NEXT_PUBLIC_SITE_URL` - WordPress base URL
+    - `NEXT_PUBLIC_CONSUMER_KEY` - WooCommerce API key
+    - `NEXT_PUBLIC_CONSUMER_SECRET` - WooCommerce API secret
+  - Supports `--force` flag to regenerate credentials even if they exist
+  - Idempotent - safe to run multiple times
+  - Prints clear success message with next steps and WordPress admin credentials
+
+### Verification
+- Ran `node --check scripts/dev-setup.js` - no syntax errors
+- Ran `npm run build` - compiles successfully
+- Ran `npm run lint` - no ESLint warnings or errors
+- Verified PHP script path exists at `e2e/scripts/generate-wc-keys.php`
+- Script structure follows patterns from existing `e2e/scripts/setup.js`
+
+### Commit
+- feat: create development setup script
