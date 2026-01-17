@@ -144,7 +144,7 @@ Enhance Simple POS with configurable payment methods, coupon validation card, of
       "Update URL routing to use frontend ID (/orders/{frontendId})",
       "Keep draft order in Dexie until explicitly cleared"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 12,

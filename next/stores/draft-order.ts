@@ -1,12 +1,15 @@
 import { create } from 'zustand';
 import { OrderSchema, LineItemSchema, ShippingLineSchema, BillingSchema, MetaDataSchema } from '@/api/orders';
 
-// Draft order uses id: 0 to indicate it's not saved
+// Draft order uses id: 0 to indicate it's not saved to server
 export const DRAFT_ORDER_ID = 0;
 
 export interface DraftOrderState {
   draftOrder: OrderSchema;
   isDraft: boolean;
+
+  // Frontend ID for local-first operation
+  currentFrontendId: string | null;
 
   // Save operation state (moved from module-level singletons)
   savePromise: Promise<OrderSchema | null> | null;
@@ -22,6 +25,10 @@ export interface DraftOrderState {
   updateDraftMetaData: (metaData: MetaDataSchema[]) => void;
   getDraftData: () => Partial<OrderSchema>;
   hasContent: () => boolean;
+
+  // Frontend ID management
+  setCurrentFrontendId: (frontendId: string | null) => void;
+  getCurrentFrontendId: () => string | null;
 
   // Save lock mechanism
   isSaving: () => boolean;
@@ -61,6 +68,9 @@ export const useDraftOrderStore = create<DraftOrderState>((set, get) => ({
   draftOrder: createEmptyDraft(),
   isDraft: true,
 
+  // Frontend ID for local-first operation
+  currentFrontendId: null,
+
   // Save operation state - now part of Zustand store
   savePromise: null,
   savedOrderId: null,
@@ -71,11 +81,19 @@ export const useDraftOrderStore = create<DraftOrderState>((set, get) => ({
     set({
       draftOrder: createEmptyDraft(),
       isDraft: true,
+      currentFrontendId: null,
       savePromise: null,
       savedOrderId: null,
       saveLock: false,
     });
   },
+
+  // Frontend ID management
+  setCurrentFrontendId: (frontendId) => {
+    set({ currentFrontendId: frontendId });
+  },
+
+  getCurrentFrontendId: () => get().currentFrontendId,
 
   // Save lock mechanism - now uses Zustand state instead of module variables
   isSaving: () => {

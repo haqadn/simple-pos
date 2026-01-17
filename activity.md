@@ -358,3 +358,59 @@ Current task: None
 
 ### Commit
 - `feat: implement connectivity detection and offline indicator`
+
+---
+
+## [2026-01-17] - Task 11: Migrate order creation to use local-first approach
+
+### Changes Made
+- `/next/stores/draft-order.ts`:
+  - Added `currentFrontendId` state to track the current order's frontend ID
+  - Added `setCurrentFrontendId` and `getCurrentFrontendId` methods
+  - Updated `resetDraft` to clear frontend ID state
+
+- `/next/hooks/useDraftOrderState.ts`:
+  - Exposed `currentFrontendId`, `setCurrentFrontendId`, and `getCurrentFrontendId` from the store
+
+- `/next/app/components/sidebar.tsx`:
+  - Changed `newOrder` function to async
+  - Creates local order in Dexie with frontend ID via `createLocalOrder()`
+  - Navigates to frontend ID URL `/orders/{frontendId}` instead of `/orders/new`
+  - Added `useCallback` import and memoized the `newOrder` function
+
+- `/next/stores/orders.ts`:
+  - Added imports for `isValidFrontendId`, `getLocalOrder`, `updateLocalOrder`, and `LocalOrder`
+  - Updated `useCurrentOrder` hook:
+    - Detects frontend ID URLs using `isValidFrontendId()`
+    - Added local order query from Dexie for frontend ID orders
+    - Syncs frontend ID to Zustand store on navigation
+    - Returns local order data for frontend ID orders
+  - Updated `useIsDraftOrder` to consider frontend IDs as draft orders
+  - Updated `useLineItemQuery`:
+    - Detects frontend ID orders via URL
+    - Saves line item changes to Dexie instead of server for frontend ID orders
+    - Updated `onMutate` for optimistic updates to local order query cache
+    - Updated `onError` and `onSuccess` handlers for frontend ID support
+  - Updated `useServiceQuery`:
+    - Added frontend ID detection
+    - Saves shipping line changes to Dexie for frontend ID orders
+    - Updated mutation handlers for frontend ID support
+  - Updated `useOrderNoteQuery`:
+    - Added frontend ID detection
+    - Saves notes to Dexie for frontend ID orders
+    - Updated mutation handlers for frontend ID support
+  - Updated `useCustomerInfoQuery`:
+    - Added frontend ID detection
+    - Saves billing info to Dexie for frontend ID orders
+    - Updated mutation handlers for frontend ID support
+  - Updated `usePaymentQuery`:
+    - Added frontend ID detection
+    - Saves payment meta_data to Dexie for frontend ID orders
+    - Updated mutation handlers for frontend ID support
+
+### Verification
+- `npm run lint` - No ESLint warnings or errors
+- `npm run build` - Completed successfully with no errors
+
+### Commit
+- `feat: migrate order creation to local-first approach with frontend IDs`

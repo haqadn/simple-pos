@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { Button, Kbd } from "@heroui/react";
 import Link from "next/link"
 import { type OrderSchema } from "@/api/orders";
@@ -8,10 +8,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { useOrderQuery, useOrdersStore } from "@/stores/orders";
 import { useDraftOrderStore } from "@/stores/draft-order";
 import OfflineIndicator from "./OfflineIndicator";
+import { createLocalOrder } from "@/stores/offline-orders";
 
 export default function Sidebar() {
     const { ordersQuery: { data: orders, isLoading } } = useOrdersStore();
     const resetDraft = useDraftOrderStore((state) => state.resetDraft);
+    const setCurrentFrontendId = useDraftOrderStore((state) => state.setCurrentFrontendId);
     const pathname = usePathname();
     const router = useRouter();
 
@@ -51,11 +53,19 @@ export default function Sidebar() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [orders, router]);
 
-    const newOrder = () => {
-        // Reset draft and navigate to new order page (order only saved to DB when modified)
+    const newOrder = useCallback(async () => {
+        // Reset draft state
         resetDraft();
-        router.push('/orders/new');
-    }
+
+        // Create a new local order in Dexie with a frontend ID
+        const localOrder = await createLocalOrder();
+
+        // Store the frontend ID in Zustand for quick access
+        setCurrentFrontendId(localOrder.frontendId);
+
+        // Navigate to the frontend ID URL
+        router.push(`/orders/${localOrder.frontendId}`);
+    }, [resetDraft, setCurrentFrontendId, router]);
 
     if (isLoading) {
         return <div>Loading...</div>;

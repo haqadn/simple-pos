@@ -13,6 +13,9 @@ import { DRAFT_ORDER_ID } from "./draft-order";
 import { useDraftOrderState, useDraftOrderActions } from "@/hooks/useDraftOrderState";
 import { isSkipError } from "./utils/mutation-helpers";
 import { useEffect } from "react";
+import { isValidFrontendId } from "@/lib/frontend-id";
+import { getLocalOrder, updateLocalOrder } from "./offline-orders";
+import type { LocalOrder } from "@/db";
 
 function generateOrderQueryKey(context: string, order?: OrderSchema, product?: ProductSchema) {
 	switch (context) {
@@ -102,29 +105,69 @@ export const useCurrentOrder = () => {
 	const params = useParams();
 	const router = useRouter();
 	const orderId = params?.orderId as string | undefined;
-	const { draftOrder } = useDraftOrderState();
+	const { draftOrder, currentFrontendId, setCurrentFrontendId } = useDraftOrderState();
 
-	// For draft orders (new), return draft data from store
-	const isDraft = orderId === 'new';
+	// Check if this is a frontend ID (6-char alphanumeric)
+	const isFrontendId = orderId ? isValidFrontendId(orderId) : false;
+
+	// For legacy 'new' route, return draft data from store
+	const isLegacyNew = orderId === 'new';
 
 	// Use DRAFT_ORDER_ID for new orders or undefined orderId
-	const queryOrderId = isDraft || !orderId ? DRAFT_ORDER_ID : parseInt(orderId);
+	const queryOrderId = isLegacyNew || isFrontendId || !orderId ? DRAFT_ORDER_ID : parseInt(orderId);
 	const orderQuery = useOrderQuery(queryOrderId);
 
+	// Query for local order data from Dexie when using frontend ID
+	const localOrderQuery = useQuery<LocalOrder | undefined>({
+		queryKey: ['localOrder', orderId],
+		queryFn: async () => {
+			if (!orderId || !isFrontendId) return undefined;
+			return await getLocalOrder(orderId);
+		},
+		enabled: isFrontendId && !!orderId,
+		staleTime: 1000,
+	});
+
+	// Sync frontend ID to Zustand store when navigating to a frontend ID URL
 	useEffect(() => {
-		if (!isDraft && orderId && orderQuery.isSuccess && orderQuery.data === null) {
+		if (isFrontendId && orderId && orderId !== currentFrontendId) {
+			setCurrentFrontendId(orderId);
+		}
+	}, [isFrontendId, orderId, currentFrontendId, setCurrentFrontendId]);
+
+	useEffect(() => {
+		// Redirect to orders list if order not found (for server IDs)
+		if (!isLegacyNew && !isFrontendId && orderId && orderQuery.isSuccess && orderQuery.data === null) {
 			router.replace('/orders');
 		}
-	}, [isDraft, orderId, orderQuery.data, orderQuery.isSuccess, router]);
+		// Redirect if local order not found (for frontend IDs)
+		if (isFrontendId && localOrderQuery.isSuccess && !localOrderQuery.data) {
+			router.replace('/orders');
+		}
+	}, [isLegacyNew, isFrontendId, orderId, orderQuery.data, orderQuery.isSuccess, localOrderQuery.data, localOrderQuery.isSuccess, router]);
 
-	// If it's a draft order, override the query data with draft store data
-	if (isDraft || !orderId) {
+	// If it's a frontend ID, return local order data
+	if (isFrontendId && localOrderQuery.data) {
+		return {
+			...orderQuery,
+			data: localOrderQuery.data.data,
+			isLoading: localOrderQuery.isLoading,
+			isPending: localOrderQuery.isPending,
+			isSuccess: localOrderQuery.isSuccess,
+			isError: localOrderQuery.isError,
+			status: localOrderQuery.status,
+			error: localOrderQuery.error,
+		} as typeof orderQuery;
+	}
+
+	// If it's a legacy 'new' route or frontend ID being loaded, return draft data
+	if (isLegacyNew || !orderId || (isFrontendId && localOrderQuery.isLoading)) {
 		// Cast to match the expected QueryObserverResult type
 		return {
 			...orderQuery,
 			data: draftOrder,
-			isLoading: false,
-			isPending: false,
+			isLoading: isFrontendId && localOrderQuery.isLoading,
+			isPending: isFrontendId && localOrderQuery.isPending,
 			isSuccess: true,
 			isError: false,
 			status: 'success',
@@ -138,7 +181,8 @@ export const useCurrentOrder = () => {
 export const useIsDraftOrder = () => {
 	const params = useParams();
 	const orderId = params.orderId as string;
-	return orderId === 'new';
+	// Consider both legacy 'new' and frontend IDs (6-char alphanumeric) as draft orders
+	return orderId === 'new' || isValidFrontendId(orderId);
 }
 
 // Re-export from hooks for backward compatibility
@@ -147,12 +191,17 @@ export { useSaveDraftOrder } from '@/hooks/useDraftOrderSave';
 export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | null>, product?: ProductSchema) => {
 	const queryClient = useQueryClient();
 	const router = useRouter();
+	const params = useParams();
+	const urlOrderId = params?.orderId as string | undefined;
 	const order = orderQuery.data ?? undefined;
 	const orderRootKey = generateOrderQueryKey( 'order', order );
 	const orderQueryKey = generateOrderQueryKey( 'detail', order );
 	const lineItemKey = generateOrderQueryKey('lineItem', order, product);
 	const lineItemIsMutating = useIsMutating({ mutationKey: lineItemKey });
 	const lineItemsAreMutating = useIsMutating({ mutationKey: generateOrderQueryKey('lineItem', order) });
+
+	// Check if we're working with a frontend ID (local-first order)
+	const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
 
 	// Draft order support
 	const {
@@ -164,6 +213,7 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 		setSavedOrderId,
 		acquireSaveLock,
 		releaseSaveLock,
+		currentFrontendId,
 	} = useDraftOrderState();
 	const { updateDraftLineItems } = useDraftOrderActions();
 
@@ -179,7 +229,41 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 			throw new Error('Order, product, quantity are required to update line item quantity');
 		}
 
-		// Handle draft order - save to database first
+		// Handle frontend ID orders - save to Dexie only (local-first)
+		if (isFrontendIdOrder && urlOrderId) {
+			// Build the new line items array
+			const existingLineItems = [...inputOrder.line_items];
+			const existingIdx = existingLineItems.findIndex(
+				li => li.product_id === product.product_id && li.variation_id === product.variation_id
+			);
+
+			if (existingIdx >= 0) {
+				if (quantity > 0) {
+					existingLineItems[existingIdx] = { ...existingLineItems[existingIdx], quantity };
+				} else {
+					existingLineItems.splice(existingIdx, 1);
+				}
+			} else if (quantity > 0) {
+				existingLineItems.push({
+					name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
+					product_id: product.product_id,
+					variation_id: product.variation_id,
+					quantity,
+				});
+			}
+
+			// Save to Dexie
+			const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
+				line_items: existingLineItems,
+			});
+
+			// Invalidate local order query to refresh UI
+			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+
+			return updatedLocalOrder.data;
+		}
+
+		// Handle legacy draft order - save to database first
 		if (inputOrder.id === DRAFT_ORDER_ID) {
 			// Check if order was already saved
 			const alreadySavedId = getSavedOrderId();
@@ -299,7 +383,33 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 				name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
 			};
 
-			// For draft orders, update the Zustand store for immediate UI feedback
+			// For frontend ID orders (local-first), update the local order query cache
+			if (isFrontendIdOrder && urlOrderId) {
+				// Build optimistic order data
+				const newOrderQueryData = { ...order };
+				const existingLineItemIdx = newOrderQueryData.line_items.findIndex(
+					lineItem => lineItem.product_id === newLineItem.product_id && lineItem.variation_id === newLineItem.variation_id
+				);
+				if (existingLineItemIdx >= 0) {
+					if (params.quantity > 0) {
+						newOrderQueryData.line_items[existingLineItemIdx].quantity = params.quantity;
+					} else {
+						newOrderQueryData.line_items = newOrderQueryData.line_items.filter((_, idx) => idx !== existingLineItemIdx);
+					}
+				} else if (params.quantity > 0) {
+					newOrderQueryData.line_items = [...newOrderQueryData.line_items, newLineItem];
+				}
+
+				// Update the local order query cache optimistically
+				queryClient.setQueryData(['localOrder', urlOrderId], (oldData: LocalOrder | undefined) => {
+					if (!oldData) return oldData;
+					return { ...oldData, data: newOrderQueryData };
+				});
+				queryClient.setQueryData(lineItemKey, params.quantity > 0 ? newLineItem : null);
+				return;
+			}
+
+			// For legacy draft orders, update the Zustand store for immediate UI feedback
 			if (order.id === DRAFT_ORDER_ID) {
 				const currentLineItems = [...draftOrder.line_items];
 				const existingIdx = currentLineItems.findIndex(
@@ -336,11 +446,22 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 		},
 		onError: (err) => {
 			if (!isSkipError(err)) {
-				queryClient.invalidateQueries({ queryKey: orderRootKey });
+				// For frontend ID orders, invalidate local order query
+				if (isFrontendIdOrder && urlOrderId) {
+					queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+				} else {
+					queryClient.invalidateQueries({ queryKey: orderRootKey });
+				}
 				mutation.reset();
 			}
 		},
 		onSuccess: (data: OrderSchema) => {
+			// For frontend ID orders, just invalidate the local order query
+			if (isFrontendIdOrder && urlOrderId) {
+				queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+				return;
+			}
+
 			// Use the order ID from returned data to ensure we update the correct cache
 			// (important when draft order was saved and ID changed from 0 to real ID)
 			const actualOrderKey = generateOrderQueryKey('detail', data);
@@ -375,11 +496,16 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | null>) => {
 	const queryClient = useQueryClient();
 	const router = useRouter();
+	const params = useParams();
+	const urlOrderId = params?.orderId as string | undefined;
 	const order = orderQuery.data ?? undefined;
 	const orderRootKey = generateOrderQueryKey('order', order);
 	const orderQueryKey = generateOrderQueryKey('detail', order);
 	const serviceKey = generateOrderQueryKey('service', order);
 	const serviceIsMutating = useIsMutating({ mutationKey: serviceKey });
+
+	// Check if we're working with a frontend ID (local-first order)
+	const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
 
 	// Draft order support
 	const {
@@ -454,13 +580,26 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 		const shippingLine: ShippingLineSchema = {
 			method_id: service.type === 'table' ? 'pickup_location' : 'flat_rate',
 			instance_id: service.type === 'table' ? '0' : service.slug,
-			method_title: service.title,
+			method_title: service.type === 'table' ? `Table (${service.title})` : service.title,
 			total: service.fee.toString(),
 			total_tax: '0.00',
 			taxes: []
 		};
 
-		// Handle draft order - save to database first
+		// Handle frontend ID orders - save to Dexie only (local-first)
+		if (isFrontendIdOrder && urlOrderId) {
+			// Save to Dexie
+			const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
+				shipping_lines: [shippingLine],
+			});
+
+			// Invalidate local order query to refresh UI
+			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+
+			return updatedLocalOrder.data;
+		}
+
+		// Handle legacy draft order - save to database first
 		if (inputOrder.id === DRAFT_ORDER_ID) {
 			// Check if order was already saved
 			const alreadySavedId = getSavedOrderId();
@@ -572,7 +711,18 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 				taxes: []
 			};
 
-			// For draft orders, update the Zustand store for immediate UI feedback
+			// For frontend ID orders (local-first), update the local order query cache
+			if (isFrontendIdOrder && urlOrderId) {
+				const newOrderQueryData = { ...order, shipping_lines: [newShippingLine] };
+				queryClient.setQueryData(['localOrder', urlOrderId], (oldData: LocalOrder | undefined) => {
+					if (!oldData) return oldData;
+					return { ...oldData, data: newOrderQueryData };
+				});
+				queryClient.setQueryData(serviceKey, params.service);
+				return;
+			}
+
+			// For legacy draft orders, update the Zustand store for immediate UI feedback
 			if (order.id === DRAFT_ORDER_ID) {
 				updateDraftShippingLines([newShippingLine]);
 			}
@@ -586,11 +736,22 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 		},
 		onError: (err) => {
 			if (!isSkipError(err)) {
-				queryClient.invalidateQueries({ queryKey: orderRootKey });
+				// For frontend ID orders, invalidate local order query
+				if (isFrontendIdOrder && urlOrderId) {
+					queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+				} else {
+					queryClient.invalidateQueries({ queryKey: orderRootKey });
+				}
 				mutation.reset();
 			}
 		},
 		onSuccess: (data: OrderSchema) => {
+			// For frontend ID orders, just invalidate the local order query
+			if (isFrontendIdOrder && urlOrderId) {
+				queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+				return;
+			}
+
 			// Use the order ID from returned data to ensure we update the correct cache
 			const actualOrderKey = generateOrderQueryKey('detail', data);
 
@@ -609,11 +770,16 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | null>) => {
 	const queryClient = useQueryClient();
 	const router = useRouter();
+	const params = useParams();
+	const urlOrderId = params?.orderId as string | undefined;
 	const order = orderQuery.data ?? undefined;
 	const orderRootKey = generateOrderQueryKey('order', order);
 	const orderQueryKey = generateOrderQueryKey('detail', order);
 	const noteKey = generateOrderQueryKey('note', order);
 	const noteIsMutating = useIsMutating({ mutationKey: noteKey });
+
+	// Check if we're working with a frontend ID (local-first order)
+	const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
 
 	// Draft order support
 	const { getDraftData } = useDraftOrderState();
@@ -631,7 +797,16 @@ export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | 
 			throw new Error('Order and note are required to update order note');
 		}
 
-		// Handle draft order - save to database first
+		// Handle frontend ID orders - save to Dexie only (local-first)
+		if (isFrontendIdOrder && urlOrderId) {
+			const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
+				customer_note: note,
+			});
+			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+			return updatedLocalOrder.data;
+		}
+
+		// Handle legacy draft order - save to database first
 		if (inputOrder.id === DRAFT_ORDER_ID) {
 			const draftData = getDraftData();
 
@@ -666,17 +841,35 @@ export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | 
 			if (!order) return;
 
 			const newOrderQueryData = { ...order, customer_note: params.note };
-			
+
+			// For frontend ID orders, update local order query cache
+			if (isFrontendIdOrder && urlOrderId) {
+				queryClient.setQueryData(['localOrder', urlOrderId], (oldData: LocalOrder | undefined) => {
+					if (!oldData) return oldData;
+					return { ...oldData, data: newOrderQueryData };
+				});
+				queryClient.setQueryData(noteKey, params.note);
+				return;
+			}
+
 			queryClient.setQueryData(orderQueryKey, newOrderQueryData);
 			queryClient.setQueryData(noteKey, params.note);
 		},
 		onError: (err) => {
 			if (!isSkipError(err)) {
-				queryClient.invalidateQueries({ queryKey: orderRootKey });
+				if (isFrontendIdOrder && urlOrderId) {
+					queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+				} else {
+					queryClient.invalidateQueries({ queryKey: orderRootKey });
+				}
 				mutation.reset();
 			}
 		},
 		onSuccess: (data: OrderSchema) => {
+			if (isFrontendIdOrder && urlOrderId) {
+				queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+				return;
+			}
 			queryClient.setQueryData(orderQueryKey, data);
 		},
 	});
@@ -687,11 +880,16 @@ export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | 
 export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema | null>) => {
 	const queryClient = useQueryClient();
 	const router = useRouter();
+	const params = useParams();
+	const urlOrderId = params?.orderId as string | undefined;
 	const order = orderQuery.data ?? undefined;
 	const orderRootKey = generateOrderQueryKey('order', order);
 	const orderQueryKey = generateOrderQueryKey('detail', order);
 	const customerInfoKey = generateOrderQueryKey('customerInfo', order);
 	const customerInfoIsMutating = useIsMutating({ mutationKey: customerInfoKey });
+
+	// Check if we're working with a frontend ID (local-first order)
+	const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
 
 	// Draft order support
 	const { getDraftData } = useDraftOrderState();
@@ -722,7 +920,16 @@ export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema
 		// Merge with existing billing data to ensure all required fields are present
 		const mergedBilling = { ...inputOrder.billing, ...billing };
 
-		// Handle draft order - save to database first
+		// Handle frontend ID orders - save to Dexie only (local-first)
+		if (isFrontendIdOrder && urlOrderId) {
+			const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
+				billing: mergedBilling,
+			});
+			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+			return updatedLocalOrder.data;
+		}
+
+		// Handle legacy draft order - save to database first
 		if (inputOrder.id === DRAFT_ORDER_ID) {
 			const draftData = getDraftData();
 
@@ -756,21 +963,39 @@ export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema
 		onMutate: async (params) => {
 			if (!order) return;
 
-			const newOrderQueryData = { 
-				...order, 
+			const newOrderQueryData = {
+				...order,
 				billing: { ...order.billing, ...params.billing }
 			};
-			
+
+			// For frontend ID orders, update local order query cache
+			if (isFrontendIdOrder && urlOrderId) {
+				queryClient.setQueryData(['localOrder', urlOrderId], (oldData: LocalOrder | undefined) => {
+					if (!oldData) return oldData;
+					return { ...oldData, data: newOrderQueryData };
+				});
+				queryClient.setQueryData(customerInfoKey, newOrderQueryData.billing);
+				return;
+			}
+
 			queryClient.setQueryData(orderQueryKey, newOrderQueryData);
 			queryClient.setQueryData(customerInfoKey, newOrderQueryData.billing);
 		},
 		onError: (err) => {
 			if (!isSkipError(err)) {
-				queryClient.invalidateQueries({ queryKey: orderRootKey });
+				if (isFrontendIdOrder && urlOrderId) {
+					queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+				} else {
+					queryClient.invalidateQueries({ queryKey: orderRootKey });
+				}
 				mutation.reset();
 			}
 		},
 		onSuccess: (data: OrderSchema) => {
+			if (isFrontendIdOrder && urlOrderId) {
+				queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+				return;
+			}
 			queryClient.setQueryData(orderQueryKey, data);
 		},
 	});
@@ -781,11 +1006,16 @@ export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema
 export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | null>) => {
 	const queryClient = useQueryClient();
 	const router = useRouter();
+	const params = useParams();
+	const urlOrderId = params?.orderId as string | undefined;
 	const order = orderQuery.data ?? undefined;
 	const orderRootKey = generateOrderQueryKey('order', order);
 	const orderQueryKey = generateOrderQueryKey('detail', order);
 	const paymentKey = generateOrderQueryKey('payment', order);
 	const paymentIsMutating = useIsMutating({ mutationKey: paymentKey });
+
+	// Check if we're working with a frontend ID (local-first order)
+	const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
 
 	// Draft order support
 	const { getDraftData } = useDraftOrderState();
@@ -827,7 +1057,16 @@ export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			];
 		}
 
-		// Handle draft order - save to database first
+		// Handle frontend ID orders - save to Dexie only (local-first)
+		if (isFrontendIdOrder && urlOrderId) {
+			const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
+				meta_data: updatedMetaData,
+			});
+			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+			return updatedLocalOrder.data;
+		}
+
+		// Handle legacy draft order - save to database first
 		if (inputOrder.id === DRAFT_ORDER_ID) {
 			const draftData = getDraftData();
 
@@ -866,11 +1105,11 @@ export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			// Update meta_data optimistically
 			const existingMetaData = order.meta_data || [];
 			const existingPaymentMeta = existingMetaData.find(meta => meta.key === 'payment_received');
-			
+
 			let updatedMetaData: MetaDataSchema[];
 			if (existingPaymentMeta) {
-				updatedMetaData = existingMetaData.map(meta => 
-					meta.key === 'payment_received' 
+				updatedMetaData = existingMetaData.map(meta =>
+					meta.key === 'payment_received'
 						? { ...meta, value: params.received.toFixed(2) }
 						: meta
 				);
@@ -881,21 +1120,39 @@ export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 				];
 			}
 
-			const newOrderQueryData = { 
-				...order, 
+			const newOrderQueryData = {
+				...order,
 				meta_data: updatedMetaData
 			};
-			
+
+			// For frontend ID orders, update local order query cache
+			if (isFrontendIdOrder && urlOrderId) {
+				queryClient.setQueryData(['localOrder', urlOrderId], (oldData: LocalOrder | undefined) => {
+					if (!oldData) return oldData;
+					return { ...oldData, data: newOrderQueryData };
+				});
+				queryClient.setQueryData(paymentKey, params.received);
+				return;
+			}
+
 			queryClient.setQueryData(orderQueryKey, newOrderQueryData);
 			queryClient.setQueryData(paymentKey, params.received);
 		},
 		onError: (err) => {
 			if (!isSkipError(err)) {
-				queryClient.invalidateQueries({ queryKey: orderRootKey });
+				if (isFrontendIdOrder && urlOrderId) {
+					queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+				} else {
+					queryClient.invalidateQueries({ queryKey: orderRootKey });
+				}
 				mutation.reset();
 			}
 		},
 		onSuccess: (data: OrderSchema) => {
+			if (isFrontendIdOrder && urlOrderId) {
+				queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+				return;
+			}
 			queryClient.setQueryData(orderQueryKey, data);
 		},
 	});

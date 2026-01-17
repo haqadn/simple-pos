@@ -13,6 +13,9 @@ export function useDraftOrderState() {
   const setSavedOrderId = useDraftOrderStore((state) => state.setSavedOrderId);
   const acquireSaveLock = useDraftOrderStore((state) => state.acquireSaveLock);
   const releaseSaveLock = useDraftOrderStore((state) => state.releaseSaveLock);
+  const currentFrontendId = useDraftOrderStore((state) => state.currentFrontendId);
+  const setCurrentFrontendId = useDraftOrderStore((state) => state.setCurrentFrontendId);
+  const getCurrentFrontendId = useDraftOrderStore((state) => state.getCurrentFrontendId);
 
   return {
     getDraftData,
@@ -23,6 +26,9 @@ export function useDraftOrderState() {
     setSavedOrderId,
     acquireSaveLock,
     releaseSaveLock,
+    currentFrontendId,
+    setCurrentFrontendId,
+    getCurrentFrontendId,
   };
 }
 
