@@ -13,19 +13,24 @@ export interface CustomerData {
  * Supports searching previous customers by name or phone
  */
 export class CustomerCommand extends BaseCommand {
-  private context?: CommandContext;
   private searchCache: CustomerSchema[] = [];
   private lastSearchQuery = '';
   private searchTimeout: ReturnType<typeof setTimeout> | null = null;
   private onSuggestionsUpdate?: () => void;
 
-  setContext(context: CommandContext) {
-    this.context = context;
-  }
-
   /** Set callback to notify when suggestions update (for async search) */
   setSuggestionsCallback(callback: () => void) {
     this.onSuggestionsUpdate = callback;
+  }
+
+  /** Cleanup method to clear pending timeouts */
+  dispose() {
+    if (this.searchTimeout) {
+      clearTimeout(this.searchTimeout);
+      this.searchTimeout = null;
+    }
+    this.searchCache = [];
+    this.onSuggestionsUpdate = undefined;
   }
 
   getMetadata(): CommandMetadata {
@@ -51,13 +56,8 @@ export class CustomerCommand extends BaseCommand {
   }
 
   async execute(args: string[]): Promise<void> {
-    if (!this.context) {
-      throw new Error('Command context not set');
-    }
-
-    if (!this.context.currentOrder) {
-      throw new Error('No active order');
-    }
+    const context = this.requireContext<CommandContext>();
+    this.requireActiveOrder();
 
     if (args.length === 0) {
       throw new Error('Customer info is required. Usage: /customer <name>, <phone>[, <address>]');
@@ -77,13 +77,13 @@ export class CustomerCommand extends BaseCommand {
       address: parts.length > 2 ? parts.slice(2).join(', ') : undefined
     };
 
-    await this.context.setCustomer(customerData);
+    await context.setCustomer(customerData);
 
     let message = `Customer: ${customerData.name}, ${customerData.phone}`;
     if (customerData.address) {
       message += `, ${customerData.address}`;
     }
-    this.context.showMessage(message);
+    context.showMessage(message);
   }
 
   getAutocompleteSuggestions(partialInput: string): CommandSuggestion[] {

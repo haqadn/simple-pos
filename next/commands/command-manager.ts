@@ -187,6 +187,19 @@ export class CommandManager {
   }
 
   /**
+   * Cleanup all commands (call when manager is destroyed)
+   */
+  dispose(): void {
+    this.registry.getAllCommands().forEach(command => {
+      if (command.dispose) {
+        command.dispose();
+      }
+    });
+    this.context = undefined;
+    this.history = [];
+  }
+
+  /**
    * Register default commands
    */
   private registerDefaultCommands(): void {

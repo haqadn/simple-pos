@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Input, Kbd, Link, useDisclosure } from '@heroui/react';
+import { Input } from '@heroui/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCommandManager } from '@/hooks/useCommandManager';
@@ -12,12 +12,11 @@ import { CommandContext, CustomerData } from '@/commands/command-manager';
 import { CommandSuggestion } from '@/commands/command';
 import OrdersAPI, { OrderSchema } from '@/api/orders';
 import { DRAFT_ORDER_ID, useDraftOrderStore } from '@/stores/draft-order';
-import { useSettingsStore, type PageShortcut } from '@/stores/settings';
-import { SettingsModal } from './settings-modal';
-import { ShortcutModal } from './shortcut-modal';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { Settings01Icon } from '@hugeicons/core-free-icons';
+import { useDraftOrderState } from '@/hooks/useDraftOrderState';
+import { useSettingsStore } from '@/stores/settings';
 import { isAppShortcut } from '@/lib/shortcuts';
+import { createShouldSkipForKot } from '@/lib/kot';
+import { HelpTextBar, CommandSuggestions, applySuggestion } from './command-bar/index';
 
 export default function CommandBar() {
   const [input, setInput] = useState('');
@@ -37,26 +36,21 @@ export default function CommandBar() {
 
   // Draft order support
   const updateDraftLineItems = useDraftOrderStore((state) => state.updateDraftLineItems);
-  const getDraftData = useDraftOrderStore((state) => state.getDraftData);
-  const acquireSaveLock = useDraftOrderStore((state) => state.acquireSaveLock);
-  const releaseSaveLock = useDraftOrderStore((state) => state.releaseSaveLock);
-  const getSavePromise = useDraftOrderStore((state) => state.getSavePromise);
-  const setSavePromise = useDraftOrderStore((state) => state.setSavePromise);
-  const getSavedOrderId = useDraftOrderStore((state) => state.getSavedOrderId);
-  const setSavedOrderId = useDraftOrderStore((state) => state.setSavedOrderId);
+  const {
+    getDraftData,
+    acquireSaveLock,
+    releaseSaveLock,
+    getSavePromise,
+    setSavePromise,
+    getSavedOrderId,
+    setSavedOrderId,
+  } = useDraftOrderState();
 
   // Helper to check if a line item should be skipped on KOT based on category
-  const shouldSkipForKot = useMemo(() => {
-    if (!products || products.length === 0 || skipKotCategories.length === 0) return () => false;
-
-    return (productId: number, variationId: number) => {
-      const product = products.find(
-        p => p.product_id === productId && p.variation_id === variationId
-      );
-      if (!product) return false;
-      return product.categories.some(cat => skipKotCategories.includes(cat.id));
-    };
-  }, [products, skipKotCategories]);
+  const shouldSkipForKot = useMemo(
+    () => createShouldSkipForKot(products, skipKotCategories),
+    [products, skipKotCategories]
+  );
   
   // Command manager
   const {
@@ -715,19 +709,7 @@ export default function CommandBar() {
       case 'Tab':
         e.preventDefault();
         if (selectedSuggestion >= 0 && suggestions[selectedSuggestion]) {
-          const suggestion = suggestions[selectedSuggestion];
-          
-          // If it's a command suggestion, replace the entire input
-          if (suggestion.type === 'command') {
-            setInput(suggestion.insertText);
-          } else {
-            // For parameters, replace the current word being typed
-            const inputParts = input.split(' ');
-            const lastPartIndex = inputParts.length - 1;
-            inputParts[lastPartIndex] = suggestion.text;
-            setInput(inputParts.join(' '));
-          }
-          
+          setInput(applySuggestion(suggestions[selectedSuggestion], input));
           setSuggestions([]);
           setSelectedSuggestion(-1);
         }
@@ -801,101 +783,21 @@ export default function CommandBar() {
         />
         
         {/* Autocomplete suggestions */}
-        {suggestions.length > 0 && (
-          <div ref={suggestionsRef} className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto mt-1">
-            {suggestions.map((suggestion, index) => (
-              <div
-                key={index}
-                className={`px-3 py-2 cursor-pointer text-sm ${
-                  index === selectedSuggestion 
-                    ? 'bg-blue-100 text-blue-900' 
-                    : 'hover:bg-gray-100'
-                }`}
-                onClick={() => {
-                  // Same logic as Tab completion
-                  if (suggestion.type === 'command') {
-                    setInput(suggestion.insertText);
-                  } else {
-                    const inputParts = input.split(' ');
-                    const lastPartIndex = inputParts.length - 1;
-                    inputParts[lastPartIndex] = suggestion.text;
-                    setInput(inputParts.join(' '));
-                  }
-                  
-                  setSuggestions([]);
-                  setSelectedSuggestion(-1);
-                  inputRef.current?.focus();
-                }}
-              >
-                <div className="font-mono">{suggestion.text}</div>
-                {suggestion.description && (
-                  <div className="text-xs text-gray-500">{suggestion.description}</div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        <CommandSuggestions
+          suggestions={suggestions}
+          selectedIndex={selectedSuggestion}
+          suggestionsRef={suggestionsRef}
+          onSelect={(suggestion) => {
+            setInput(applySuggestion(suggestion, input));
+            setSuggestions([]);
+            setSelectedSuggestion(-1);
+            inputRef.current?.focus();
+          }}
+        />
       </form>
       
       {/* Help text */}
       <HelpTextBar multiMode={multiMode} activeCommand={activeCommand} />
-    </div>
-  );
-}
-
-function HelpTextBar({ multiMode, activeCommand }: { multiMode: boolean; activeCommand: string | undefined }) {
-  const pageShortcuts = useSettingsStore((state) => state.pageShortcuts);
-  const [activeShortcut, setActiveShortcut] = useState<PageShortcut | null>(null);
-  const { isOpen: isSettingsOpen, onOpen: onSettingsOpen, onOpenChange: onSettingsOpenChange } = useDisclosure();
-  const { isOpen: isShortcutOpen, onOpen: onShortcutOpen, onOpenChange: onShortcutOpenChange } = useDisclosure();
-
-  const handleOpenShortcut = (shortcut: PageShortcut) => {
-    setActiveShortcut(shortcut);
-    onShortcutOpen();
-  };
-
-  return (
-    <div className="text-xs text-gray-400 flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        {multiMode ? (
-          `Multi-input mode: Type ${activeCommand} parameters, or "/" to exit`
-        ) : (
-          <>
-            <span>SKU [qty] | /pay /done /clear | ↑↓ history |</span>
-            <Kbd className="text-[10px]">Esc</Kbd>
-          </>
-        )}
-      </div>
-      <div className="flex items-center gap-1">
-        <Link
-          className="text-gray-400 cursor-pointer hover:text-gray-600"
-          onPress={onSettingsOpen}
-          aria-label="Settings"
-        >
-          <HugeiconsIcon icon={Settings01Icon} className="h-4 w-4" />
-        </Link>
-        {pageShortcuts.map((shortcut) => (
-          <span key={shortcut.id} className="flex items-center">
-            <span className="mx-1">|</span>
-            <Link
-              size="sm"
-              className="text-xs text-gray-400 cursor-pointer"
-              onPress={() => handleOpenShortcut(shortcut)}
-            >
-              {shortcut.name}
-            </Link>
-          </span>
-        ))}
-      </div>
-      <SettingsModal isOpen={isSettingsOpen} onOpenChange={onSettingsOpenChange} />
-      {activeShortcut && (
-        <ShortcutModal
-          isOpen={isShortcutOpen}
-          onOpenChange={onShortcutOpenChange}
-          name={activeShortcut.name}
-          url={activeShortcut.url}
-        />
-      )}
     </div>
   );
 }

@@ -5,12 +5,6 @@ import { CommandContext } from './command-manager';
  * Drawer command - open cash drawer
  */
 export class DrawerCommand extends BaseCommand {
-  private context?: CommandContext;
-
-  setContext(context: CommandContext) {
-    this.context = context;
-  }
-
   getMetadata(): CommandMetadata {
     return {
       keyword: 'drawer',
@@ -25,12 +19,10 @@ export class DrawerCommand extends BaseCommand {
   }
 
   async execute(_args: string[]): Promise<void> {
-    if (!this.context) {
-      throw new Error('Command context not set');
-    }
+    const context = this.requireContext<CommandContext>();
 
-    await this.context.openDrawer();
-    this.context.showMessage('Opening cash drawer');
+    await context.openDrawer();
+    context.showMessage('Opening cash drawer');
   }
 
   getAutocompleteSuggestions(partialInput: string): CommandSuggestion[] {

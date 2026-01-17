@@ -86,11 +86,17 @@ export interface Command {
 
   /**
    * Get autocomplete suggestions for partial input
-   * 
+   *
    * @param partialInput - The partial input being typed (without /)
    * @returns Array of autocomplete suggestions
    */
   getAutocompleteSuggestions(partialInput: string): CommandSuggestion[];
+
+  /**
+   * Cleanup resources when command is disposed
+   * Optional - implement if command has timers, subscriptions, etc.
+   */
+  dispose?(): void;
 }
 
 /**
@@ -124,12 +130,48 @@ export interface MultiInputCommand extends Command {
   getMultiModeAutocompleteSuggestions(partialInput: string, multiData?: unknown): CommandSuggestion[];
 }
 
+// Import for context type - will be defined in command-manager.ts
+// Forward declaration to avoid circular dependency
+interface BaseCommandContext {
+  currentOrder?: { id: number; line_items: unknown[] };
+}
+
 /**
  * Base abstract class that provides common functionality for commands
  */
 export abstract class BaseCommand implements Command {
+  protected _context?: BaseCommandContext;
+
   abstract getMetadata(): CommandMetadata;
   abstract execute(args: string[]): Promise<void>;
+
+  /**
+   * Set the command context
+   */
+  setContext(context: BaseCommandContext): void {
+    this._context = context;
+  }
+
+  /**
+   * Get context, throwing if not set
+   */
+  protected requireContext<T extends BaseCommandContext>(): T {
+    if (!this._context) {
+      throw new Error('Command context not set');
+    }
+    return this._context as T;
+  }
+
+  /**
+   * Get active order from context, throwing if not available
+   */
+  protected requireActiveOrder<T extends { id: number } = { id: number; line_items: unknown[] }>(): T {
+    const context = this.requireContext();
+    if (!context.currentOrder) {
+      throw new Error('No active order');
+    }
+    return context.currentOrder as unknown as T;
+  }
 
   /**
    * Default implementation checks if keyword matches any of the command's keywords/aliases

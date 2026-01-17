@@ -7,17 +7,6 @@ interface ItemCommandData {
 }
 
 export class ItemCommand extends BaseMultiInputCommand {
-  private context?: CommandContext;
-
-  constructor(context?: CommandContext) {
-    super();
-    this.context = context;
-  }
-
-  setContext(context: CommandContext) {
-    this.context = context;
-  }
-
   getMetadata(): CommandMetadata {
     return {
       keyword: 'item',
@@ -47,9 +36,8 @@ export class ItemCommand extends BaseMultiInputCommand {
   }
 
   async execute(args: string[]): Promise<void> {
-    if (!this.context) {
-      throw new Error('Command context not set');
-    }
+    const context = this.requireContext<CommandContext>();
+    this.requireActiveOrder();
 
     if (args.length === 0) {
       throw new Error('SKU is required. Usage: /item <sku> [quantity]');
@@ -65,7 +53,7 @@ export class ItemCommand extends BaseMultiInputCommand {
 
     // If quantity is provided, set to that quantity. Otherwise, increment by 1
     const mode = hasQuantity ? 'set' : 'increment';
-    await this.addProductToOrder(sku, quantity, mode);
+    await this.addProductToOrder(context, sku, quantity, mode);
   }
 
   async enterMultiMode(): Promise<{ prompt: string; data?: unknown }> {
@@ -77,21 +65,23 @@ export class ItemCommand extends BaseMultiInputCommand {
 
   async exitMultiMode(currentData?: unknown): Promise<void> {
     const data = currentData as ItemCommandData;
-    if (data?.itemsModified && data.itemsModified > 0 && this.context) {
-      this.context.showMessage(`Modified ${data.itemsModified} items`);
+    const context = this._context as CommandContext | undefined;
+    if (data?.itemsModified && data.itemsModified > 0 && context) {
+      context.showMessage(`Modified ${data.itemsModified} items`);
     }
   }
 
   getMultiModeAutocompleteSuggestions(partialInput: string): CommandSuggestion[] {
     const suggestions: CommandSuggestion[] = [];
+    const context = this._context as CommandContext | undefined;
 
     // For SKU/name suggestions, search available products
     const parts = partialInput.trim().split(/\s+/);
-    if (parts.length === 1 && this.context) {
+    if (parts.length === 1 && context) {
       const searchTerm = parts[0].toLowerCase();
 
       // Find products matching by SKU or name
-      const matchingProducts = this.context.products
+      const matchingProducts = context.products
         .filter(p =>
           p.sku?.toLowerCase().startsWith(searchTerm) ||
           p.name?.toLowerCase().includes(searchTerm)
@@ -122,13 +112,9 @@ export class ItemCommand extends BaseMultiInputCommand {
     return suggestions;
   }
 
-  private async addProductToOrder(sku: string, quantity: number, mode: 'set' | 'increment'): Promise<void> {
-    if (!this.context) {
-      throw new Error('Command context not set');
-    }
-
+  private async addProductToOrder(context: CommandContext, sku: string, quantity: number, mode: 'set' | 'increment'): Promise<void> {
     // Find product by SKU
-    const product = this.context.products.find((p: ProductSchema) => 
+    const product = context.products.find((p: ProductSchema) =>
       p.sku === sku
     );
 
@@ -136,23 +122,19 @@ export class ItemCommand extends BaseMultiInputCommand {
       throw new Error(`Product not found: ${sku}`);
     }
 
-    if (!this.context.currentOrder) {
-      throw new Error('No active order found');
-    }
-
     try {
       // Use the context's update function instead of calling hooks directly
-      await this.context.updateLineItem(
-        product.product_id, 
-        product.variation_id || 0, 
+      await context.updateLineItem(
+        product.product_id,
+        product.variation_id || 0,
         quantity,
         mode
       );
-      
+
       const action = mode === 'set' ? 'Set' : 'Added';
-      this.context.showMessage(`${action} ${product.name} to ${quantity}`);
+      context.showMessage(`${action} ${product.name} to ${quantity}`);
     } catch (error) {
-      this.context.showError(`Failed to add product: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      context.showError(`Failed to add product: ${error instanceof Error ? error.message : 'Unknown error'}`);
       throw error;
     }
   }
@@ -160,12 +142,13 @@ export class ItemCommand extends BaseMultiInputCommand {
   // Override base autocomplete to include product SKU/name suggestions
   getAutocompleteSuggestions(partialInput: string): CommandSuggestion[] {
     const baseSuggestions = super.getAutocompleteSuggestions(partialInput);
+    const context = this._context as CommandContext | undefined;
 
     // If we're typing parameters, add product suggestions
     const parts = partialInput.trim().split(/\s+/);
-    if (parts.length > 1 && this.matches(parts[0]) && this.context) {
+    if (parts.length > 1 && this.matches(parts[0]) && context) {
       const searchTerm = parts[1].toLowerCase();
-      const matchingProducts = this.context.products
+      const matchingProducts = context.products
         .filter(p =>
           p.sku?.toLowerCase().startsWith(searchTerm) ||
           p.name?.toLowerCase().includes(searchTerm)

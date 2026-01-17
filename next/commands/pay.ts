@@ -1,6 +1,7 @@
 import { BaseMultiInputCommand, CommandMetadata, CommandSuggestion } from './command';
 import { CommandContext } from './command-manager';
 import { formatCurrency } from '@/lib/format';
+import { OrderSchema } from '@/api/orders';
 
 interface PayCommandData {
   totalPaid: number;
@@ -10,12 +11,6 @@ interface PayCommandData {
  * Pay command - record payment amount received from customer
  */
 export class PayCommand extends BaseMultiInputCommand {
-  private context?: CommandContext;
-
-  setContext(context: CommandContext) {
-    this.context = context;
-  }
-
   getMetadata(): CommandMetadata {
     return {
       keyword: 'pay',
@@ -39,13 +34,8 @@ export class PayCommand extends BaseMultiInputCommand {
   }
 
   async execute(args: string[]): Promise<void> {
-    if (!this.context) {
-      throw new Error('Command context not set');
-    }
-
-    if (!this.context.currentOrder) {
-      throw new Error('No active order');
-    }
+    const context = this.requireContext<CommandContext>();
+    const order = this.requireActiveOrder<OrderSchema>();
 
     if (args.length === 0) {
       throw new Error('Amount is required. Usage: /pay <amount>');
@@ -56,15 +46,15 @@ export class PayCommand extends BaseMultiInputCommand {
       throw new Error('Amount must be a positive number');
     }
 
-    await this.context.setPayment(amount);
+    await context.setPayment(amount);
 
-    const orderTotal = parseFloat(this.context.currentOrder.total);
+    const orderTotal = parseFloat(order.total);
     const change = amount - orderTotal;
 
     if (change >= 0) {
-      this.context.showMessage(`Cash: ${formatCurrency(amount)} | Change: ${formatCurrency(change)}`);
+      context.showMessage(`Cash: ${formatCurrency(amount)} | Change: ${formatCurrency(change)}`);
     } else {
-      this.context.showMessage(`Cash: ${formatCurrency(amount)} | Due: ${formatCurrency(Math.abs(change))}`);
+      context.showMessage(`Cash: ${formatCurrency(amount)} | Due: ${formatCurrency(Math.abs(change))}`);
     }
   }
 
@@ -77,22 +67,24 @@ export class PayCommand extends BaseMultiInputCommand {
 
   async exitMultiMode(currentData?: unknown): Promise<void> {
     const data = currentData as PayCommandData;
-    if (data?.totalPaid && data.totalPaid > 0 && this.context) {
-      const orderTotal = parseFloat(this.context.currentOrder?.total || '0');
+    const context = this._context as CommandContext | undefined;
+    if (data?.totalPaid && data.totalPaid > 0 && context) {
+      const orderTotal = parseFloat(context.currentOrder?.total || '0');
       const change = data.totalPaid - orderTotal;
       if (change >= 0) {
-        this.context.showMessage(`Total paid: $${formatCurrency(data.totalPaid)} | Change: $${formatCurrency(change)}`);
+        context.showMessage(`Total paid: $${formatCurrency(data.totalPaid)} | Change: $${formatCurrency(change)}`);
       }
     }
   }
 
   getMultiModeAutocompleteSuggestions(partialInput: string): CommandSuggestion[] {
     const suggestions: CommandSuggestion[] = [];
+    const context = this._context as CommandContext | undefined;
 
-    if (!this.context?.currentOrder) return suggestions;
+    if (!context?.currentOrder) return suggestions;
 
-    const orderTotal = parseFloat(this.context.currentOrder.total);
-    const currentPayment = this.context.getPaymentReceived?.() || 0;
+    const orderTotal = parseFloat(context.currentOrder.total);
+    const currentPayment = context.getPaymentReceived?.() || 0;
     const remaining = orderTotal - currentPayment;
 
     // Suggest remaining amount
@@ -121,11 +113,12 @@ export class PayCommand extends BaseMultiInputCommand {
 
   getAutocompleteSuggestions(partialInput: string): CommandSuggestion[] {
     const baseSuggestions = super.getAutocompleteSuggestions(partialInput);
+    const context = this._context as CommandContext | undefined;
 
     const parts = partialInput.trim().split(/\s+/);
-    if (parts.length === 2 && this.matches(parts[0]) && this.context?.currentOrder) {
-      const orderTotal = parseFloat(this.context.currentOrder.total);
-      const currentPayment = this.context.getPaymentReceived?.() || 0;
+    if (parts.length === 2 && this.matches(parts[0]) && context?.currentOrder) {
+      const orderTotal = parseFloat(context.currentOrder.total);
+      const currentPayment = context.getPaymentReceived?.() || 0;
       const remaining = orderTotal - currentPayment;
 
       const suggestions: CommandSuggestion[] = [];

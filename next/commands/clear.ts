@@ -1,16 +1,11 @@
 import { BaseCommand, CommandMetadata, CommandSuggestion } from './command';
 import { CommandContext } from './command-manager';
+import { OrderSchema } from '@/api/orders';
 
 /**
  * Clear command - removes all line items from the current order
  */
 export class ClearCommand extends BaseCommand {
-  private context?: CommandContext;
-
-  setContext(context: CommandContext) {
-    this.context = context;
-  }
-
   getMetadata(): CommandMetadata {
     return {
       keyword: 'clear',
@@ -22,22 +17,17 @@ export class ClearCommand extends BaseCommand {
   }
 
   async execute(): Promise<void> {
-    if (!this.context) {
-      throw new Error('Command context not set');
-    }
+    const context = this.requireContext<CommandContext>();
+    const order = this.requireActiveOrder<OrderSchema>();
 
-    if (!this.context.currentOrder) {
-      throw new Error('No active order');
-    }
-
-    const lineItems = this.context.currentOrder.line_items;
+    const lineItems = order.line_items;
     if (lineItems.length === 0) {
-      this.context.showMessage('Order is already empty');
+      context.showMessage('Order is already empty');
       return;
     }
 
-    await this.context.clearOrder();
-    this.context.showMessage(`Cleared ${lineItems.length} items from order`);
+    await context.clearOrder();
+    context.showMessage(`Cleared ${lineItems.length} items from order`);
   }
 
   getAutocompleteSuggestions(partialInput: string): CommandSuggestion[] {

@@ -5,12 +5,6 @@ import { CommandContext } from './command-manager';
  * Note command - add customer note to order
  */
 export class NoteCommand extends BaseCommand {
-  private context?: CommandContext;
-
-  setContext(context: CommandContext) {
-    this.context = context;
-  }
-
   getMetadata(): CommandMetadata {
     return {
       keyword: 'note',
@@ -32,13 +26,8 @@ export class NoteCommand extends BaseCommand {
   }
 
   async execute(args: string[]): Promise<void> {
-    if (!this.context) {
-      throw new Error('Command context not set');
-    }
-
-    if (!this.context.currentOrder) {
-      throw new Error('No active order');
-    }
+    const context = this.requireContext<CommandContext>();
+    this.requireActiveOrder();
 
     if (args.length === 0) {
       throw new Error('Note text is required. Usage: /note <text>');
@@ -47,8 +36,8 @@ export class NoteCommand extends BaseCommand {
     // Join all args as the note text (allows spaces)
     const noteText = args.join(' ');
 
-    await this.context.setNote(noteText);
-    this.context.showMessage(`Note: ${noteText}`);
+    await context.setNote(noteText);
+    context.showMessage(`Note: ${noteText}`);
   }
 
   getAutocompleteSuggestions(partialInput: string): CommandSuggestion[] {

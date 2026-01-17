@@ -4,14 +4,14 @@ import { OrderSchema, LineItemSchema, ShippingLineSchema, BillingSchema, MetaDat
 // Draft order uses id: 0 to indicate it's not saved
 export const DRAFT_ORDER_ID = 0;
 
-// Singleton to track save operation across renders
-let savePromise: Promise<OrderSchema | null> | null = null;
-let savedOrderId: number | null = null;
-let saveLock = false; // Synchronous lock to prevent race conditions
-
 export interface DraftOrderState {
   draftOrder: OrderSchema;
   isDraft: boolean;
+
+  // Save operation state (moved from module-level singletons)
+  savePromise: Promise<OrderSchema | null> | null;
+  savedOrderId: number | null;
+  saveLock: boolean;
 
   // Actions
   resetDraft: () => void;
@@ -60,26 +60,50 @@ export const useDraftOrderStore = create<DraftOrderState>((set, get) => ({
   draftOrder: createEmptyDraft(),
   isDraft: true,
 
+  // Save operation state - now part of Zustand store
+  savePromise: null,
+  savedOrderId: null,
+  saveLock: false,
+
   resetDraft: () => {
-    // Clear save state when resetting
-    savePromise = null;
-    savedOrderId = null;
-    saveLock = false;
-    set({ draftOrder: createEmptyDraft(), isDraft: true });
+    // Clear all state including save state when resetting
+    set({
+      draftOrder: createEmptyDraft(),
+      isDraft: true,
+      savePromise: null,
+      savedOrderId: null,
+      saveLock: false,
+    });
   },
 
-  // Save lock mechanism
-  isSaving: () => savePromise !== null || saveLock,
-  getSavePromise: () => savePromise,
-  setSavePromise: (promise) => { savePromise = promise; },
-  getSavedOrderId: () => savedOrderId,
-  setSavedOrderId: (id) => { savedOrderId = id; },
+  // Save lock mechanism - now uses Zustand state instead of module variables
+  isSaving: () => {
+    const state = get();
+    return state.savePromise !== null || state.saveLock;
+  },
+
+  getSavePromise: () => get().savePromise,
+
+  setSavePromise: (promise) => {
+    set({ savePromise: promise });
+  },
+
+  getSavedOrderId: () => get().savedOrderId,
+
+  setSavedOrderId: (id) => {
+    set({ savedOrderId: id });
+  },
+
   acquireSaveLock: () => {
-    if (saveLock || savedOrderId !== null) return false;
-    saveLock = true;
+    const state = get();
+    if (state.saveLock || state.savedOrderId !== null) return false;
+    set({ saveLock: true });
     return true;
   },
-  releaseSaveLock: () => { saveLock = false; },
+
+  releaseSaveLock: () => {
+    set({ saveLock: false });
+  },
 
   updateDraftLineItems: (lineItems: LineItemSchema[]) => {
     set((state) => ({

@@ -1,17 +1,12 @@
 import { BaseCommand, CommandMetadata, CommandSuggestion } from './command';
 import { CommandContext } from './command-manager';
 import { formatCurrency } from '@/lib/format';
+import { OrderSchema } from '@/api/orders';
 
 /**
  * Done command - complete the order and navigate to next
  */
 export class DoneCommand extends BaseCommand {
-  private context?: CommandContext;
-
-  setContext(context: CommandContext) {
-    this.context = context;
-  }
-
   getMetadata(): CommandMetadata {
     return {
       keyword: 'done',
@@ -23,17 +18,11 @@ export class DoneCommand extends BaseCommand {
   }
 
   async execute(): Promise<void> {
-    if (!this.context) {
-      throw new Error('Command context not set');
-    }
+    const context = this.requireContext<CommandContext>();
+    const order = this.requireActiveOrder<OrderSchema>();
 
-    if (!this.context.currentOrder) {
-      throw new Error('No active order');
-    }
-
-    const order = this.context.currentOrder;
     const orderTotal = parseFloat(order.total);
-    const paymentReceived = this.context.getPaymentReceived?.() || 0;
+    const paymentReceived = context.getPaymentReceived?.() || 0;
 
     // Check if order has items
     if (order.line_items.length === 0) {
@@ -47,7 +36,7 @@ export class DoneCommand extends BaseCommand {
     }
 
     // Complete the order
-    await this.context.completeOrder();
+    await context.completeOrder();
 
     const change = paymentReceived - orderTotal;
 
@@ -66,13 +55,13 @@ export class DoneCommand extends BaseCommand {
 
     // Open drawer if there's cash payment or change to give
     if (cashPayment > 0 || change > 0) {
-      await this.context.openDrawer();
+      await context.openDrawer();
     }
 
     if (change > 0) {
-      this.context.showMessage(`Order completed! Change: $${formatCurrency(change)}`);
+      context.showMessage(`Order completed! Change: $${formatCurrency(change)}`);
     } else {
-      this.context.showMessage('Order completed!');
+      context.showMessage('Order completed!');
     }
   }
 

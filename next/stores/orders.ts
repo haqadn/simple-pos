@@ -9,7 +9,9 @@ import { ProductSchema } from "./products";
 import { ServiceMethodSchema, useTablesQuery } from "./service";
 import { useAvoidParallel } from "@/hooks/useAvoidParallel";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useDraftOrderStore, DRAFT_ORDER_ID } from "./draft-order";
+import { DRAFT_ORDER_ID } from "./draft-order";
+import { useDraftOrderState, useDraftOrderActions } from "@/hooks/useDraftOrderState";
+import { isSkipError } from "./utils/mutation-helpers";
 import { useCallback } from "react";
 
 function generateOrderQueryKey(context: string, order?: OrderSchema, product?: ProductSchema) {
@@ -99,7 +101,7 @@ export const useOrderQuery = ( orderId: number ) => {
 export const useCurrentOrder = () => {
 	const params = useParams();
 	const orderId = params?.orderId as string | undefined;
-	const draftOrder = useDraftOrderStore((state) => state.draftOrder);
+	const { draftOrder } = useDraftOrderState();
 
 	// For draft orders (new), return draft data from store
 	const isDraft = orderId === 'new';
@@ -132,34 +134,8 @@ export const useIsDraftOrder = () => {
 	return orderId === 'new';
 }
 
-// Hook to save draft order to database and navigate to the real order
-export const useSaveDraftOrder = () => {
-	const router = useRouter();
-	const queryClient = useQueryClient();
-	const getDraftData = useDraftOrderStore((state) => state.getDraftData);
-	const resetDraft = useDraftOrderStore((state) => state.resetDraft);
-
-	const saveDraft = useCallback(async (additionalData?: Partial<OrderSchema>) => {
-		const draftData = getDraftData();
-		const orderData = { ...draftData, ...additionalData, status: 'pending' };
-
-		try {
-			const savedOrder = await OrdersAPI.saveOrder(orderData);
-			if (savedOrder) {
-				await queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
-				resetDraft();
-				router.replace(`/orders/${savedOrder.id}`);
-				return savedOrder;
-			}
-		} catch (error) {
-			console.error('Failed to save draft order:', error);
-			throw error;
-		}
-		return null;
-	}, [getDraftData, resetDraft, queryClient, router]);
-
-	return saveDraft;
-}
+// Re-export from hooks for backward compatibility
+export { useSaveDraftOrder } from '@/hooks/useDraftOrderSave';
 
 export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | null>, product?: ProductSchema) => {
 	const queryClient = useQueryClient();
@@ -172,15 +148,17 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 	const lineItemsAreMutating = useIsMutating({ mutationKey: generateOrderQueryKey('lineItem', order) });
 
 	// Draft order support
-	const getDraftData = useDraftOrderStore((state) => state.getDraftData);
-	const draftOrder = useDraftOrderStore((state) => state.draftOrder);
-	const updateDraftLineItems = useDraftOrderStore((state) => state.updateDraftLineItems);
-	const getSavePromise = useDraftOrderStore((state) => state.getSavePromise);
-	const setSavePromise = useDraftOrderStore((state) => state.setSavePromise);
-	const getSavedOrderId = useDraftOrderStore((state) => state.getSavedOrderId);
-	const setSavedOrderId = useDraftOrderStore((state) => state.setSavedOrderId);
-	const acquireSaveLock = useDraftOrderStore((state) => state.acquireSaveLock);
-	const releaseSaveLock = useDraftOrderStore((state) => state.releaseSaveLock);
+	const {
+		getDraftData,
+		draftOrder,
+		getSavePromise,
+		setSavePromise,
+		getSavedOrderId,
+		setSavedOrderId,
+		acquireSaveLock,
+		releaseSaveLock,
+	} = useDraftOrderState();
+	const { updateDraftLineItems } = useDraftOrderActions();
 
 	const lineItemQuery = useQuery<LineItemSchema | null>({
 		queryKey: lineItemKey,
@@ -345,7 +323,7 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 			queryClient.setQueryData(lineItemKey, newLineItem);
 		},
 		onError: (err) => {
-			if (err.toString() !== 'newer-call' && err.toString() !== 'debounce') {
+			if (!isSkipError(err)) {
 				queryClient.invalidateQueries({ queryKey: orderRootKey });
 				mutation.reset();
 			}
@@ -377,14 +355,16 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 	const serviceIsMutating = useIsMutating({ mutationKey: serviceKey });
 
 	// Draft order support
-	const getDraftData = useDraftOrderStore((state) => state.getDraftData);
-	const updateDraftShippingLines = useDraftOrderStore((state) => state.updateDraftShippingLines);
-	const getSavePromise = useDraftOrderStore((state) => state.getSavePromise);
-	const setSavePromise = useDraftOrderStore((state) => state.setSavePromise);
-	const getSavedOrderId = useDraftOrderStore((state) => state.getSavedOrderId);
-	const setSavedOrderId = useDraftOrderStore((state) => state.setSavedOrderId);
-	const acquireSaveLock = useDraftOrderStore((state) => state.acquireSaveLock);
-	const releaseSaveLock = useDraftOrderStore((state) => state.releaseSaveLock);
+	const {
+		getDraftData,
+		getSavePromise,
+		setSavePromise,
+		getSavedOrderId,
+		setSavedOrderId,
+		acquireSaveLock,
+		releaseSaveLock,
+	} = useDraftOrderState();
+	const { updateDraftShippingLines } = useDraftOrderActions();
 
 	// Get tables data for proper slug mapping
 	const { data: tables } = useTablesQuery();
@@ -578,7 +558,7 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			queryClient.setQueryData(serviceKey, params.service);
 		},
 		onError: (err) => {
-			if (err.toString() !== 'newer-call' && err.toString() !== 'debounce') {
+			if (!isSkipError(err)) {
 				queryClient.invalidateQueries({ queryKey: orderRootKey });
 				mutation.reset();
 			}
@@ -609,8 +589,8 @@ export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | 
 	const noteIsMutating = useIsMutating({ mutationKey: noteKey });
 
 	// Draft order support
-	const getDraftData = useDraftOrderStore((state) => state.getDraftData);
-	const resetDraft = useDraftOrderStore((state) => state.resetDraft);
+	const { getDraftData } = useDraftOrderState();
+	const { resetDraft } = useDraftOrderActions();
 
 	const noteQuery = useQuery<string>({
 		queryKey: noteKey,
@@ -664,7 +644,7 @@ export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | 
 			queryClient.setQueryData(noteKey, params.note);
 		},
 		onError: (err) => {
-			if (err.toString() !== 'newer-call' && err.toString() !== 'debounce') {
+			if (!isSkipError(err)) {
 				queryClient.invalidateQueries({ queryKey: orderRootKey });
 				mutation.reset();
 			}
@@ -687,8 +667,8 @@ export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema
 	const customerInfoIsMutating = useIsMutating({ mutationKey: customerInfoKey });
 
 	// Draft order support
-	const getDraftData = useDraftOrderStore((state) => state.getDraftData);
-	const resetDraft = useDraftOrderStore((state) => state.resetDraft);
+	const { getDraftData } = useDraftOrderState();
+	const { resetDraft } = useDraftOrderActions();
 
 	const customerInfoQuery = useQuery<BillingSchema>({
 		queryKey: customerInfoKey,
@@ -758,7 +738,7 @@ export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema
 			queryClient.setQueryData(customerInfoKey, newOrderQueryData.billing);
 		},
 		onError: (err) => {
-			if (err.toString() !== 'newer-call' && err.toString() !== 'debounce') {
+			if (!isSkipError(err)) {
 				queryClient.invalidateQueries({ queryKey: orderRootKey });
 				mutation.reset();
 			}
@@ -781,8 +761,8 @@ export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 	const paymentIsMutating = useIsMutating({ mutationKey: paymentKey });
 
 	// Draft order support
-	const getDraftData = useDraftOrderStore((state) => state.getDraftData);
-	const resetDraft = useDraftOrderStore((state) => state.resetDraft);
+	const { getDraftData } = useDraftOrderState();
+	const { resetDraft } = useDraftOrderActions();
 
 	const paymentQuery = useQuery<number>({
 		queryKey: paymentKey,
@@ -883,7 +863,7 @@ export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			queryClient.setQueryData(paymentKey, params.received);
 		},
 		onError: (err) => {
-			if (err.toString() !== 'newer-call' && err.toString() !== 'debounce') {
+			if (!isSkipError(err)) {
 				queryClient.invalidateQueries({ queryKey: orderRootKey });
 				mutation.reset();
 			}

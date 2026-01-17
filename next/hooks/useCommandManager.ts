@@ -67,6 +67,14 @@ export function useCommandManager() {
       }
       setIsReady(true);
     }
+
+    // Cleanup on unmount
+    return () => {
+      if (managerRef.current) {
+        managerRef.current.dispose();
+        managerRef.current = null;
+      }
+    };
   }, []);
 
   // Update state when command manager state changes and persist it

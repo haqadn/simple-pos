@@ -62,6 +62,7 @@ export function LogoUpload({ logo, onLogoChange }: LogoUploadProps) {
       <div className="flex items-center gap-4">
         {logo ? (
           <div className="bg-white p-2 border rounded">
+            {/* eslint-disable-next-line @next/next/no-img-element -- Logo is a base64 data URL from user upload, not optimizable by next/image */}
             <img
               src={logo}
               alt="Receipt logo"

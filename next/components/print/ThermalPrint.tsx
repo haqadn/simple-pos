@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { usePrintStore, PrintJobData } from '@/stores/print';
 import { renderBill, renderKot } from '@/lib/escpos';
 import type { PrinterConnection, BillData, KotData } from '@/lib/escpos';
@@ -9,7 +9,7 @@ export default function ThermalPrint() {
   const { currentJob, config, pop, setProcessing, isProcessing } = usePrintStore();
 
   // Send data to printer based on connection type
-  const sendToPrinter = async (
+  const sendToPrinter = useCallback(async (
     connection: PrinterConnection,
     data: Uint8Array
   ): Promise<boolean> => {
@@ -47,10 +47,10 @@ export default function ThermalPrint() {
       console.error('[Print] Print error:', error);
       return false;
     }
-  };
+  }, [config.enablePrinting]);
 
   // Handle bill print
-  const handleBillPrint = async (data: PrintJobData): Promise<void> => {
+  const handleBillPrint = useCallback(async (data: PrintJobData): Promise<void> => {
     const billData: BillData = {
       orderId: data.orderId,
       orderReference: data.orderReference,
@@ -71,10 +71,10 @@ export default function ThermalPrint() {
     });
 
     await sendToPrinter(config.billPrinter, escposData);
-  };
+  }, [config.bill, config.billPrinter, sendToPrinter]);
 
   // Handle KOT print
-  const handleKotPrint = async (data: PrintJobData): Promise<void> => {
+  const handleKotPrint = useCallback(async (data: PrintJobData): Promise<void> => {
     const kotData: KotData = {
       orderId: data.orderId,
       orderReference: data.orderReference,
@@ -90,10 +90,10 @@ export default function ThermalPrint() {
     });
 
     await sendToPrinter(config.kotPrinter, escposData);
-  };
+  }, [config.kot, config.kotPrinter, sendToPrinter]);
 
   // Handle drawer kick
-  const handleDrawer = async (): Promise<void> => {
+  const handleDrawer = useCallback(async (): Promise<void> => {
     if (!config.enableDrawer) {
       console.log('[Print] Cash drawer disabled');
       return;
@@ -116,10 +116,10 @@ export default function ThermalPrint() {
     } catch (error) {
       console.error('[Print] Drawer error:', error);
     }
-  };
+  }, [config.enableDrawer, config.billPrinter, config.drawerPulsePin]);
 
   // Execute print job
-  const executePrint = async () => {
+  const executePrint = useCallback(async () => {
     if (!currentJob || isProcessing) return;
 
     setProcessing(true);
@@ -143,14 +143,14 @@ export default function ThermalPrint() {
     }
 
     pop();
-  };
+  }, [currentJob, isProcessing, setProcessing, pop, handleDrawer, handleBillPrint, handleKotPrint]);
 
   // Watch for new jobs
   useEffect(() => {
     if (currentJob && !isProcessing) {
       executePrint();
     }
-  }, [currentJob, isProcessing]);
+  }, [currentJob, isProcessing, executePrint]);
 
   // ESC/POS printing doesn't need visual rendering
   return null;

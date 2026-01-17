@@ -86,8 +86,13 @@ export default class OrdersAPI extends API {
   }
 
   static async updateOrder(id: string, order: Partial<OrderSchema>) {
-    const response = await this.client.put(`/orders/${id}`, order);
-    return OrderSchema.parse(response.data);
+    try {
+      const response = await this.client.put(`/orders/${id}`, order);
+      return OrderSchema.parse(response.data);
+    } catch (error) {
+      console.error('Failed to update order:', error);
+      throw error;
+    }
   }
 
   static async getOrder(id: string) {
@@ -111,7 +116,12 @@ export default class OrdersAPI extends API {
   }
 
   static async cancelOrder(id: string) {
-    const response = await this.client.put(`/orders/${id}`, { status: "cancelled" });
-    return OrderSchema.parse(response.data);
+    try {
+      const response = await this.client.put(`/orders/${id}`, { status: "cancelled" });
+      return OrderSchema.parse(response.data);
+    } catch (error) {
+      console.error('Failed to cancel order:', error);
+      throw error;
+    }
   }
 }

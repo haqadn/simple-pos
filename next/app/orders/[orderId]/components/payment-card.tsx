@@ -25,6 +25,7 @@ interface PaymentAmounts {
 
 export default function PaymentCard() {
     const orderQuery = useCurrentOrder();
+    const orderData = orderQuery.data;
     const queryClient = useQueryClient();
     const [paymentQuery, , paymentIsMutating] = usePaymentQuery(orderQuery);
     const [isRemovingCoupon, setIsRemovingCoupon] = useState(false);
@@ -35,7 +36,7 @@ export default function PaymentCard() {
 
     // Parse stored payment data from meta_data
     const storedPayments = useMemo((): PaymentAmounts => {
-        const paymentMeta = orderQuery.data?.meta_data?.find(m => m.key === 'split_payments');
+        const paymentMeta = orderData?.meta_data?.find(m => m.key === 'split_payments');
         if (paymentMeta && typeof paymentMeta.value === 'string') {
             try {
                 return JSON.parse(paymentMeta.value);
@@ -46,7 +47,7 @@ export default function PaymentCard() {
         // Fall back to legacy payment_received
         const received = paymentQuery.data || 0;
         return { cash: received };
-    }, [orderQuery.data?.meta_data, paymentQuery.data]);
+    }, [orderData?.meta_data, paymentQuery.data]);
 
     // Sync local state with stored data
     useEffect(() => {
@@ -69,11 +70,11 @@ export default function PaymentCard() {
 
     // Save payments to meta_data
     const savePayments = useCallback(async (newPayments: PaymentAmounts) => {
-        if (!orderQuery.data) return;
+        if (!orderData) return;
 
-        const orderId = orderQuery.data.id;
+        const orderId = orderData.id;
         const orderQueryKey = ['orders', orderId, 'detail'];
-        const currentOrder = queryClient.getQueryData<typeof orderQuery.data>(orderQueryKey) || orderQuery.data;
+        const currentOrder = queryClient.getQueryData<typeof orderData>(orderQueryKey) || orderData;
 
         // Calculate total for legacy compatibility
         const total = (newPayments.cash || 0) +
@@ -98,7 +99,7 @@ export default function PaymentCard() {
             console.error('Failed to save payments:', error);
             queryClient.invalidateQueries({ queryKey: orderQueryKey });
         }
-    }, [orderQuery.data, queryClient]);
+    }, [orderData, queryClient]);
 
     // Handle payment amount change
     const handlePaymentChange = useCallback((method: PaymentMethodKey, value: number) => {
@@ -127,11 +128,11 @@ export default function PaymentCard() {
 
     // Remove coupon handler
     const handleRemoveCoupon = useCallback(async () => {
-        if (!orderQuery.data) return;
+        if (!orderData) return;
 
         setIsRemovingCoupon(true);
         try {
-            const orderId = orderQuery.data.id;
+            const orderId = orderData.id;
             const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), {
                 coupon_lines: []
             });
@@ -141,11 +142,11 @@ export default function PaymentCard() {
         } finally {
             setIsRemovingCoupon(false);
         }
-    }, [orderQuery.data, queryClient]);
+    }, [orderData, queryClient]);
 
-    const total = parseFloat(orderQuery.data?.total || '0');
-    const discountTotal = parseFloat(orderQuery.data?.discount_total || '0');
-    const couponLines = orderQuery.data?.coupon_lines || [];
+    const total = parseFloat(orderData?.total || '0');
+    const discountTotal = parseFloat(orderData?.discount_total || '0');
+    const couponLines = orderData?.coupon_lines || [];
     const change = totalReceived - total;
     const isPaid = totalReceived >= total && total > 0;
 

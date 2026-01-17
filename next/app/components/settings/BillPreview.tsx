@@ -47,6 +47,7 @@ export function BillPreview({ customization, paperWidth }: BillPreviewProps) {
         {/* Logo */}
         {customization.logo && (
           <div className="text-center mb-2">
+            {/* eslint-disable-next-line @next/next/no-img-element -- Logo is a base64 data URL from user upload, not optimizable by next/image */}
             <img
               src={customization.logo}
               alt="Logo"

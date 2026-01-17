@@ -5,12 +5,6 @@ import { CommandContext } from './command-manager';
  * Coupon command - apply or remove discount codes
  */
 export class CouponCommand extends BaseCommand {
-  private context?: CommandContext;
-
-  setContext(context: CommandContext) {
-    this.context = context;
-  }
-
   getMetadata(): CommandMetadata {
     return {
       keyword: 'coupon',
@@ -32,13 +26,8 @@ export class CouponCommand extends BaseCommand {
   }
 
   async execute(args: string[]): Promise<void> {
-    if (!this.context) {
-      throw new Error('Command context not set');
-    }
-
-    if (!this.context.currentOrder) {
-      throw new Error('No active order');
-    }
+    const context = this.requireContext<CommandContext>();
+    this.requireActiveOrder();
 
     if (args.length === 0) {
       throw new Error('Coupon code is required. Usage: /coupon <code>');
@@ -47,11 +36,11 @@ export class CouponCommand extends BaseCommand {
     const code = args[0].toLowerCase();
 
     if (code === 'remove' || code === 'clear') {
-      await this.context.removeCoupon();
-      this.context.showMessage('Coupon removed');
+      await context.removeCoupon();
+      context.showMessage('Coupon removed');
     } else {
-      await this.context.applyCoupon(code);
-      this.context.showMessage(`Coupon "${code}" applied`);
+      await context.applyCoupon(code);
+      context.showMessage(`Coupon "${code}" applied`);
     }
   }
 

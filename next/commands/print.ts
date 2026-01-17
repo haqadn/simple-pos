@@ -1,5 +1,6 @@
 import { BaseCommand, CommandMetadata, CommandSuggestion } from './command';
 import { CommandContext } from './command-manager';
+import { OrderSchema } from '@/api/orders';
 
 type PrintType = 'bill' | 'kot';
 
@@ -7,12 +8,6 @@ type PrintType = 'bill' | 'kot';
  * Print command - print receipts or kitchen order tickets
  */
 export class PrintCommand extends BaseCommand {
-  private context?: CommandContext;
-
-  setContext(context: CommandContext) {
-    this.context = context;
-  }
-
   getMetadata(): CommandMetadata {
     return {
       keyword: 'print',
@@ -34,13 +29,8 @@ export class PrintCommand extends BaseCommand {
   }
 
   async execute(args: string[]): Promise<void> {
-    if (!this.context) {
-      throw new Error('Command context not set');
-    }
-
-    if (!this.context.currentOrder) {
-      throw new Error('No active order');
-    }
+    const context = this.requireContext<CommandContext>();
+    const order = this.requireActiveOrder<OrderSchema>();
 
     if (args.length === 0) {
       throw new Error('Print type is required. Usage: /print bill or /print kot');
@@ -52,12 +42,12 @@ export class PrintCommand extends BaseCommand {
       throw new Error('Invalid print type. Use "bill" or "kot"');
     }
 
-    if (this.context.currentOrder.line_items.length === 0) {
+    if (order.line_items.length === 0) {
       throw new Error('Cannot print empty order');
     }
 
-    await this.context.print(printType);
-    this.context.showMessage(`${printType.toUpperCase()} sent to printer`);
+    await context.print(printType);
+    context.showMessage(`${printType.toUpperCase()} sent to printer`);
   }
 
   getAutocompleteSuggestions(partialInput: string): CommandSuggestion[] {

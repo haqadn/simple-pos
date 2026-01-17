@@ -11,12 +11,6 @@ import ProductsAPI from '@/api/products';
  *   /stock ABC123 50    - Set stock to exactly 50
  */
 export class StockCommand extends BaseMultiInputCommand {
-  private context?: CommandContext;
-
-  setContext(context: CommandContext) {
-    this.context = context;
-  }
-
   getMetadata(): CommandMetadata {
     return {
       keyword: 'stock',
@@ -47,9 +41,7 @@ export class StockCommand extends BaseMultiInputCommand {
   }
 
   async execute(args: string[]): Promise<void> {
-    if (!this.context) {
-      throw new Error('Command context not set');
-    }
+    const context = this.requireContext<CommandContext>();
 
     if (args.length < 2) {
       throw new Error('Usage: /stock SKU [+|-]quantity');
@@ -59,7 +51,7 @@ export class StockCommand extends BaseMultiInputCommand {
     const quantityArg = args[1].toLowerCase();
 
     // Find product by SKU
-    const product = this.context.products.find(
+    const product = context.products.find(
       p => p.sku.toUpperCase() === sku
     );
 
@@ -71,14 +63,14 @@ export class StockCommand extends BaseMultiInputCommand {
     if (quantityArg === 'unset') {
       await ProductsAPI.disableStockManagement(product.product_id, product.variation_id);
 
-      if (this.context.invalidateProducts) {
-        await this.context.invalidateProducts();
+      if (context.invalidateProducts) {
+        await context.invalidateProducts();
       }
 
       const productName = product.variation_name
         ? `${product.name} - ${product.variation_name}`
         : product.name;
-      this.context.showMessage(`${productName}: stock management disabled`);
+      context.showMessage(`${productName}: stock management disabled`);
       return;
     }
 
@@ -109,14 +101,14 @@ export class StockCommand extends BaseMultiInputCommand {
     await ProductsAPI.updateStock(product.product_id, product.variation_id, newStock);
 
     // Invalidate products cache to refresh UI
-    if (this.context.invalidateProducts) {
-      await this.context.invalidateProducts();
+    if (context.invalidateProducts) {
+      await context.invalidateProducts();
     }
 
     const productName = product.variation_name
       ? `${product.name} - ${product.variation_name}`
       : product.name;
-    this.context.showMessage(`${productName}: ${currentStock} → ${newStock}`);
+    context.showMessage(`${productName}: ${currentStock} → ${newStock}`);
   }
 
   async enterMultiMode(): Promise<{ prompt: string; data?: unknown }> {
@@ -132,8 +124,9 @@ export class StockCommand extends BaseMultiInputCommand {
 
   getAutocompleteSuggestions(partialInput: string): CommandSuggestion[] {
     const baseSuggestions = super.getAutocompleteSuggestions(partialInput);
+    const context = this._context as CommandContext | undefined;
 
-    if (!this.context) return baseSuggestions;
+    if (!context) return baseSuggestions;
 
     const parts = partialInput.trim().split(/\s+/);
 
@@ -142,7 +135,7 @@ export class StockCommand extends BaseMultiInputCommand {
       const skuHint = (parts[1] || '').toUpperCase();
 
       // Filter products matching SKU hint
-      const matchingProducts = this.context.products.filter(
+      const matchingProducts = context.products.filter(
         p => p.sku.toUpperCase().includes(skuHint)
       );
 
@@ -167,13 +160,14 @@ export class StockCommand extends BaseMultiInputCommand {
   }
 
   getMultiModeAutocompleteSuggestions(partialInput: string): CommandSuggestion[] {
-    if (!this.context) return [];
+    const context = this._context as CommandContext | undefined;
+    if (!context) return [];
 
     const parts = partialInput.trim().split(/\s+/);
     const skuHint = (parts[0] || '').toUpperCase();
 
     // Show all products matching SKU hint
-    const matchingProducts = this.context.products.filter(
+    const matchingProducts = context.products.filter(
       p => p.sku.toUpperCase().includes(skuHint)
     );
 

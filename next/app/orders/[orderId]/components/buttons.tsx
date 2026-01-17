@@ -10,6 +10,7 @@ import { DRAFT_ORDER_ID } from "@/stores/draft-order";
 import { usePrintStore, PrintJobData } from "@/stores/print";
 import { useProductsQuery } from "@/stores/products";
 import { useSettingsStore } from "@/stores/settings";
+import { createShouldSkipForKot } from "@/lib/kot";
 
 export default function Buttons() {
     const orderQuery = useCurrentOrder();
@@ -54,17 +55,10 @@ export default function Buttons() {
     };
 
     // Helper to check if a line item should be skipped on KOT based on category
-    const shouldSkipForKot = useMemo(() => {
-        if (!products || skipKotCategories.length === 0) return () => false;
-
-        return (productId: number, variationId: number) => {
-            const product = products.find(
-                p => p.product_id === productId && p.variation_id === variationId
-            );
-            if (!product) return false;
-            return product.categories.some(cat => skipKotCategories.includes(cat.id));
-        };
-    }, [products, skipKotCategories]);
+    const shouldSkipForKot = useMemo(
+        () => createShouldSkipForKot(products, skipKotCategories),
+        [products, skipKotCategories]
+    );
 
     // Build print data from order (accepts optional order override for fresh data)
     const buildPrintData = useCallback((type: 'bill' | 'kot', orderOverride?: OrderSchema | null): PrintJobData | null => {
