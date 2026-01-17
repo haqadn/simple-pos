@@ -173,7 +173,7 @@ export class CommandRegistry {
     return {
       success: true,
       message: `Command ${keyword} executed successfully`,
-      newState: currentState.mode === 'multi' ? currentState : { mode: 'normal' }
+      newState: { mode: 'normal' }
     };
   }
 

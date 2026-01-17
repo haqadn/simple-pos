@@ -35,7 +35,7 @@ Fix 11 failing E2E tests identified in the Playwright test suite. These are appl
       "Ensure quantity=0 triggers the removal logic in stores/orders.ts",
       "Run test: npx playwright test item-command.spec.ts:511"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 2,
@@ -49,7 +49,7 @@ Fix 11 failing E2E tests identified in the Playwright test suite. These are appl
       "Ensure the state.mode changes from 'multi' to 'normal' before new command",
       "Run test: npx playwright test multi-input-mode.spec.ts:390"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 3,
