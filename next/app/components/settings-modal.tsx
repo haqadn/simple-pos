@@ -15,9 +15,10 @@ import {
 } from '@heroui/react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, Delete02Icon } from '@hugeicons/core-free-icons';
-import { useSettingsStore, type PageShortcut, type ApiConfig } from '@/stores/settings';
+import { useSettingsStore, type PageShortcut, type ApiConfig, type PaymentMethodConfig } from '@/stores/settings';
 import { useCategoriesQuery } from '@/stores/products';
 import { PrinterSettingsTab } from './settings/PrinterSettingsTab';
+import { PaymentMethodsTab } from './settings/PaymentMethodsTab';
 
 const decodeHtmlEntities = (text: string) => {
   if (typeof document === 'undefined') return text;
@@ -207,14 +208,17 @@ export function SettingsModal({ isOpen, onOpenChange }: SettingsModalProps) {
     api,
     skipKotCategories,
     pageShortcuts,
+    paymentMethods,
     updateApi,
     setSkipKotCategories,
+    reorderPaymentMethods,
   } = useSettingsStore();
 
   // Local state for editing
   const [localApi, setLocalApi] = useState<ApiConfig>(api);
   const [localSkipCategories, setLocalSkipCategories] = useState<number[]>(skipKotCategories);
   const [localShortcuts, setLocalShortcuts] = useState<PageShortcut[]>(pageShortcuts);
+  const [localPaymentMethods, setLocalPaymentMethods] = useState<PaymentMethodConfig[]>(paymentMethods);
 
   // Reset local state when modal opens
   useEffect(() => {
@@ -222,8 +226,9 @@ export function SettingsModal({ isOpen, onOpenChange }: SettingsModalProps) {
       setLocalApi(api);
       setLocalSkipCategories(skipKotCategories);
       setLocalShortcuts(pageShortcuts);
+      setLocalPaymentMethods(paymentMethods);
     }
-  }, [isOpen, api, skipKotCategories, pageShortcuts]);
+  }, [isOpen, api, skipKotCategories, pageShortcuts, paymentMethods]);
 
   const handleSave = (onClose: () => void) => {
     // Save API config
@@ -253,6 +258,28 @@ export function SettingsModal({ isOpen, onOpenChange }: SettingsModalProps) {
         store.addShortcut(shortcut.name, shortcut.url);
       }
     });
+
+    // Save payment methods - sync with store
+    // Remove deleted methods
+    const currentKeys = new Set(localPaymentMethods.map(m => m.key));
+    store.paymentMethods.forEach(m => {
+      if (!currentKeys.has(m.key)) {
+        store.removePaymentMethod(m.key);
+      }
+    });
+
+    // Add/update methods
+    const existingKeys = new Set(store.paymentMethods.map(m => m.key));
+    localPaymentMethods.forEach(method => {
+      if (existingKeys.has(method.key)) {
+        store.updatePaymentMethod(method.key, method.label);
+      } else {
+        store.addPaymentMethod(method.label);
+      }
+    });
+
+    // Reorder methods to match local order
+    reorderPaymentMethods(localPaymentMethods);
 
     onClose();
   };
@@ -297,6 +324,14 @@ export function SettingsModal({ isOpen, onOpenChange }: SettingsModalProps) {
                 <Tab key="printers" title="Printers">
                   <div className="py-4">
                     <PrinterSettingsTab />
+                  </div>
+                </Tab>
+                <Tab key="payment-methods" title="Payment Methods">
+                  <div className="py-4">
+                    <PaymentMethodsTab
+                      localMethods={localPaymentMethods}
+                      setLocalMethods={setLocalPaymentMethods}
+                    />
                   </div>
                 </Tab>
               </Tabs>

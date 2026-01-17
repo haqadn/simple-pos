@@ -14,10 +14,16 @@ export interface ApiConfig {
   consumerSecret: string;
 }
 
+export interface PaymentMethodConfig {
+  key: string;      // Unique identifier (auto-generated slug from label)
+  label: string;    // Display name (user-provided)
+}
+
 export interface Settings {
   api: ApiConfig;
   skipKotCategories: number[];
   pageShortcuts: PageShortcut[];
+  paymentMethods: PaymentMethodConfig[];
 }
 
 interface SettingsStore extends Settings {
@@ -33,9 +39,22 @@ interface SettingsStore extends Settings {
   updateShortcut: (id: string, name: string, url: string) => void;
   removeShortcut: (id: string) => void;
 
+  // Payment methods
+  addPaymentMethod: (label: string) => void;
+  updatePaymentMethod: (key: string, label: string) => void;
+  removePaymentMethod: (key: string) => void;
+  reorderPaymentMethods: (methods: PaymentMethodConfig[]) => void;
+
   // General
   isConfigured: () => boolean;
 }
+
+// Default payment methods (matching original hardcoded values in payment-card.tsx)
+const DEFAULT_PAYMENT_METHODS: PaymentMethodConfig[] = [
+  { key: 'bkash', label: 'bKash' },
+  { key: 'nagad', label: 'Nagad' },
+  { key: 'card', label: 'Card' },
+];
 
 const DEFAULT_SETTINGS: Settings = {
   api: {
@@ -45,6 +64,7 @@ const DEFAULT_SETTINGS: Settings = {
   },
   skipKotCategories: [],
   pageShortcuts: [],
+  paymentMethods: DEFAULT_PAYMENT_METHODS,
 };
 
 function loadSettings(): Settings {
@@ -147,6 +167,34 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     const newShortcuts = get().pageShortcuts.filter(s => s.id !== id);
     set({ pageShortcuts: newShortcuts });
     saveSettings({ ...get(), pageShortcuts: newShortcuts });
+  },
+
+  addPaymentMethod: (label) => {
+    // Generate key from label (lowercase, replace spaces with underscores)
+    const key = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    const newMethod: PaymentMethodConfig = { key, label };
+    const newMethods = [...get().paymentMethods, newMethod];
+    set({ paymentMethods: newMethods });
+    saveSettings({ ...get(), paymentMethods: newMethods });
+  },
+
+  updatePaymentMethod: (key, label) => {
+    const newMethods = get().paymentMethods.map(m =>
+      m.key === key ? { ...m, label } : m
+    );
+    set({ paymentMethods: newMethods });
+    saveSettings({ ...get(), paymentMethods: newMethods });
+  },
+
+  removePaymentMethod: (key) => {
+    const newMethods = get().paymentMethods.filter(m => m.key !== key);
+    set({ paymentMethods: newMethods });
+    saveSettings({ ...get(), paymentMethods: newMethods });
+  },
+
+  reorderPaymentMethods: (methods) => {
+    set({ paymentMethods: methods });
+    saveSettings({ ...get(), paymentMethods: methods });
   },
 
   isConfigured: () => {

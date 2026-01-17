@@ -32,7 +32,7 @@ Enhance Simple POS with configurable payment methods, coupon validation card, of
       "Add tab to settings-modal.tsx after Printers tab",
       "Implement localStorage persistence for payment methods"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 3,
