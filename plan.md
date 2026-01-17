@@ -132,7 +132,7 @@ Enhance Simple POS with configurable payment methods, coupon validation card, of
       "Create OfflineIndicator component for header/sidebar",
       "Display pending sync count and manual sync button"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 11,

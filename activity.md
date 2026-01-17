@@ -1,7 +1,7 @@
 # Activity Log
 
-Last updated: 2026-01-17T09:00:00Z
-Tasks completed: 9
+Last updated: 2026-01-17T10:00:00Z
+Tasks completed: 10
 Current task: None
 
 ---
@@ -310,3 +310,51 @@ Current task: None
 
 ### Commit
 - `feat: create sync service for order synchronization`
+
+---
+
+## [2026-01-17] - Task 10: Implement connectivity detection and offline indicator
+
+### Changes Made
+- `/next/hooks/useConnectivity.ts`:
+  - Created new React hook for monitoring network connectivity
+  - Monitors `navigator.onLine` status for browser-level connectivity
+  - Implements heartbeat check to verify actual API connectivity (30s interval)
+  - Uses lightweight API endpoints (/system_status, /products) for heartbeat
+  - 5 second timeout on heartbeat requests
+  - Tracks sync counts from Dexie database (local, syncing, synced, error)
+  - Provides `triggerSync` function for manual sync
+  - Provides `checkConnectivity` function for forced connectivity check
+  - Returns: status, isOnline, isOffline, isChecking, pendingSyncCount, syncCounts, hasErrors, lastHeartbeat
+  - Properly handles window event listeners (online/offline) with cleanup
+  - Server-safe with typeof checks for navigator and window
+
+- `/next/app/components/OfflineIndicator.tsx`:
+  - Created new component for displaying connectivity status in sidebar
+  - Shows status icon (Wifi/WifiDisconnected) with color-coded background:
+    - Green (bg-green-50): Online
+    - Yellow (bg-yellow-50): Checking connection
+    - Red (bg-red-50): Offline
+  - Displays pending sync count with Chip component
+  - Shows sync button (ArrowReloadHorizontal icon) when orders pending
+  - Sync button disabled when offline or syncing
+  - Error indicator (Alert02Icon) when syncs have failed
+  - Warning messages for offline state with pending orders
+  - Uses HeroUI components: Button, Spinner, Tooltip, Chip
+  - Uses Hugeicons: Wifi01Icon, WifiDisconnected01Icon, ArrowReloadHorizontalIcon, Alert02Icon
+
+- `/next/app/components/sidebar.tsx`:
+  - Added import for OfflineIndicator component
+  - Restructured layout to flex column with h-full for proper positioning
+  - Wrapped orders list in flex-1 overflow-y-auto for scrolling
+  - Added OfflineIndicator at bottom of sidebar with mt-auto pt-4
+
+- `/next/hooks/index.ts`:
+  - Added export for useConnectivity hook and its types (ConnectivityStatus, SyncCounts, UseConnectivityReturn)
+
+### Verification
+- `npm run build` - Completed successfully with no errors
+- `npm run lint` - No ESLint warnings or errors
+
+### Commit
+- `feat: implement connectivity detection and offline indicator`

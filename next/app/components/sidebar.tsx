@@ -7,6 +7,7 @@ import { type OrderSchema } from "@/api/orders";
 import { usePathname, useRouter } from "next/navigation";
 import { useOrderQuery, useOrdersStore } from "@/stores/orders";
 import { useDraftOrderStore } from "@/stores/draft-order";
+import OfflineIndicator from "./OfflineIndicator";
 
 export default function Sidebar() {
     const { ordersQuery: { data: orders, isLoading } } = useOrdersStore();
@@ -61,25 +62,30 @@ export default function Sidebar() {
     }
 
     return (
-        <>
+        <div className="flex flex-col h-full">
             <Button fullWidth variant="light" onPress={newOrder}>
                 <span className="flex items-center gap-2">
                     + New Order
                     <Kbd keys={["ctrl"]}>N</Kbd>
                 </span>
             </Button>
-            {(!orders || orders.length === 0) ? (
-                <div className="my-4">
-                    <p className="text-default-400 text-sm">No pending orders</p>
-                </div>
-            ) : (
-                <div className="flex flex-col gap-2 mt-4">
-                    {orders.map((order: OrderSchema, index: number) => (
-                        <OrderLink key={`/orders/${order.id}`} order={order} index={index} pathname={pathname} />
-                    ))}
-                </div>
-            )}
-        </>
+            <div className="flex-1 overflow-y-auto">
+                {(!orders || orders.length === 0) ? (
+                    <div className="my-4">
+                        <p className="text-default-400 text-sm">No pending orders</p>
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-2 mt-4">
+                        {orders.map((order: OrderSchema, index: number) => (
+                            <OrderLink key={`/orders/${order.id}`} order={order} index={index} pathname={pathname} />
+                        ))}
+                    </div>
+                )}
+            </div>
+            <div className="mt-auto pt-4">
+                <OfflineIndicator />
+            </div>
+        </div>
     );
 }
 
