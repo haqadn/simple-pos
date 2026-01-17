@@ -504,3 +504,42 @@ Current task: None
 
 ### Commit
 - `feat: implement order completion with sync`
+
+---
+
+## [2026-01-17] - Task 15: Implement server order import
+
+### Changes Made
+- `/next/stores/orders.ts`:
+  - Added `importServerOrdersToLocal()` function that imports server orders into local Dexie DB:
+    - Checks if order already exists locally by server ID
+    - Checks if order has a frontend ID in meta_data (was created locally and synced)
+    - Imports server orders that are not yet in local DB
+    - Preserves frontend ID from meta_data if available, otherwise generates new one
+  - Updated `useOrdersStore` to call `importServerOrdersToLocal()` during order list fetch
+  - Added `useLocalOrdersQuery` hook to query local orders from Dexie
+  - Added `useCombinedOrdersStore` hook that combines server and local orders:
+    - Returns orders with frontend IDs attached for proper routing
+    - Includes local-only orders (not yet synced)
+    - Handles orders that exist in both server and local DB
+  - Added `OrderWithFrontendId` interface extending OrderSchema with optional frontendId
+  - Added imports for `importServerOrder`, `listLocalOrders`, and `useCallback`
+
+- `/next/app/components/sidebar.tsx`:
+  - Updated to use `useCombinedOrdersStore` instead of `useOrdersStore`
+  - Updated imports to use `OrderWithFrontendId` type
+  - Added `getOrderUrl` helper function to get best URL identifier (frontend ID preferred)
+  - Updated keyboard shortcuts (Ctrl+1-9) to use frontend IDs
+  - Updated `OrderLink` component:
+    - Now accepts `OrderWithFrontendId` type
+    - Links use frontend ID when available
+    - Displays frontend ID as order identifier when available
+    - Properly detects active state for both frontend ID and server ID URLs
+  - Removed unused `getLocalOrderByServerId` import
+
+### Verification
+- `npm run lint` - No ESLint warnings or errors
+- `npm run build` - Completed successfully with no errors
+
+### Commit
+- `feat: implement server order import with frontend IDs`

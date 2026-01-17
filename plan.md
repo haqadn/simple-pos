@@ -192,7 +192,7 @@ Enhance Simple POS with configurable payment methods, coupon validation card, of
       "Store imported orders in Dexie with syncStatus: synced",
       "Preserve frontend ID in order meta_data"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 16,

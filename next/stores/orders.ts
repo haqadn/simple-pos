@@ -12,9 +12,9 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { DRAFT_ORDER_ID } from "./draft-order";
 import { useDraftOrderState, useDraftOrderActions } from "@/hooks/useDraftOrderState";
 import { isSkipError } from "./utils/mutation-helpers";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { isValidFrontendId } from "@/lib/frontend-id";
-import { getLocalOrder, getLocalOrderByServerId, updateLocalOrder } from "./offline-orders";
+import { getLocalOrder, getLocalOrderByServerId, updateLocalOrder, importServerOrder, listLocalOrders } from "./offline-orders";
 import type { LocalOrder } from "@/db";
 import { syncOrder } from "@/services/sync";
 
@@ -53,15 +53,57 @@ const findOrderLineItems = (order?: OrderSchema, product?: ProductSchema): LineI
 	return lineItems;
 }
 
+/**
+ * Import server orders into the local Dexie database.
+ * This function checks each server order to see if it already exists in the local DB
+ * (either by server ID or by frontend ID from meta_data), and imports it if not.
+ * Returns the combined list of orders with frontend IDs attached.
+ */
+async function importServerOrdersToLocal(serverOrders: OrderSchema[]): Promise<void> {
+	for (const serverOrder of serverOrders) {
+		// Check if order already exists locally by server ID
+		const existingByServerId = await getLocalOrderByServerId(serverOrder.id);
+		if (existingByServerId) {
+			continue; // Already imported
+		}
+
+		// Check if order has a frontend ID in meta_data (was created locally and synced)
+		const frontendIdMeta = serverOrder.meta_data?.find(m => m.key === 'pos_frontend_id');
+		const existingFrontendId = frontendIdMeta?.value as string | undefined;
+
+		if (existingFrontendId) {
+			// Check if we already have this frontend ID locally
+			const existingByFrontendId = await getLocalOrder(existingFrontendId);
+			if (existingByFrontendId) {
+				continue; // Already exists
+			}
+		}
+
+		// Import the server order into local DB
+		// importServerOrder will generate a new frontend ID if existingFrontendId is undefined
+		await importServerOrder(serverOrder, existingFrontendId);
+	}
+}
+
 export const useOrdersStore = () => {
+	const queryClient = useQueryClient();
+
 	const ordersQuery = useQuery<OrderSchema[]>({
 		queryKey: generateOrderQueryKey('list'),
-		queryFn: () => OrdersAPI.listOrders({ 'per_page': '100', 'status': 'pending,processing,on-hold' }),
+		queryFn: async () => {
+			const serverOrders = await OrdersAPI.listOrders({ 'per_page': '100', 'status': 'pending,processing,on-hold' });
+
+			// Import server orders into local Dexie database
+			// This runs in the background and doesn't block the response
+			importServerOrdersToLocal(serverOrders).catch(err => {
+				console.error('Failed to import server orders to local DB:', err);
+			});
+
+			return serverOrders;
+		},
 		refetchInterval: 60 * 1000,
 		staleTime: 60 * 1000,
 	});
-	const queryClient = useQueryClient()
-
 
 	const createOrder = async () => {
 		try {
@@ -76,6 +118,121 @@ export const useOrdersStore = () => {
 
 	return { ordersQuery, createOrder };
 }
+
+/**
+ * Extended order type that includes the frontend ID for local orders
+ */
+export interface OrderWithFrontendId extends OrderSchema {
+	frontendId?: string;
+}
+
+/**
+ * Hook to get all local orders from Dexie
+ * This is used by the sidebar to display orders with frontend IDs
+ */
+export const useLocalOrdersQuery = () => {
+	return useQuery<LocalOrder[]>({
+		queryKey: ['localOrders'],
+		queryFn: async () => {
+			return await listLocalOrders({
+				status: ['pending', 'processing', 'on-hold', 'draft'],
+			});
+		},
+		staleTime: 5000, // 5 seconds - local data updates quickly
+		refetchInterval: 10000, // 10 seconds
+	});
+};
+
+/**
+ * Hook that combines server orders with local orders and provides frontend IDs
+ * Returns orders with their frontend IDs attached for proper routing
+ */
+export const useCombinedOrdersStore = () => {
+	const { ordersQuery } = useOrdersStore();
+	const localOrdersQuery = useLocalOrdersQuery();
+	const queryClient = useQueryClient();
+
+	// Combine server orders with local order data to get frontend IDs
+	const ordersWithFrontendIds = useQuery<OrderWithFrontendId[]>({
+		queryKey: ['ordersWithFrontendIds'],
+		queryFn: async () => {
+			const serverOrders = ordersQuery.data || [];
+			const localOrders = localOrdersQuery.data || [];
+
+			// Create a map of server IDs to local orders for quick lookup
+			const serverIdToLocalOrder = new Map<number, LocalOrder>();
+			const frontendIdToLocalOrder = new Map<string, LocalOrder>();
+
+			for (const localOrder of localOrders) {
+				if (localOrder.serverId) {
+					serverIdToLocalOrder.set(localOrder.serverId, localOrder);
+				}
+				frontendIdToLocalOrder.set(localOrder.frontendId, localOrder);
+			}
+
+			// Build the combined list
+			const combinedOrders: OrderWithFrontendId[] = [];
+			const processedServerIds = new Set<number>();
+
+			// First, add all server orders with their frontend IDs
+			for (const serverOrder of serverOrders) {
+				processedServerIds.add(serverOrder.id);
+
+				// Try to find the local order by server ID
+				let localOrder = serverIdToLocalOrder.get(serverOrder.id);
+
+				// If not found by server ID, try by frontend ID from meta_data
+				if (!localOrder) {
+					const frontendIdMeta = serverOrder.meta_data?.find(m => m.key === 'pos_frontend_id');
+					const frontendId = frontendIdMeta?.value as string | undefined;
+					if (frontendId) {
+						localOrder = frontendIdToLocalOrder.get(frontendId);
+					}
+				}
+
+				combinedOrders.push({
+					...serverOrder,
+					frontendId: localOrder?.frontendId,
+				});
+			}
+
+			// Add local-only orders (not yet synced or with errors)
+			for (const localOrder of localOrders) {
+				if (localOrder.serverId && processedServerIds.has(localOrder.serverId)) {
+					continue; // Already added with server data
+				}
+
+				// Only include orders that should be displayed in the list
+				if (!['pending', 'processing', 'on-hold', 'draft'].includes(localOrder.status)) {
+					continue;
+				}
+
+				combinedOrders.push({
+					...localOrder.data,
+					frontendId: localOrder.frontendId,
+				});
+			}
+
+			return combinedOrders;
+		},
+		enabled: ordersQuery.isSuccess && localOrdersQuery.isSuccess,
+		staleTime: 5000,
+	});
+
+	// Invalidate combined query when either source changes
+	useEffect(() => {
+		if (ordersQuery.dataUpdatedAt || localOrdersQuery.dataUpdatedAt) {
+			queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
+		}
+	}, [ordersQuery.dataUpdatedAt, localOrdersQuery.dataUpdatedAt, queryClient]);
+
+	return {
+		ordersQuery: ordersWithFrontendIds,
+		serverOrdersQuery: ordersQuery,
+		localOrdersQuery,
+		isLoading: ordersQuery.isLoading || localOrdersQuery.isLoading,
+	};
+};
 
 export const useOrderQuery = ( orderId: number ) => {
 	const { ordersQuery } = useOrdersStore();
