@@ -281,21 +281,21 @@ test.describe('Product Search', () => {
         await page.waitForLoadState('networkidle');
       }
 
-      // Find the product card by name in the grid
-      const productNameInGrid = page.locator('p.font-semibold')
+      // Find the product card button by finding a button that contains both the product name and SKU
+      // The Card component renders as a button with role="button"
+      const productSku = product.sku;
+      const cardButton = page.locator('button')
         .filter({ hasText: new RegExp(product.name, 'i') })
+        .filter({ hasText: productSku ? new RegExp(productSku, 'i') : /.*/ })
         .first();
 
-      if (!await productNameInGrid.isVisible().catch(() => false)) {
+      if (!await cardButton.isVisible().catch(() => false)) {
         test.skip(true, 'Product not visible in grid');
         return;
       }
 
-      // Click the product card (click on the Card component)
-      const cardElement = productNameInGrid.locator('xpath=ancestor::div[contains(@class, "h-full")]').first();
-
       // First click
-      await cardElement.click();
+      await cardButton.click();
       await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
       await waitForMutations(page);
 
@@ -303,14 +303,14 @@ test.describe('Product Search', () => {
       await OrderVerify.lineItem(page, product.name, 1);
 
       // Second click
-      await cardElement.click();
+      await cardButton.click();
       await waitForMutations(page);
 
       // Verify quantity is 2
       await OrderVerify.lineItem(page, product.name, 2);
 
       // Third click
-      await cardElement.click();
+      await cardButton.click();
       await waitForMutations(page);
 
       // Verify quantity is 3
@@ -335,17 +335,19 @@ test.describe('Product Search', () => {
       }
 
       // Find and click product
-      const productNameInGrid = page.locator('p.font-semibold')
+      // The Card component renders as a button, find it by name and SKU for precision
+      const productSku = product.sku;
+      const cardButton = page.locator('button')
         .filter({ hasText: new RegExp(product.name, 'i') })
+        .filter({ hasText: productSku ? new RegExp(productSku, 'i') : /.*/ })
         .first();
 
-      if (!await productNameInGrid.isVisible().catch(() => false)) {
+      if (!await cardButton.isVisible().catch(() => false)) {
         test.skip(true, 'Product not visible in grid');
         return;
       }
 
-      const cardElement = productNameInGrid.locator('xpath=ancestor::div[contains(@class, "h-full")]').first();
-      await cardElement.click();
+      await cardButton.click();
 
       // Wait for order to save
       await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
@@ -383,17 +385,19 @@ test.describe('Product Search', () => {
       }
 
       // Find and click product
-      const productNameInGrid = page.locator('p.font-semibold')
+      // The Card component renders as a button, find it by name and SKU for precision
+      const productSku = product.sku;
+      const cardButton = page.locator('button')
         .filter({ hasText: new RegExp(product.name, 'i') })
+        .filter({ hasText: productSku ? new RegExp(productSku, 'i') : /.*/ })
         .first();
 
-      if (!await productNameInGrid.isVisible().catch(() => false)) {
+      if (!await cardButton.isVisible().catch(() => false)) {
         test.skip(true, 'Product not visible in grid');
         return;
       }
 
-      const cardElement = productNameInGrid.locator('xpath=ancestor::div[contains(@class, "h-full")]').first();
-      await cardElement.click();
+      await cardButton.click();
 
       // Wait for order
       await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
@@ -401,8 +405,8 @@ test.describe('Product Search', () => {
 
       // Check for badge with quantity (HeroUI Badge component)
       // The product card should now have a ring around it and show the quantity badge
-      const ringIndicator = productNameInGrid.locator('xpath=ancestor::div[contains(@class, "ring-2")]');
-      await expect(ringIndicator.first()).toBeVisible({ timeout: 5000 }).catch(() => {
+      // After clicking, the card button should have the ring-2 class
+      await expect(cardButton).toHaveClass(/ring-2/, { timeout: 5000 }).catch(() => {
         // Ring may not be visible immediately, badge is more reliable
       });
     });

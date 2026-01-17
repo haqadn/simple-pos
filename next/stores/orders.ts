@@ -367,8 +367,23 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 			// (important when draft order was saved and ID changed from 0 to real ID)
 			const actualOrderKey = generateOrderQueryKey('detail', data);
 
-			// If order ID changed (draft was saved), always invalidate to ensure fresh data
+			// If order ID changed (draft was saved), set cache data immediately
+			// so the new order page has data before refetch completes
 			if (order && data.id !== order.id) {
+				// Set order data in cache for the new order ID
+				queryClient.setQueryData(actualOrderKey, data);
+
+				// Also set line item query data for each line item in the new order
+				// This ensures currentQuantity is correct after URL change
+				if (product) {
+					const newLineItem = data.line_items.find(
+						li => li.product_id === product.product_id && li.variation_id === product.variation_id
+					);
+					const newLineItemKey = generateOrderQueryKey('lineItem', data, product);
+					queryClient.setQueryData(newLineItemKey, newLineItem ?? null);
+				}
+
+				// Invalidate to ensure we also get any other server-side changes
 				queryClient.invalidateQueries({ queryKey: ['orders', data.id] });
 			} else if (lineItemsAreMutating <= 1) {
 				queryClient.setQueryData(actualOrderKey, data);

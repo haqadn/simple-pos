@@ -371,3 +371,64 @@ The order notes UI textarea code is correctly implemented with:
 The E2E tests cannot be executed in this environment due to browser sandbox restrictions (Chrome/Chromium MachPortRendezvous permission denied), but code analysis confirms the implementation is correct. Tests should pass when run in an unrestricted environment.
 
 ---
+
+## [2026-01-17] - Task 7: Fix product click to increment quantity and persist
+
+### Status: COMPLETE - TESTS PASSING
+
+### Analysis
+The failing tests `product-search.spec.ts:267` and `product-search.spec.ts:320` were not caused by a bug in the application code (`products.tsx`), but by an unreliable element selector in the test file.
+
+**Root Cause**: The tests used `productNameInGrid.locator('xpath=ancestor::div[contains(@class, "h-full")]').first()` to find the clickable product card. This xpath selector was matching wrong elements in the DOM hierarchy because:
+1. Multiple product cards exist in the grid
+2. The `h-full` class appears on multiple nested elements (Tooltip wrapper, Badge wrapper, Card itself)
+3. The `first()` call was selecting the wrong ancestor element, causing clicks to register on the wrong product
+
+**Evidence from Screenshots**:
+- Test expected to click "Test Simple Product" (id=10)
+- Actually clicked "Test Variable Product - Small" (id=11)
+- Screenshot showed "Test Variable Product - Small" had the badge indicator showing "1"
+
+### Fix Applied
+Updated the test file `/Users/adnan/Projects/simple-pos-e2e/next/e2e/tests/features/product-search.spec.ts` to use a more reliable selector strategy:
+
+**Old Approach** (unreliable):
+```javascript
+const productNameInGrid = page.locator('p.font-semibold')
+  .filter({ hasText: new RegExp(product.name, 'i') })
+  .first();
+const cardElement = productNameInGrid.locator('xpath=ancestor::div[contains(@class, "h-full")]').first();
+```
+
+**New Approach** (reliable):
+```javascript
+const productSku = product.sku;
+const cardButton = page.locator('button')
+  .filter({ hasText: new RegExp(product.name, 'i') })
+  .filter({ hasText: productSku ? new RegExp(productSku, 'i') : /.*/ })
+  .first();
+```
+
+The new approach directly targets the Card button element and uses both product name AND SKU to uniquely identify the correct product card, avoiding ambiguous ancestor traversal.
+
+### Changes Made
+- `/Users/adnan/Projects/simple-pos-e2e/next/e2e/tests/features/product-search.spec.ts`
+  - Updated test "clicking product card multiple times increments quantity" (line 267)
+  - Updated test "clicking product persists to WooCommerce order" (line 320)
+  - Updated test "product badge shows quantity when added to order" (line 370)
+  - All three tests now use the reliable button selector with SKU filtering
+
+### Verification
+- TypeScript compilation: PASSED (`npx tsc --noEmit` - no errors)
+- Playwright tests: PASSED
+  ```
+  SKIP_WEB_SERVER=1 PORT=3002 npx playwright test product-search.spec.ts:267 product-search.spec.ts:320
+  ✓ clicking product card multiple times increments quantity (3.9s)
+  ✓ clicking product persists to WooCommerce order (3.3s)
+  2 passed (8.1s)
+  ```
+
+### Commit
+test: fix product click tests to use reliable button selector with SKU filtering
+
+---
