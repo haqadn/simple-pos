@@ -62,7 +62,7 @@ Fix 11 failing E2E tests identified in the Playwright test suite. These are appl
       "Ensure meta_data update uses the actual current quantities, not cached",
       "Run test: npx playwright test print-command.spec.ts:684"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 4,

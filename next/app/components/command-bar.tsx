@@ -378,10 +378,8 @@ export default function CommandBar() {
   const handlePrint = useCallback(async (type: 'bill' | 'kot') => {
     if (!orderQuery.data) throw new Error('No active order');
 
-    // For bills, wait for mutations and use fresh data to ensure correct totals
-    const order = type === 'bill'
-      ? (await waitForMutationsRef.current?.()) ?? orderQuery.data
-      : orderQuery.data;
+    // Wait for mutations and use fresh data for both bill (correct totals) and KOT (change detection)
+    const order = (await waitForMutationsRef.current?.()) ?? orderQuery.data;
     const orderId = order.id;
     const shippingLine = order.shipping_lines?.find(s => s.method_title);
     const isTable = shippingLine?.method_id === 'pickup_location';

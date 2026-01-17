@@ -409,3 +409,105 @@ npx playwright test
 
 ### Commit
 - chore: clean up local test artifacts
+
+---
+
+## [2026-01-17] - Task 1: Fix /item SKU 0 to remove items from order
+
+### Changes Made
+- Updated `/Users/adnan/Projects/simple-pos-e2e/next/commands/item.ts`:
+  - Line 62: Changed condition from `quantity <= 0` to `quantity < 0`
+  - Line 63: Changed error message from "Quantity must be a positive number" to "Quantity must be a non-negative number"
+  - This allows `/item SKU 0` to set quantity to 0 (which triggers removal)
+
+- Updated `/Users/adnan/Projects/simple-pos-e2e/next/stores/orders.ts`:
+  - Lines 337-350: Fixed React Query cache update in `onMutate` handler
+  - Changed from `find()` to `findIndex()` for locating existing line item
+  - Added conditional logic: when quantity > 0, update the item's quantity; when quantity === 0, filter out the item from the array
+  - Updated `queryClient.setQueryData(lineItemKey, ...)` to set null when quantity is 0
+  - This ensures the optimistic update properly removes items from the UI when quantity is 0
+
+### Verification
+1. TypeScript compilation: `npx tsc --noEmit` - passed with no errors
+2. Code review: Verified logic matches expected behavior:
+   - `commands/item.ts`: Now allows quantity === 0 to pass validation
+   - `stores/orders.ts`: Draft order handling (lines 324-329) already correctly removes items when quantity is 0
+   - `stores/orders.ts`: React Query cache handling now also correctly removes items when quantity is 0
+   - `app/components/command-bar.tsx`: handleAddProduct correctly handles quantity 0 (removes from optimistic cache and doesn't add new item)
+
+**NOTE**: Full E2E test verification requires Docker/wp-env which is not available in this environment. The code changes are logically correct and compile successfully. When wp-env is available, run:
+```bash
+npx playwright test item-command.spec.ts:511
+```
+
+### Commit
+- fix: allow /item SKU 0 to remove items from order
+
+---
+
+## [2026-01-17] - Task 2: Fix multi-input mode exit when switching commands
+
+### Changes Made
+- Verified and confirmed fix already applied in `/Users/adnan/Projects/simple-pos-e2e/next/commands/command-registry.ts`:
+  - Line 176: Changed `newState: currentState.mode === 'multi' ? currentState : { mode: 'normal' }` to `newState: { mode: 'normal' }`
+  - **Bug**: The original code preserved multi-mode state when executing a different command from multi-mode
+  - **Fix**: Now always transitions to normal mode after executing a command
+  - This ensures that when a user types `/clear` while in `item>` mode, the prompt correctly returns to `>` instead of staying at `item>`
+
+### Verification
+1. TypeScript compilation: `npx tsc --noEmit` - passed with no errors
+2. Code review confirmed fix is correct:
+   - In multi-mode, when executing a different command (e.g., `/clear` while in `item>` mode):
+     - `exitCurrentMultiMode()` is called to cleanup the previous command (ItemCommand.exitMultiMode)
+     - The new command is executed (ClearCommand.execute)
+     - State is correctly set to `{ mode: 'normal' }` instead of preserving the multi-mode state
+3. Git diff confirmed the fix was already applied:
+   ```diff
+   -      newState: currentState.mode === 'multi' ? currentState : { mode: 'normal' }
+   +      newState: { mode: 'normal' }
+   ```
+
+**NOTE**: Full E2E test verification requires Docker/wp-env which is not available in this environment. When wp-env is available, run:
+```bash
+npx playwright test multi-input-mode.spec.ts:390
+```
+
+### Commit
+- fix: correctly exit multi-input mode when switching to another command
+
+---
+
+## [2026-01-17] - Task 3: Fix KOT change detection on subsequent prints
+
+### Changes Made
+- Updated `/Users/adnan/Projects/simple-pos-e2e/next/app/components/command-bar.tsx`:
+  - Line 381-382: Changed handlePrint() to wait for mutations for both 'bill' AND 'kot' types
+  - Previously only bills waited for fresh data: `type === 'bill' ? (await waitForMutationsRef.current?.()) : orderQuery.data`
+  - Now both types get fresh data: `(await waitForMutationsRef.current?.()) ?? orderQuery.data`
+  - This ensures KOT prints use current line item quantities for accurate change detection
+
+- Updated `/Users/adnan/Projects/simple-pos-e2e/next/hooks/useGlobalShortcuts.ts`:
+  - Lines 184-192: Modified handlePrintKot() to call waitForMutationsRef.current() for fresh order data
+  - Changed from using `orderQuery.data` (potentially stale) to `freshOrder` (fetched fresh from API)
+  - Updated all references to use freshOrder instead of orderQuery.data for line_items and meta_data
+
+- Updated `/Users/adnan/Projects/simple-pos-e2e/next/app/orders/[orderId]/components/buttons.tsx`:
+  - Lines 174-182: Modified handlePrintKot() to call waitForMutationsRef.current() for fresh order data
+  - Same pattern as useGlobalShortcuts.ts - wait for mutations then fetch fresh data
+  - Ensures the buttons component also uses accurate quantities for KOT change detection
+
+### Root Cause
+The bug occurred because KOT printing used `orderQuery.data` which is React Query's cached data. When items were added/modified between KOT prints, the cached data might be stale (mutations still pending or not yet reflected). The `last_kot_items` meta was being saved with stale quantities, causing incorrect change detection on subsequent prints.
+
+### Verification
+1. TypeScript compilation: `npx tsc --noEmit` - passed with no errors
+2. Code review confirmed fix pattern matches existing handlePrintBill() which already waited for mutations
+3. All three files (command-bar.tsx, useGlobalShortcuts.ts, buttons.tsx) now consistently wait for fresh data before KOT operations
+
+**NOTE**: Full E2E test verification requires Docker/wp-env which is not available in this environment. When wp-env is available, run:
+```bash
+npx playwright test print-command.spec.ts:684
+```
+
+### Commit
+- fix: use fresh order data for KOT change detection on subsequent prints
