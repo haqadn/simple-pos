@@ -1,9 +1,9 @@
 # Project Plan
 
 ## Overview
-Set up wp-env for self-contained E2E testing, seed WooCommerce with test products, fix TypeScript errors, and verify tests run successfully.
+Fix 11 failing E2E tests identified in the Playwright test suite. These are application bugs affecting item commands, multi-input mode, KOT tracking, customer info, order notes, product clicks, and order error handling.
 
-**Reference:** `PRD.md`
+**Reference:** Test failures from `npx playwright test`
 
 ---
 
@@ -12,155 +12,136 @@ Set up wp-env for self-contained E2E testing, seed WooCommerce with test product
 ```json
 [
   {
-    "id": 1,
+    "id": 0,
     "category": "setup",
-    "description": "Install and configure wp-env for E2E testing",
+    "description": "Verify test artifacts are gitignored and clean up any tracked files",
     "steps": [
-      "Install @wordpress/env as dev dependency",
-      "Create .wp-env.json with WordPress, WooCommerce, and Simple POS plugin",
-      "Configure automatic port selection",
-      "Add wp-env scripts to package.json (wp-env, wp-env:start, wp-env:stop)",
-      "Test that wp-env starts successfully and WooCommerce is active"
+      "Check .gitignore includes /test-results/, /playwright-report/, /playwright/.cache/",
+      "Run: git status test-results/ playwright-report/ to check for tracked files",
+      "If any test artifacts are tracked, run: git rm -r --cached test-results/ playwright-report/",
+      "Clean up any local test artifacts: rm -rf test-results/ playwright-report/",
+      "Verify with: git status --porcelain | grep -E 'test-results|playwright-report' (should be empty)"
     ],
     "passes": true
+  },
+  {
+    "id": 1,
+    "category": "fix",
+    "description": "Fix /item SKU 0 to remove items from order",
+    "steps": [
+      "Open commands/item.ts",
+      "Find the quantity validation on line ~62 that rejects quantity <= 0",
+      "Change condition to allow quantity === 0 (reject only negative)",
+      "Ensure quantity=0 triggers the removal logic in stores/orders.ts",
+      "Run test: npx playwright test item-command.spec.ts:511"
+    ],
+    "passes": false
   },
   {
     "id": 2,
-    "category": "setup",
-    "description": "Create WooCommerce API credentials setup script",
+    "category": "fix",
+    "description": "Fix multi-input mode exit when switching commands",
     "steps": [
-      "Create e2e/scripts/setup-api-credentials.js",
-      "Use wp-env run to execute WP-CLI commands",
-      "Generate WooCommerce REST API consumer key and secret",
-      "Save credentials to .env.test file (gitignored)",
-      "Add .env.test to .gitignore if not present"
+      "Open commands/command-registry.ts",
+      "Find executeCommand() and multi-mode exit logic around lines 150-160",
+      "Verify exitCurrentMultiMode() is called before executing new command",
+      "Check if the prompt state is being reset properly after exit",
+      "Ensure the state.mode changes from 'multi' to 'normal' before new command",
+      "Run test: npx playwright test multi-input-mode.spec.ts:390"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 3,
-    "category": "setup",
-    "description": "Create product seeding script",
+    "category": "fix",
+    "description": "Fix KOT change detection on subsequent prints",
     "steps": [
-      "Create e2e/scripts/seed-products.js",
-      "Read API credentials from .env.test",
-      "Implement idempotent product creation (check SKU before creating)",
-      "Create simple product: TEST-SIMPLE-001, price 25.00",
-      "Create variable product: TEST-VAR-001 with S/M/L variations",
-      "Add npm script test:e2e:seed"
+      "Open commands/print.ts and find KOT print logic",
+      "Verify last_kot_items meta is updated with current line items after print",
+      "Check if quantity changes are being captured in the meta data",
+      "Ensure meta_data update uses the actual current quantities, not cached",
+      "Run test: npx playwright test print-command.spec.ts:684"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 4,
-    "category": "setup",
-    "description": "Update Playwright config for dynamic wp-env port",
+    "category": "fix",
+    "description": "Fix customer clearing when name is emptied",
     "steps": [
-      "Modify playwright.config.ts to read WP_PORT from environment",
-      "Create helper to detect wp-env port from .wp-env.json or CLI",
-      "Update webServer config to start both wp-env and Next.js",
-      "Ensure baseURL uses correct WordPress port for API calls",
-      "Test configuration with wp-env running on non-default port"
+      "Open app/orders/[orderId]/components/customer-info.tsx",
+      "Find handleNameChange() function",
+      "When empty string is passed, should clear first_name and last_name",
+      "May need to also clear customer_id if applicable",
+      "Run test: npx playwright test customer-assignment.spec.ts:306"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 5,
-    "category": "setup",
-    "description": "Create unified test setup script",
+    "category": "fix",
+    "description": "Fix customer phone input editability",
     "steps": [
-      "Create e2e/scripts/setup.js that orchestrates full setup",
-      "Check if wp-env is running, start if not",
-      "Check if API credentials exist, create if not",
-      "Check if products are seeded, seed if not",
-      "Add npm script test:e2e:setup",
-      "Update test:e2e to call setup first"
+      "Open app/orders/[orderId]/components/customer-info.tsx",
+      "Find the phone Input component",
+      "Verify it has onValueChange handler connected properly",
+      "Check if there's any disabled or readOnly prop",
+      "Ensure the input value is bound to localValues.phone",
+      "Run test: npx playwright test customer-assignment.spec.ts:561"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 6,
     "category": "fix",
-    "description": "Fix TypeScript errors in multi-input-mode.spec.ts",
+    "description": "Fix order notes via UI textarea (add/edit/clear)",
     "steps": [
-      "Remove parseInt() wrapper from OrdersAPI.getOrder() calls",
-      "orderId is already a string from getCurrentOrderId()",
-      "Verify no other type errors in file",
-      "Run tsc --noEmit to confirm fixes"
+      "Open app/orders/[orderId]/components/order-note.tsx",
+      "Verify handleChange is called on textarea value change",
+      "Check if mutation.mutate is being called with correct params",
+      "Ensure empty string clears the note properly",
+      "Verify localValue state syncs with query data on mount/change",
+      "Run tests: npx playwright test notes.spec.ts:131 notes.spec.ts:211 notes.spec.ts:255"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 7,
     "category": "fix",
-    "description": "Fix TypeScript errors in customer-assignment.spec.ts",
+    "description": "Fix product click to increment quantity and persist",
     "steps": [
-      "Remove parseInt() wrapper from all OrdersAPI.getOrder() calls",
-      "Remove unused imports (mockCustomers, etc.)",
-      "Fix any other type errors in file",
-      "Run tsc --noEmit to confirm fixes"
+      "Open app/orders/components/products.tsx",
+      "Find addToOrder() function and onPress handler",
+      "Verify currentQuantity is reading from correct query",
+      "Check if mutation.mutate is being called with quantity+1",
+      "Ensure mutation completes and persists to WooCommerce",
+      "May need to check useLineItemQuery hook in stores/orders.ts",
+      "Run tests: npx playwright test product-search.spec.ts:267 product-search.spec.ts:320"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 8,
     "category": "fix",
-    "description": "Fix TypeScript errors in clear-command.spec.ts",
+    "description": "Fix invalid order ID error handling",
     "steps": [
-      "Update Order type or cast to include customer_id property",
-      "Or change test to access customer_id via correct path",
-      "Verify no other type errors in file",
-      "Run tsc --noEmit to confirm fixes"
+      "Open app/orders/[orderId]/page.tsx",
+      "Add error handling for when order fetch returns null/error",
+      "Show appropriate error message or redirect to orders list",
+      "Consider adding a 404-style component for non-existent orders",
+      "Run test: npx playwright test multi-order.spec.ts:962"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 9,
-    "category": "fix",
-    "description": "Fix TypeScript errors in item-command.spec.ts",
+    "category": "verification",
+    "description": "Run full E2E test suite to verify all fixes",
     "steps": [
-      "Fix .textContent() call on string array (suggestions already strings)",
-      "Remove unused imports (getLineItems, getFirstInStockVariation, etc.)",
-      "Fix unused posPage parameter in test",
-      "Run tsc --noEmit to confirm fixes"
-    ],
-    "passes": true
-  },
-  {
-    "id": 10,
-    "category": "fix",
-    "description": "Fix remaining TypeScript errors across all test files",
-    "steps": [
-      "Run npx tsc --noEmit and collect all errors",
-      "Fix each error systematically",
-      "Remove all unused imports",
-      "Ensure all files compile without errors"
-    ],
-    "passes": true
-  },
-  {
-    "id": 11,
-    "category": "testing",
-    "description": "Update test-data.ts to use wp-env API",
-    "steps": [
-      "Update API base URL to use wp-env port",
-      "Read credentials from .env.test",
-      "Ensure getTestProducts() works with seeded products",
-      "Update globalSetup to work with new configuration",
-      "Test that dynamic test data fetching works"
-    ],
-    "passes": true
-  },
-  {
-    "id": 12,
-    "category": "testing",
-    "description": "Run full test suite and fix any runtime issues",
-    "steps": [
-      "Run npm run test:e2e with wp-env running",
-      "Identify and fix any failing tests due to environment",
-      "Ensure seeded products are found by tests",
-      "Verify API calls use correct credentials",
-      "Document any tests that need adjustment"
+      "Run: npx playwright test --reporter=list",
+      "Verify all 11 previously failing tests now pass",
+      "Check for any regressions in other tests",
+      "Document any remaining issues"
     ],
     "passes": false
   }

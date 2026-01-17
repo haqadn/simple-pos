@@ -1,8 +1,13 @@
 # Activity Log
 
-Last updated: 2026-01-16
-Tasks completed: 11
-Current task: Task 12 (BLOCKED)
+Last updated: 2026-01-17
+Tasks completed: 0 (new plan for test fixes)
+Current task: None
+
+## New Plan: E2E Test Failure Fixes
+
+The original setup plan is complete. A new plan has been created to fix 11 failing E2E tests.
+See `plan.md` for the 9 tasks to fix these test failures.
 
 ---
 
@@ -381,3 +386,26 @@ npx playwright test
 
 ### Commit
 - No commit - task blocked by environment limitations
+
+---
+
+## [2026-01-17] - Task 0: Verify test artifacts are gitignored and clean up any tracked files
+
+### Changes Made
+- No changes required to `.gitignore` - it already contains:
+  - `/test-results/` (line 15)
+  - `/playwright-report/` (line 16)
+  - `/playwright/.cache/` (line 17)
+- Cleaned up local test artifact directories:
+  - Removed `test-results/` directory (contained 27 test result folders)
+  - Removed `playwright-report/` directory (contained data folder and index.html)
+
+### Verification
+1. Checked `.gitignore` includes all required entries - confirmed
+2. Ran `git status test-results/ playwright-report/` - no tracked files
+3. Ran `git status --porcelain | grep -E 'test-results|playwright-report'` - empty (no tracked artifacts)
+4. Removed local test artifact directories with `rm -rf test-results/ playwright-report/`
+5. Verified directories no longer exist
+
+### Commit
+- chore: clean up local test artifacts
