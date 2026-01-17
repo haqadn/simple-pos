@@ -180,7 +180,7 @@ Enhance Simple POS with configurable payment methods, coupon validation card, of
       "Handle sync success (update serverId, syncStatus)",
       "Handle sync failure (add to retry queue)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 15,

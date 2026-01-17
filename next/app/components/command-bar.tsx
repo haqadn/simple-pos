@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Input } from '@heroui/react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useCommandManager } from '@/hooks/useCommandManager';
 import { useCurrentOrder, useOrdersStore } from '@/stores/orders';
 import { useProductsQuery, useGetProductById } from '@/stores/products';
@@ -17,6 +17,9 @@ import { useSettingsStore } from '@/stores/settings';
 import { isAppShortcut } from '@/lib/shortcuts';
 import { createShouldSkipForKot } from '@/lib/kot';
 import { HelpTextBar, CommandSuggestions, applySuggestion } from './command-bar/index';
+import { isValidFrontendId } from '@/lib/frontend-id';
+import { updateLocalOrderStatus, getLocalOrder } from '@/stores/offline-orders';
+import { syncOrder } from '@/services/sync';
 
 export default function CommandBar() {
   const [input, setInput] = useState('');
@@ -26,6 +29,7 @@ export default function CommandBar() {
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const router = useRouter();
+  const params = useParams();
 
   // Hooks for data
   const orderQuery = useCurrentOrder();
@@ -260,22 +264,67 @@ export default function CommandBar() {
     if (!orderQuery.data) throw new Error('No active order');
 
     const orderId = orderQuery.data.id;
+    const urlOrderId = params?.orderId as string | undefined;
+    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
 
-    // Update order status to completed
-    await OrdersAPI.updateOrder(orderId.toString(), { status: 'completed' });
+    if (isFrontendIdOrder && urlOrderId) {
+      // Local-first flow: Mark order complete locally first
+      const localOrder = await getLocalOrder(urlOrderId);
+      if (!localOrder) {
+        throw new Error('Local order not found');
+      }
 
-    // Invalidate queries
-    await queryClient.invalidateQueries({ queryKey: ['orders'] });
+      // Update local order status to completed
+      await updateLocalOrderStatus(urlOrderId, 'completed');
+
+      // Invalidate local order query to reflect new status
+      await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+
+      // Trigger sync attempt on completion (non-blocking)
+      syncOrder(urlOrderId).then((result) => {
+        if (result.success) {
+          // Sync succeeded - invalidate queries to refresh with server data
+          queryClient.invalidateQueries({ queryKey: ['orders'] });
+          queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+          console.log(`Order ${urlOrderId} synced successfully with server ID ${result.serverId}`);
+        } else {
+          // Sync failed - order will be retried via background sync
+          console.warn(`Order ${urlOrderId} sync failed: ${result.error}. Will retry automatically.`);
+        }
+      }).catch((error) => {
+        console.error(`Unexpected error syncing order ${urlOrderId}:`, error);
+      });
+    } else {
+      // Legacy flow for server-side orders: Update order status directly via API
+      await OrdersAPI.updateOrder(orderId.toString(), { status: 'completed' });
+
+      // Invalidate queries
+      await queryClient.invalidateQueries({ queryKey: ['orders'] });
+    }
 
     // Navigate to next pending order or home
     const orders = ordersQuery.data || [];
-    const nextOrder = orders.find(o => o.id !== orderId && o.status === 'pending');
+    const nextOrder = orders.find(o => {
+      // Skip the current order (check both orderId and urlOrderId)
+      if (o.id === orderId) return false;
+      // Also check if the order's frontend ID matches
+      const orderFrontendId = o.meta_data?.find(m => m.key === 'pos_frontend_id')?.value;
+      if (orderFrontendId === urlOrderId) return false;
+      return o.status === 'pending';
+    });
+
     if (nextOrder) {
-      router.push(`/orders/${nextOrder.id}`);
+      // Prefer using frontend ID if available
+      const nextFrontendId = nextOrder.meta_data?.find(m => m.key === 'pos_frontend_id')?.value;
+      if (nextFrontendId && typeof nextFrontendId === 'string') {
+        router.push(`/orders/${nextFrontendId}`);
+      } else {
+        router.push(`/orders/${nextOrder.id}`);
+      }
     } else {
       router.push('/');
     }
-  }, [orderQuery, queryClient, ordersQuery, router]);
+  }, [orderQuery, queryClient, ordersQuery, router, params]);
 
   // Set payment amount
   const handleSetPayment = useCallback(async (amount: number) => {

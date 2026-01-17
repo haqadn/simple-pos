@@ -472,3 +472,35 @@ Current task: None
 
 ### Commit
 - `feat: update order mutations to save locally and queue sync`
+
+---
+
+## [2026-01-17] - Task 14: Implement order completion with sync
+
+### Changes Made
+- `/next/app/components/command-bar.tsx`:
+  - Added imports for `useParams` from next/navigation
+  - Added imports for `isValidFrontendId` from lib/frontend-id
+  - Added imports for `updateLocalOrderStatus`, `getLocalOrder` from stores/offline-orders
+  - Added imports for `syncOrder` from services/sync
+  - Added `params` from `useParams()` hook to access URL parameters
+  - Updated `handleCompleteOrder` function with local-first flow:
+    - Detects frontend ID orders from URL using `isValidFrontendId()`
+    - For frontend ID orders:
+      - Retrieves local order from Dexie using `getLocalOrder()`
+      - Updates local order status to 'completed' using `updateLocalOrderStatus()`
+      - Invalidates local order query to reflect new status
+      - Triggers non-blocking sync attempt using `syncOrder()`
+      - Handles sync success: logs success message with server ID, invalidates queries
+      - Handles sync failure: logs warning message, order will retry via background sync queue
+    - For legacy server-side orders: maintains existing behavior (direct API update)
+  - Updated navigation logic after completion:
+    - Skips current order by checking both server ID and frontend ID
+    - Prefers navigating to next order using frontend ID when available
+
+### Verification
+- `npm run build` - Completed successfully with no errors
+- `npm run lint` - No ESLint warnings or errors
+
+### Commit
+- `feat: implement order completion with sync`
