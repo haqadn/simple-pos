@@ -33,6 +33,19 @@ function getConfig() {
     }
   }
 
+  // Fall back to env config for server-side/test usage
+  if (
+    process.env.NEXT_PUBLIC_SITE_URL &&
+    process.env.NEXT_PUBLIC_CONSUMER_KEY &&
+    process.env.NEXT_PUBLIC_CONSUMER_SECRET
+  ) {
+    return {
+      baseUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/wp-json/wc/v3`,
+      consumerKey: process.env.NEXT_PUBLIC_CONSUMER_KEY,
+      consumerSecret: process.env.NEXT_PUBLIC_CONSUMER_SECRET,
+    };
+  }
+
   // Fall back to hardcoded config
   return {
     baseUrl: BASE_URL,

@@ -1,0 +1,16 @@
+{
+  "core": "WordPress/WordPress#master",
+  "plugins": [
+    "https://downloads.wordpress.org/plugin/woocommerce.latest-stable.zip",
+    "../"
+  ],
+  "config": {
+    "WP_DEBUG": true,
+    "WP_DEBUG_LOG": true,
+    "SCRIPT_DEBUG": true
+  },
+  "mappings": {},
+  "lifecycleScripts": {
+    "afterStart": "wp option update woocommerce_calc_taxes no && wp option update woocommerce_currency USD && wp option update woocommerce_store_address '123 Test Street' && wp option update woocommerce_store_city 'Test City' && wp option update woocommerce_default_country 'US:CA'"
+  }
+}

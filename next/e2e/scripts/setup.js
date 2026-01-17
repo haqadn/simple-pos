@@ -1,0 +1,397 @@
+#!/usr/bin/env node
+
+/**
+ * Unified E2E Test Setup Script
+ *
+ * This script orchestrates the full setup for E2E testing:
+ * 1. Start wp-env if not running
+ * 2. Generate API credentials if not present
+ * 3. Seed test products if not present
+ *
+ * Usage: node e2e/scripts/setup.js
+ *
+ * Options:
+ *   --force     Force regenerate credentials and reseed products
+ *   --skip-env  Skip wp-env check (assumes it's already running)
+ */
+
+const { execSync, spawn } = require("child_process");
+const fs = require("fs");
+const path = require("path");
+const http = require("http");
+
+const PROJECT_ROOT = path.join(__dirname, "../..");
+const ENV_FILE = path.join(PROJECT_ROOT, ".env.test");
+const NEXT_ENV_FILE = path.join(PROJECT_ROOT, ".env.local");
+
+// ==========================================
+// Utility Functions
+// ==========================================
+
+/**
+ * Log with timestamp and prefix
+ */
+function log(message, prefix = "SETUP") {
+  const timestamp = new Date().toISOString().split("T")[1].split(".")[0];
+  console.log(`[${timestamp}] [${prefix}] ${message}`);
+}
+
+/**
+ * Log an error message
+ */
+function logError(message) {
+  log(message, "ERROR");
+}
+
+/**
+ * Log a success message
+ */
+function logSuccess(message) {
+  log(message, "OK");
+}
+
+/**
+ * Execute a command and return the output
+ */
+function exec(command, options = {}) {
+  try {
+    return execSync(command, {
+      cwd: PROJECT_ROOT,
+      encoding: "utf-8",
+      stdio: options.silent ? ["pipe", "pipe", "pipe"] : "inherit",
+      ...options,
+    });
+  } catch (error) {
+    if (options.ignoreError) {
+      return error.stdout || "";
+    }
+    throw error;
+  }
+}
+
+/**
+ * Run a script and wait for it to complete
+ */
+function runScript(scriptPath, args = []) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn("node", [scriptPath, ...args], {
+      cwd: PROJECT_ROOT,
+      stdio: "inherit",
+    });
+
+    proc.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Script exited with code ${code}`));
+      }
+    });
+
+    proc.on("error", reject);
+  });
+}
+
+// ==========================================
+// wp-env Management
+// ==========================================
+
+/**
+ * Check if wp-env is running by testing the WordPress site
+ */
+function isWpEnvRunning() {
+  try {
+    const output = execSync("npx wp-env run cli wp option get siteurl", {
+      cwd: PROJECT_ROOT,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    return output.includes("http");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Wait for wp-env to be ready (WordPress responding)
+ */
+async function waitForWpEnv(maxAttempts = 30, intervalMs = 2000) {
+  log("Waiting for WordPress to be ready...");
+
+  for (let i = 0; i < maxAttempts; i++) {
+    if (isWpEnvRunning()) {
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    process.stdout.write(".");
+  }
+
+  console.log("");
+  return false;
+}
+
+/**
+ * Start wp-env
+ */
+async function startWpEnv() {
+  log("Starting wp-env...");
+
+  return new Promise((resolve, reject) => {
+    const proc = spawn("npx", ["wp-env", "start"], {
+      cwd: PROJECT_ROOT,
+      stdio: "inherit",
+      shell: true,
+    });
+
+    proc.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`wp-env start exited with code ${code}`));
+      }
+    });
+
+    proc.on("error", reject);
+  });
+}
+
+// ==========================================
+// Credentials Check
+// ==========================================
+
+/**
+ * Check if API credentials exist and are valid
+ */
+function credentialsExist() {
+  if (!fs.existsSync(ENV_FILE)) {
+    return false;
+  }
+
+  const content = fs.readFileSync(ENV_FILE, "utf-8");
+  const hasKey = content.includes("WC_CONSUMER_KEY=ck_");
+  const hasSecret = content.includes("WC_CONSUMER_SECRET=cs_");
+  const hasUrl = content.includes("WP_BASE_URL=");
+
+  return hasKey && hasSecret && hasUrl;
+}
+
+/**
+ * Load credentials from .env.test
+ */
+function loadCredentials() {
+  if (!fs.existsSync(ENV_FILE)) {
+    return null;
+  }
+
+  const content = fs.readFileSync(ENV_FILE, "utf-8");
+  const config = {};
+
+  for (const line of content.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    const match = trimmed.match(/^([^=]+)=(.*)$/);
+    if (match) {
+      config[match[1]] = match[2];
+    }
+  }
+
+  return config;
+}
+
+/**
+ * Write Next.js env file with API credentials for browser usage
+ */
+function writeNextEnvFile(credentials) {
+  if (
+    !credentials ||
+    !credentials.WP_BASE_URL ||
+    !credentials.WC_CONSUMER_KEY ||
+    !credentials.WC_CONSUMER_SECRET
+  ) {
+    return;
+  }
+
+  const content = `# Auto-generated for E2E testing
+# Source: .env.test
+
+NEXT_PUBLIC_SITE_URL=${credentials.WP_BASE_URL}
+NEXT_PUBLIC_CONSUMER_KEY=${credentials.WC_CONSUMER_KEY}
+NEXT_PUBLIC_CONSUMER_SECRET=${credentials.WC_CONSUMER_SECRET}
+`;
+
+  fs.writeFileSync(NEXT_ENV_FILE, content, "utf-8");
+}
+
+// ==========================================
+// Products Check
+// ==========================================
+
+/**
+ * Make an HTTP request
+ */
+function makeRequest(url, options) {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+    const req = http.request(
+      {
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port || 80,
+        path: parsedUrl.pathname + parsedUrl.search,
+        method: options.method || "GET",
+        headers: options.headers || {},
+      },
+      (res) => {
+        let body = "";
+        res.on("data", (chunk) => (body += chunk));
+        res.on("end", () => {
+          try {
+            resolve({ status: res.statusCode, data: JSON.parse(body) });
+          } catch {
+            resolve({ status: res.statusCode, data: body });
+          }
+        });
+      }
+    );
+
+    req.on("error", reject);
+    req.end();
+  });
+}
+
+/**
+ * Check if test products are seeded
+ */
+async function productsExist() {
+  const credentials = loadCredentials();
+  if (!credentials) {
+    return false;
+  }
+
+  const { WP_BASE_URL, WC_CONSUMER_KEY, WC_CONSUMER_SECRET } = credentials;
+  if (!WP_BASE_URL || !WC_CONSUMER_KEY || !WC_CONSUMER_SECRET) {
+    return false;
+  }
+
+  const authHeader = `Basic ${Buffer.from(
+    `${WC_CONSUMER_KEY}:${WC_CONSUMER_SECRET}`
+  ).toString("base64")}`;
+
+  try {
+    // Check for the simple test product
+    const url = `${WP_BASE_URL}/wp-json/wc/v3/products?sku=TEST-SIMPLE-001`;
+    const response = await makeRequest(url, {
+      method: "GET",
+      headers: {
+        Authorization: authHeader,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (response.status === 200 && Array.isArray(response.data)) {
+      return response.data.length > 0;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+// ==========================================
+// Main Setup Function
+// ==========================================
+
+async function main() {
+  console.log("\n========================================");
+  console.log("       E2E Test Environment Setup       ");
+  console.log("========================================\n");
+
+  const args = process.argv.slice(2);
+  const force = args.includes("--force");
+  const skipEnv = args.includes("--skip-env");
+
+  if (force) {
+    log("Force mode enabled - will regenerate all setup");
+  }
+
+  // Step 1: Check/Start wp-env
+  if (!skipEnv) {
+    log("Step 1: Checking wp-env status...");
+
+    if (isWpEnvRunning()) {
+      logSuccess("wp-env is already running");
+    } else {
+      log("wp-env is not running, starting it now...");
+      try {
+        await startWpEnv();
+        const ready = await waitForWpEnv();
+        if (!ready) {
+          throw new Error("wp-env failed to start within timeout");
+        }
+        logSuccess("wp-env started successfully");
+      } catch (error) {
+        logError(`Failed to start wp-env: ${error.message}`);
+        logError("Try running manually: npm run wp-env:start");
+        process.exit(1);
+      }
+    }
+  } else {
+    log("Step 1: Skipping wp-env check (--skip-env flag)");
+  }
+
+  // Step 2: Check/Create API credentials
+  log("\nStep 2: Checking API credentials...");
+
+  if (credentialsExist() && !force) {
+    logSuccess("API credentials already exist in .env.test");
+    const existingCredentials = loadCredentials();
+    writeNextEnvFile(existingCredentials);
+  } else {
+    log(force ? "Regenerating API credentials..." : "Creating API credentials...");
+    try {
+      const scriptArgs = force ? ["--force"] : [];
+      await runScript(path.join(__dirname, "setup-api-credentials.js"), scriptArgs);
+      writeNextEnvFile(loadCredentials());
+      logSuccess("API credentials created");
+    } catch (error) {
+      logError(`Failed to create credentials: ${error.message}`);
+      process.exit(1);
+    }
+  }
+
+  // Step 3: Check/Seed products
+  log("\nStep 3: Checking test products...");
+
+  const hasProducts = await productsExist();
+  if (hasProducts && !force) {
+    logSuccess("Test products already exist");
+  } else {
+    log(force ? "Re-seeding test products..." : "Seeding test products...");
+    try {
+      const scriptArgs = force ? ["--force"] : [];
+      await runScript(path.join(__dirname, "seed-products.js"), scriptArgs);
+      logSuccess("Test products seeded");
+    } catch (error) {
+      logError(`Failed to seed products: ${error.message}`);
+      process.exit(1);
+    }
+  }
+
+  // Summary
+  console.log("\n========================================");
+  console.log("         Setup Complete!                ");
+  console.log("========================================\n");
+
+  log("Environment is ready for E2E testing");
+  log("Run tests with: npm run test:e2e");
+
+  console.log("");
+}
+
+main().catch((error) => {
+  logError(`Setup failed: ${error.message}`);
+  if (error.stack) {
+    console.error("\nStack trace:", error.stack);
+  }
+  process.exit(1);
+});

@@ -7,6 +7,7 @@ const LineItemSchema = z.object({
   product_id: z.number(),
   variation_id: z.number(),
   quantity: z.number(),
+  sku: z.string().nullable().optional(), // Product SKU
   price: z.union([z.string(), z.number()]).optional(), // Unit price
   subtotal: z.string().optional(), // Line subtotal before discounts
   total: z.string().optional(), // Line total after discounts
@@ -54,6 +55,7 @@ const CouponLineSchema = z.object({
 export const OrderSchema = z.object({
   id: z.number(),
   status: z.string(),
+  customer_id: z.number().default(0),
   date_created: z.string().optional(),
   line_items: z.array(LineItemSchema),
   shipping_lines: z.array(ShippingLineSchema).default([]),

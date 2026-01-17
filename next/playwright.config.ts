@@ -1,0 +1,167 @@
+import { defineConfig, devices } from '@playwright/test';
+import { getWpPort, getWpBaseUrl, getWpEnvConfig } from './e2e/helpers/wp-env-config';
+
+/**
+ * Playwright configuration for Simple POS E2E tests
+ * @see https://playwright.dev/docs/test-configuration
+ *
+ * Environment Setup:
+ * 1. Run `npm run wp-env:start` to start WordPress with wp-env
+ * 2. Run `npm run test:e2e:credentials` to generate API credentials
+ * 3. Run `npm run test:e2e:seed` to seed test products
+ * 4. Run `npm run test:e2e` to execute tests
+ *
+ * Or use `npm run test:e2e:setup` to run steps 1-3 automatically.
+ *
+ * Debugging Features:
+ * - Screenshots: Captured on every failure (see test-results/)
+ * - Traces: Recorded on first retry for debugging (see test-results/)
+ * - Videos: Recorded on first retry (see test-results/)
+ * - Console Logs: Captured in HTML report
+ *
+ * Run with debugging:
+ *   npm run test:e2e:debug    # Interactive debugger
+ *   npm run test:e2e:ui       # UI mode with time-travel
+ *   npm run test:e2e:trace    # Force trace recording on all tests
+ */
+
+// Get WordPress port from .env.test or environment
+const WP_PORT = getWpPort();
+const WP_BASE_URL = getWpBaseUrl();
+const WP_ENV_CONFIG = getWpEnvConfig();
+const NEXT_PORT = parseInt(process.env.NEXT_PORT || process.env.PORT || '3000', 10);
+
+if (WP_ENV_CONFIG.consumerKey && !process.env.NEXT_PUBLIC_CONSUMER_KEY) {
+  process.env.NEXT_PUBLIC_SITE_URL = WP_ENV_CONFIG.baseUrl;
+  process.env.NEXT_PUBLIC_CONSUMER_KEY = WP_ENV_CONFIG.consumerKey;
+  process.env.NEXT_PUBLIC_CONSUMER_SECRET = WP_ENV_CONFIG.consumerSecret;
+}
+
+export default defineConfig({
+  // Global setup - fetches test data from WooCommerce before tests run
+  globalSetup: require.resolve('./e2e/global-setup'),
+
+  // Directory containing test files
+  testDir: './e2e/tests',
+
+  // Run tests in parallel
+  fullyParallel: false,
+
+  // Fail the build on CI if you accidentally left test.only in the source code
+  forbidOnly: !!process.env.CI,
+
+  // Retry on CI only - retries help capture traces for debugging
+  retries: process.env.CI ? 2 : 0,
+
+  // Opt out of parallel tests on CI for stability
+  workers: process.env.PW_WORKERS ? parseInt(process.env.PW_WORKERS, 10) : 1,
+
+  // Reporter to use
+  // HTML reporter includes console logs, screenshots, traces, and videos
+  reporter: [
+    ['html', {
+      outputFolder: 'playwright-report',
+      open: 'never', // Don't auto-open; use 'npx playwright show-report' to view
+    }],
+    ['list'], // Console output during test run
+    // JSON reporter useful for CI integrations
+    ...(process.env.CI ? [['json', { outputFile: 'test-results/results.json' }] as const] : []),
+  ],
+
+  // Shared settings for all the projects below
+  use: {
+    // Base URL to use in actions like `await page.goto('/')`
+    baseURL: `http://localhost:${NEXT_PORT}`,
+
+    // Collect trace: 'on-first-retry' captures trace when test fails and retries
+    // Use 'on' to always capture (slower) or 'retain-on-failure' to keep only failures
+    trace: process.env.TRACE ? 'on' : 'on-first-retry',
+
+    // Take screenshot on failure - captures full page screenshot
+    screenshot: 'only-on-failure',
+
+    // Record video on failure - useful for seeing what happened
+    video: 'on-first-retry',
+
+    // Viewport size for consistent screenshots
+    viewport: { width: 1280, height: 720 },
+
+    // Ignore HTTPS errors (for self-signed certs in development)
+    ignoreHTTPSErrors: true,
+
+    // Context options for better debugging
+    contextOptions: {
+      // Record HAR file for network debugging (optional, can be enabled per-test)
+      // recordHar: { path: 'test-results/network.har' },
+    },
+  },
+
+  // Timeouts
+  timeout: 30000, // 30 seconds per test
+  expect: {
+    timeout: 10000, // 10 seconds for expect assertions
+  },
+
+  // Configure projects for major browsers
+  projects: [
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        // Capture console logs for debugging
+        launchOptions: {
+          // Uncomment to see browser console in terminal
+          // args: ['--enable-logging'],
+        },
+      },
+    },
+    // Uncomment for cross-browser testing
+    // {
+    //   name: 'firefox',
+    //   use: { ...devices['Desktop Firefox'] },
+    // },
+    // {
+    //   name: 'webkit',
+    //   use: { ...devices['Desktop Safari'] },
+    // },
+  ],
+
+  // Web server configuration
+  // Start both wp-env (WordPress) and Next.js dev server before tests
+  // Set SKIP_WEB_SERVER=1 to skip if servers are already running externally
+  webServer: process.env.SKIP_WEB_SERVER ? undefined : [
+    // WordPress via wp-env
+    {
+      command: 'npm run wp-env:start',
+      url: `${WP_BASE_URL}/wp-admin/`,
+      reuseExistingServer: true, // Always reuse if already running
+      timeout: 180000, // 3 minutes for WordPress to start
+      stdout: 'pipe',
+      stderr: 'pipe',
+    },
+    // Next.js frontend
+    {
+      command: 'npm run dev',
+      url: `http://localhost:${NEXT_PORT}`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000, // 2 minutes to start
+      stdout: 'pipe',
+      stderr: 'pipe',
+      // Set WP_PORT environment variable for the Next.js server
+      env: {
+        WP_PORT,
+        WP_BASE_URL,
+        PORT: NEXT_PORT.toString(),
+        NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || WP_ENV_CONFIG.baseUrl,
+        NEXT_PUBLIC_CONSUMER_KEY: process.env.NEXT_PUBLIC_CONSUMER_KEY || WP_ENV_CONFIG.consumerKey,
+        NEXT_PUBLIC_CONSUMER_SECRET: process.env.NEXT_PUBLIC_CONSUMER_SECRET || WP_ENV_CONFIG.consumerSecret,
+      },
+    },
+  ],
+
+  // Output folder for test artifacts (screenshots, traces, videos)
+  outputDir: 'test-results',
+
+  // Preserve output on failure for debugging
+  preserveOutput: 'failures-only',
+});

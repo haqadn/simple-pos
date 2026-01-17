@@ -372,10 +372,8 @@ export default function CommandBar() {
   const handlePrint = useCallback(async (type: 'bill' | 'kot') => {
     if (!orderQuery.data) throw new Error('No active order');
 
-    // For bills, wait for mutations and use fresh data to ensure correct totals
-    const order = type === 'bill'
-      ? (await waitForMutationsRef.current?.()) ?? orderQuery.data
-      : orderQuery.data;
+    // Wait for mutations and use fresh data for both bill (correct totals) and KOT (change detection)
+    const order = (await waitForMutationsRef.current?.()) ?? orderQuery.data;
     const orderId = order.id;
     const shippingLine = order.shipping_lines?.find(s => s.method_title);
     const isTable = shippingLine?.method_id === 'pickup_location';
@@ -472,10 +470,14 @@ export default function CommandBar() {
     await printStore.push(type, printData);
 
     // Mark as printed in meta_data
+    // Preserve existing meta IDs to ensure WooCommerce updates rather than creates duplicates
     const metaKey = type === 'bill' ? 'last_bill_print' : 'last_kot_print';
+    const existingPrintMeta = order.meta_data.find(m => m.key === metaKey);
     const metaUpdates = [
       ...order.meta_data.filter(m => m.key !== metaKey && m.key !== 'last_kot_items'),
-      { key: metaKey, value: new Date().toISOString() }
+      existingPrintMeta?.id
+        ? { id: existingPrintMeta.id, key: metaKey, value: new Date().toISOString() }
+        : { key: metaKey, value: new Date().toISOString() }
     ];
 
     // For KOT, also save current items for next change detection (with names for removed item display)
@@ -485,7 +487,13 @@ export default function CommandBar() {
         const itemKey = `${item.product_id}-${item.variation_id}`;
         currentItems[itemKey] = { quantity: item.quantity, name: item.name };
       });
-      metaUpdates.push({ key: 'last_kot_items', value: JSON.stringify(currentItems) });
+      // Preserve existing last_kot_items id if it exists
+      const existingKotMeta = order.meta_data.find(m => m.key === 'last_kot_items');
+      if (existingKotMeta?.id) {
+        metaUpdates.push({ id: existingKotMeta.id, key: 'last_kot_items', value: JSON.stringify(currentItems) });
+      } else {
+        metaUpdates.push({ key: 'last_kot_items', value: JSON.stringify(currentItems) });
+      }
     }
 
     await OrdersAPI.updateOrder(orderId.toString(), {

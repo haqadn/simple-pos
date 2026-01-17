@@ -36,6 +36,7 @@ export interface DraftOrderState {
 const createEmptyDraft = (): OrderSchema => ({
   id: DRAFT_ORDER_ID,
   status: 'pending',
+  customer_id: 0,
   line_items: [],
   shipping_lines: [],
   coupon_lines: [],

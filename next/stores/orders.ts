@@ -12,7 +12,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { DRAFT_ORDER_ID } from "./draft-order";
 import { useDraftOrderState, useDraftOrderActions } from "@/hooks/useDraftOrderState";
 import { isSkipError } from "./utils/mutation-helpers";
-import { useCallback } from "react";
+import { useEffect } from "react";
 
 function generateOrderQueryKey(context: string, order?: OrderSchema, product?: ProductSchema) {
 	switch (context) {
@@ -100,6 +100,7 @@ export const useOrderQuery = ( orderId: number ) => {
 
 export const useCurrentOrder = () => {
 	const params = useParams();
+	const router = useRouter();
 	const orderId = params?.orderId as string | undefined;
 	const { draftOrder } = useDraftOrderState();
 
@@ -109,6 +110,12 @@ export const useCurrentOrder = () => {
 	// Use DRAFT_ORDER_ID for new orders or undefined orderId
 	const queryOrderId = isDraft || !orderId ? DRAFT_ORDER_ID : parseInt(orderId);
 	const orderQuery = useOrderQuery(queryOrderId);
+
+	useEffect(() => {
+		if (!isDraft && orderId && orderQuery.isSuccess && orderQuery.data === null) {
+			router.replace('/orders');
+		}
+	}, [isDraft, orderId, orderQuery.data, orderQuery.isSuccess, router]);
 
 	// If it's a draft order, override the query data with draft store data
 	if (isDraft || !orderId) {
@@ -312,15 +319,20 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 
 			// Also update React Query cache
 			const newOrderQueryData = { ...order };
-			const existingLineItem = newOrderQueryData.line_items.find(lineItem => lineItem.product_id === newLineItem.product_id && lineItem.variation_id === newLineItem.variation_id);
-			if ( existingLineItem ) {
-				existingLineItem.quantity = params.quantity;
+			const existingLineItemIdx = newOrderQueryData.line_items.findIndex(lineItem => lineItem.product_id === newLineItem.product_id && lineItem.variation_id === newLineItem.variation_id);
+			if ( existingLineItemIdx >= 0 ) {
+				if (params.quantity > 0) {
+					newOrderQueryData.line_items[existingLineItemIdx].quantity = params.quantity;
+				} else {
+					// Remove the item from the array when quantity is 0
+					newOrderQueryData.line_items = newOrderQueryData.line_items.filter((_, idx) => idx !== existingLineItemIdx);
+				}
 			} else if ( params.quantity > 0 ) {
 				newOrderQueryData.line_items = [ ...newOrderQueryData.line_items, newLineItem ];
 			}
 
 			queryClient.setQueryData(orderQueryKey, newOrderQueryData);
-			queryClient.setQueryData(lineItemKey, newLineItem);
+			queryClient.setQueryData(lineItemKey, params.quantity > 0 ? newLineItem : null);
 		},
 		onError: (err) => {
 			if (!isSkipError(err)) {
@@ -333,8 +345,23 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 			// (important when draft order was saved and ID changed from 0 to real ID)
 			const actualOrderKey = generateOrderQueryKey('detail', data);
 
-			// If order ID changed (draft was saved), always invalidate to ensure fresh data
+			// If order ID changed (draft was saved), set cache data immediately
+			// so the new order page has data before refetch completes
 			if (order && data.id !== order.id) {
+				// Set order data in cache for the new order ID
+				queryClient.setQueryData(actualOrderKey, data);
+
+				// Also set line item query data for each line item in the new order
+				// This ensures currentQuantity is correct after URL change
+				if (product) {
+					const newLineItem = data.line_items.find(
+						li => li.product_id === product.product_id && li.variation_id === product.variation_id
+					);
+					const newLineItemKey = generateOrderQueryKey('lineItem', data, product);
+					queryClient.setQueryData(newLineItemKey, newLineItem ?? null);
+				}
+
+				// Invalidate to ensure we also get any other server-side changes
 				queryClient.invalidateQueries({ queryKey: ['orders', data.id] });
 			} else if (lineItemsAreMutating <= 1) {
 				queryClient.setQueryData(actualOrderKey, data);

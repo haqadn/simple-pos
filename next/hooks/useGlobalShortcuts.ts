@@ -181,8 +181,15 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
     const handlePrintKot = useCallback(async () => {
         if (!orderQuery.data) return;
 
-        const orderId = orderQuery.data.id;
-        const printData = buildPrintData('kot');
+        // Wait for mutations and get fresh order data for accurate change detection
+        const freshOrder = await waitForMutationsRef.current?.();
+        if (!freshOrder) {
+            console.error('Failed to get fresh order data for KOT');
+            return;
+        }
+
+        const orderId = freshOrder.id;
+        const printData = buildPrintData('kot', freshOrder);
 
         // Queue the print job
         if (printData) {
@@ -191,7 +198,7 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
 
         // Store current items for next KOT change detection (with names for removed item display)
         const currentItems: Record<string, { quantity: number; name: string }> = {};
-        orderQuery.data.line_items.forEach(item => {
+        freshOrder.line_items.forEach(item => {
             const itemKey = `${item.product_id}-${item.variation_id}`;
             currentItems[itemKey] = { quantity: item.quantity, name: item.name };
         });
@@ -200,7 +207,7 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
         try {
             await OrdersAPI.updateOrder(orderId.toString(), {
                 meta_data: [
-                    ...orderQuery.data.meta_data.filter(m =>
+                    ...freshOrder.meta_data.filter(m =>
                         m.key !== 'last_kot_print' && m.key !== 'last_kot_items'
                     ),
                     { key: 'last_kot_print', value: new Date().toISOString() },
