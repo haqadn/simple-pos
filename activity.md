@@ -1,7 +1,7 @@
 # Activity Log
 
-Last updated: 2026-01-17T02:00:00Z
-Tasks completed: 5
+Last updated: 2026-01-17T03:00:00Z
+Tasks completed: 6
 Current task: None
 
 ---
@@ -142,3 +142,30 @@ Current task: None
 
 ### Commit
 - `feat: add CouponCard component to order page`
+
+---
+
+## [2026-01-17] - Task 6: Configure Dexie.js for offline storage
+
+### Changes Made
+- `/next/db/index.ts`:
+  - Created new Dexie database configuration file
+  - Defined `SimplePOSDatabase` class extending Dexie with:
+    - `orders` table with indexes: frontendId (primary), serverId, status, syncStatus, updatedAt
+    - `syncQueue` table with indexes: id (auto-increment), frontendId, nextRetryAt
+  - Created TypeScript interfaces:
+    - `SyncStatus` type: "local" | "syncing" | "synced" | "error"
+    - `OrderStatus` type: matching WooCommerce order statuses
+    - `LocalOrder` interface: full local order structure with frontendId, serverId, status, syncStatus, data (OrderSchema), timestamps, and sync error tracking
+    - `SyncQueueEntry` interface: for retry logic with exponential backoff
+  - Created helper functions:
+    - `createLocalOrder()`: factory function to create new local orders with defaults
+    - `calculateNextRetryTime()`: implements exponential backoff (30s, 1m, 2m, 5m, 10m max)
+  - Exported singleton `db` instance for use throughout application
+
+### Verification
+- `npm run build` - Completed successfully with no errors
+- `npm run lint` - No ESLint warnings or errors
+
+### Commit
+- `chore: configure Dexie.js for offline storage`

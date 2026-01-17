@@ -81,7 +81,7 @@ Enhance Simple POS with configurable payment methods, coupon validation card, of
       "Define orders, syncQueue tables schema",
       "Create TypeScript interfaces for LocalOrder"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 7,
