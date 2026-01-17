@@ -52,3 +52,28 @@ Current task: None
 
 ### Commit
 - `feat: add Payment Methods tab to settings modal`
+
+---
+
+## [2026-01-17] - Task 3: Update payment-card.tsx to use configurable payment methods
+
+### Changes Made
+- `/next/app/orders/[orderId]/components/payment-card.tsx`:
+  - Imported `useSettingsStore` from settings store
+  - Removed hardcoded `ADDITIONAL_METHODS` array
+  - Added `paymentMethods` from settings store: `useSettingsStore(state => state.paymentMethods)`
+  - Changed `PaymentAmounts` from fixed interface to dynamic type: `{ cash: number } & Record<string, number>`
+  - Updated `activeAdditionalMethods` to use `Set<string>` instead of `Set<PaymentMethodKey>`
+  - Refactored `storedPayments` parsing to dynamically detect active methods from any key
+  - Updated `totalReceived` calculation to use `Object.values(payments).reduce()` for dynamic summing
+  - Updated `savePayments` total calculation to dynamically sum all payment amounts
+  - Changed handler functions (`handlePaymentChange`, `handleAddMethod`, `handleRemoveMethod`) to use `string` type
+  - Updated `availableMethods` to filter from `paymentMethods` instead of `ADDITIONAL_METHODS`
+  - Refactored additional payment methods rendering to iterate over `activeAdditionalMethods` with fallback for legacy methods
+
+### Verification
+- `npm run build` - Completed successfully with no errors
+- `npm run lint` - No ESLint warnings or errors
+
+### Commit
+- `feat: update payment-card to use configurable payment methods`

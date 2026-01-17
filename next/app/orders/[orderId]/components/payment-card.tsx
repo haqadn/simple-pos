@@ -6,22 +6,10 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import OrdersAPI from "@/api/orders";
 import { formatCurrency } from "@/lib/format";
+import { useSettingsStore } from "@/stores/settings";
 
-// Payment methods that can be added
-const ADDITIONAL_METHODS = [
-    { key: 'bkash', label: 'bKash' },
-    { key: 'nagad', label: 'Nagad' },
-    { key: 'card', label: 'Card' },
-] as const;
-
-type PaymentMethodKey = 'cash' | typeof ADDITIONAL_METHODS[number]['key'];
-
-interface PaymentAmounts {
-    cash: number;
-    bkash?: number;
-    nagad?: number;
-    card?: number;
-}
+// PaymentAmounts is now dynamic: cash is always present, other keys come from settings
+type PaymentAmounts = { cash: number } & Record<string, number>;
 
 export default function PaymentCard() {
     const orderQuery = useCurrentOrder();
@@ -30,9 +18,12 @@ export default function PaymentCard() {
     const [paymentQuery, , paymentIsMutating] = usePaymentQuery(orderQuery);
     const [isRemovingCoupon, setIsRemovingCoupon] = useState(false);
 
+    // Get configurable payment methods from settings
+    const paymentMethods = useSettingsStore(state => state.paymentMethods);
+
     // Local state for split payments
     const [payments, setPayments] = useState<PaymentAmounts>({ cash: 0 });
-    const [activeAdditionalMethods, setActiveAdditionalMethods] = useState<Set<PaymentMethodKey>>(new Set());
+    const [activeAdditionalMethods, setActiveAdditionalMethods] = useState<Set<string>>(new Set());
 
     // Parse stored payment data from meta_data
     const storedPayments = useMemo((): PaymentAmounts => {
@@ -52,20 +43,19 @@ export default function PaymentCard() {
     // Sync local state with stored data
     useEffect(() => {
         setPayments(storedPayments);
-        // Set active methods based on stored payments
-        const activeMethods = new Set<PaymentMethodKey>();
-        if (storedPayments.bkash && storedPayments.bkash > 0) activeMethods.add('bkash');
-        if (storedPayments.nagad && storedPayments.nagad > 0) activeMethods.add('nagad');
-        if (storedPayments.card && storedPayments.card > 0) activeMethods.add('card');
+        // Set active methods based on stored payments (dynamically check all non-cash keys)
+        const activeMethods = new Set<string>();
+        for (const key of Object.keys(storedPayments)) {
+            if (key !== 'cash' && storedPayments[key] > 0) {
+                activeMethods.add(key);
+            }
+        }
         setActiveAdditionalMethods(activeMethods);
     }, [storedPayments]);
 
-    // Calculate total received
+    // Calculate total received (sum all payment amounts dynamically)
     const totalReceived = useMemo(() => {
-        return (payments.cash || 0) +
-               (payments.bkash || 0) +
-               (payments.nagad || 0) +
-               (payments.card || 0);
+        return Object.values(payments).reduce((sum, amount) => sum + (amount || 0), 0);
     }, [payments]);
 
     // Save payments to meta_data
@@ -76,11 +66,8 @@ export default function PaymentCard() {
         const orderQueryKey = ['orders', orderId, 'detail'];
         const currentOrder = queryClient.getQueryData<typeof orderData>(orderQueryKey) || orderData;
 
-        // Calculate total for legacy compatibility
-        const total = (newPayments.cash || 0) +
-                      (newPayments.bkash || 0) +
-                      (newPayments.nagad || 0) +
-                      (newPayments.card || 0);
+        // Calculate total for legacy compatibility (sum all payment amounts dynamically)
+        const total = Object.values(newPayments).reduce((sum, amount) => sum + (amount || 0), 0);
 
         // Update meta_data
         const metaData = currentOrder.meta_data.filter(
@@ -102,19 +89,19 @@ export default function PaymentCard() {
     }, [orderData, queryClient]);
 
     // Handle payment amount change
-    const handlePaymentChange = useCallback((method: PaymentMethodKey, value: number) => {
+    const handlePaymentChange = useCallback((method: string, value: number) => {
         const newPayments = { ...payments, [method]: value };
         setPayments(newPayments);
         savePayments(newPayments);
     }, [payments, savePayments]);
 
     // Add a payment method
-    const handleAddMethod = useCallback((method: PaymentMethodKey) => {
+    const handleAddMethod = useCallback((method: string) => {
         setActiveAdditionalMethods(prev => new Set([...prev, method]));
     }, []);
 
     // Remove a payment method
-    const handleRemoveMethod = useCallback((method: PaymentMethodKey) => {
+    const handleRemoveMethod = useCallback((method: string) => {
         setActiveAdditionalMethods(prev => {
             const next = new Set(prev);
             next.delete(method);
@@ -151,7 +138,7 @@ export default function PaymentCard() {
     const isPaid = totalReceived >= total && total > 0;
 
     // Available methods to add (ones not already active)
-    const availableMethods = ADDITIONAL_METHODS.filter(
+    const availableMethods = paymentMethods.filter(
         m => !activeAdditionalMethods.has(m.key)
     );
 
@@ -243,7 +230,7 @@ export default function PaymentCard() {
                                         </DropdownTrigger>
                                         <DropdownMenu
                                             aria-label="Add payment method"
-                                            onAction={(key) => handleAddMethod(key as PaymentMethodKey)}
+                                            onAction={(key) => handleAddMethod(key as string)}
                                         >
                                             {availableMethods.map(method => (
                                                 <DropdownItem key={method.key}>
@@ -275,19 +262,21 @@ export default function PaymentCard() {
                         </td>
                     </tr>
 
-                    {/* Additional payment methods */}
-                    {ADDITIONAL_METHODS.map(method =>
-                        activeAdditionalMethods.has(method.key) && (
-                            <tr key={method.key}>
+                    {/* Additional payment methods (from settings + any legacy methods with values) */}
+                    {Array.from(activeAdditionalMethods).map(methodKey => {
+                        // Find the method in settings, or create a fallback for legacy methods
+                        const method = paymentMethods.find(m => m.key === methodKey) || { key: methodKey, label: methodKey };
+                        return (
+                            <tr key={methodKey}>
                                 <td className="pr-4 text-sm w-3/5">
                                     <span className="flex items-center gap-1">
                                         {method.label}
                                         <button
-                                            onClick={() => handleRemoveMethod(method.key)}
+                                            onClick={() => handleRemoveMethod(methodKey)}
                                             className="text-gray-400 hover:text-red-500 text-xs"
                                             aria-label={`Remove ${method.label}`}
                                         >
-                                            ✕
+                                            x
                                         </button>
                                     </span>
                                 </td>
@@ -297,11 +286,11 @@ export default function PaymentCard() {
                                         type="number"
                                         step={1}
                                         min={0}
-                                        value={payments[method.key] === 0 ? '' : (payments[method.key] || '').toString()}
+                                        value={payments[methodKey] === 0 ? '' : (payments[methodKey] || '').toString()}
                                         onValueChange={(v) => {
                                             const num = Number(v);
                                             if (!isNaN(num) && num >= 0) {
-                                                handlePaymentChange(method.key, num);
+                                                handlePaymentChange(methodKey, num);
                                             }
                                         }}
                                         aria-label={`${method.label} amount`}
@@ -309,8 +298,8 @@ export default function PaymentCard() {
                                     />
                                 </td>
                             </tr>
-                        )
-                    )}
+                        );
+                    })}
 
                     {/* Total received - only when using multiple payment methods */}
                     {activeAdditionalMethods.size > 0 && (

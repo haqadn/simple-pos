@@ -44,7 +44,7 @@ Enhance Simple POS with configurable payment methods, coupon validation card, of
       "Update PaymentAmounts interface to use dynamic keys",
       "Update split_payments serialization for dynamic methods"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 4,
