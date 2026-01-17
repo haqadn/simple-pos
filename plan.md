@@ -114,7 +114,7 @@ Make the API credentials flow production-ready by removing hardcoded credentials
       "Document the first-run setup flow",
       "Verify end-to-end developer experience works"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 9,

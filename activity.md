@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-17
-Tasks completed: 7
+Tasks completed: 8
 Current task: None
 
 ---
@@ -170,3 +170,25 @@ Current task: None
 
 ### Commit
 - feat: create development setup script
+
+---
+
+## 2026-01-17 - Task 8: Add npm script and update documentation
+
+### Changes Made
+- Modified `/next/package.json` to add `dev:setup` npm script pointing to `scripts/dev-setup.js`
+- Updated `/CLAUDE.md` with:
+  - Added `npm run dev:setup` to Development Commands section
+  - Added new "Quick Start (New Developers)" section with simplified setup steps
+  - Documented what the `dev:setup` script does (5 steps)
+  - Added `--force` flag documentation
+  - Added new "First-Run Setup (Production)" section documenting the Setup Modal behavior
+
+### Verification
+- Ran `npm run build` - compiles successfully with no errors
+- Ran `npm run lint` - no ESLint warnings or errors
+- Verified `npm run --list | grep dev:setup` shows the script is available
+- Documentation clearly explains both development setup (via script) and production first-run (via Setup Modal)
+
+### Commit
+- docs: add dev:setup npm script and update documentation

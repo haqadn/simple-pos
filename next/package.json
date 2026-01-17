@@ -11,6 +11,7 @@
     "electron:dev": "node scripts/electron-dev.js",
     "electron:build": "next build && electron-builder",
     "electron:start": "electron .",
+    "dev:setup": "node scripts/dev-setup.js",
     "wp-env": "wp-env",
     "wp-env:start": "wp-env start",
     "wp-env:stop": "wp-env stop",

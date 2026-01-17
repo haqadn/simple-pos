@@ -17,10 +17,29 @@ The ultimate goal is to package the Next.js frontend into an Electron app for Wi
 ```bash
 cd next
 npm install
+npm run dev:setup    # One-time setup: starts wp-env and configures credentials
 npm run dev          # Development server with Turbopack
 npm run build        # Production build
 npm run lint         # Next.js linting
 ```
+
+### Quick Start (New Developers)
+
+```bash
+cd next
+npm install
+npm run dev:setup    # Starts wp-env and generates API credentials
+npm run dev          # Start the Next.js dev server
+```
+
+The `dev:setup` script:
+1. Starts wp-env if not already running
+2. Waits for WordPress to be ready
+3. Generates WooCommerce API credentials
+4. Saves credentials to `.env.local`
+5. Prints WordPress admin login details
+
+Use `npm run dev:setup -- --force` to regenerate credentials.
 
 ### WordPress Backend (wp-env)
 ```bash
@@ -33,6 +52,16 @@ The wp-env configuration is in `/next/.wp-env.json` and automatically:
 - Installs WooCommerce
 - Loads the Simple POS plugin from the parent directory
 - Configures WooCommerce settings for testing
+
+### First-Run Setup (Production)
+
+When the app loads without configured credentials, a blocking **Setup Modal** appears:
+- Requires WooCommerce site URL and API credentials
+- Includes "Test Connection" button to validate credentials before saving
+- Provides link to WooCommerce API keys page
+- Cannot be dismissed until valid credentials are saved
+
+Credentials are stored in browser localStorage and persist across sessions.
 
 ## Architecture
 
