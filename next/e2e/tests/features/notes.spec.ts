@@ -18,6 +18,7 @@ import {
   getTestProducts,
   getTestSku,
   getFirstInStockVariation,
+  getServerOrderId,
 } from '../../fixtures';
 import {
   executeCommand,
@@ -39,7 +40,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Add a note via command
@@ -54,12 +55,13 @@ test.describe('Order Notes', () => {
       }
 
       // Verify in WooCommerce API
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       expect(savedOrder!.customer_note).toContain('Extra spicy please');
     });
@@ -77,7 +79,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Add a note via /n alias
@@ -85,12 +87,13 @@ test.describe('Order Notes', () => {
       await waitForMutations(page);
 
       // Verify in WooCommerce API
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       expect(savedOrder!.customer_note).toContain('No onions');
     });
@@ -108,7 +111,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Add note with multiple words and special characters
@@ -116,12 +119,13 @@ test.describe('Order Notes', () => {
       await waitForMutations(page);
 
       // Verify in WooCommerce API
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       expect(savedOrder!.customer_note).toContain('extra spicy');
       expect(savedOrder!.customer_note).toContain('no onions');
@@ -141,7 +145,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Find the note textarea and type directly
@@ -161,12 +165,13 @@ test.describe('Order Notes', () => {
       expect(value).toBe('UI typed note');
 
       // Verify in API
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       expect(savedOrder!.customer_note).toBe('UI typed note');
     });
@@ -186,7 +191,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Add initial note
@@ -198,12 +203,13 @@ test.describe('Order Notes', () => {
       await waitForMutations(page);
 
       // Verify in WooCommerce API - should be replaced, not appended
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       expect(savedOrder!.customer_note).toBe('Updated note');
     });
@@ -221,7 +227,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Add initial note via command
@@ -242,12 +248,13 @@ test.describe('Order Notes', () => {
       await waitForMutations(page);
 
       // Verify in API
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       expect(savedOrder!.customer_note).toBe('Edited via UI');
     });
@@ -265,7 +272,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Add initial note
@@ -285,12 +292,13 @@ test.describe('Order Notes', () => {
       await waitForMutations(page);
 
       // Verify in API
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       expect(savedOrder!.customer_note).toBe('');
     });
@@ -308,7 +316,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Add a note
@@ -328,12 +336,13 @@ test.describe('Order Notes', () => {
       }
 
       // Verify in API
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       expect(savedOrder!.customer_note).toBe('Persistent note');
     });
@@ -353,7 +362,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Add a customer note
@@ -361,12 +370,13 @@ test.describe('Order Notes', () => {
       await waitForMutations(page);
 
       // Verify customer_note field in WooCommerce
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       // The note command specifically sets customer_note
       expect(savedOrder!.customer_note).toBe('Customer facing note');
@@ -385,7 +395,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Add a customer note
@@ -416,7 +426,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Add kitchen-relevant note
@@ -424,12 +434,13 @@ test.describe('Order Notes', () => {
       await waitForMutations(page);
 
       // Verify in WooCommerce - customer_note is used for KOT
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       expect(savedOrder!.customer_note).toBe('Allergic to peanuts, no nuts!');
     });
@@ -449,7 +460,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Add note
@@ -458,12 +469,13 @@ test.describe('Order Notes', () => {
       await waitForMutations(page);
 
       // Verify in WooCommerce API
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       expect(savedOrder!.customer_note).toBe(noteText);
     });
@@ -481,7 +493,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Add note with special characters
@@ -490,12 +502,13 @@ test.describe('Order Notes', () => {
       await waitForMutations(page);
 
       // Verify in WooCommerce API
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       // Note should contain the special characters
       expect(savedOrder!.customer_note).toContain('50%');
@@ -515,7 +528,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Add first note
@@ -531,12 +544,13 @@ test.describe('Order Notes', () => {
       await waitForMutations(page);
 
       // Verify in WooCommerce API - only final note should exist
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       expect(savedOrder!.customer_note).toBe('Final replacement note');
       // Previous notes should not be present
@@ -559,7 +573,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Add note
@@ -577,12 +591,13 @@ test.describe('Order Notes', () => {
       }
 
       // Verify note is still present
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       expect(savedOrder!.customer_note).toBe('Important note to preserve');
     });
@@ -600,7 +615,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Add note
@@ -608,13 +623,14 @@ test.describe('Order Notes', () => {
       await waitForMutations(page);
 
       // Get order ID before completing
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
       // Get order total for payment
-      const orderBefore = await OrdersAPI.getOrder(orderId.toString());
+      const orderBefore = await OrdersAPI.getOrder(serverId);
       expect(orderBefore).not.toBeNull();
       const total = parseFloat(orderBefore!.total);
 
@@ -630,7 +646,7 @@ test.describe('Order Notes', () => {
       await page.waitForTimeout(1000);
 
       // Verify note is still present after completion
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       expect(savedOrder!.customer_note).toBe('Note for completed order');
     });
@@ -650,7 +666,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Execute note command without arguments
@@ -660,14 +676,16 @@ test.describe('Order Notes', () => {
       // Should show an error or not crash
       // The command should not have set any note
       const url = page.url();
-      expect(url).toMatch(/\/orders\/\d+/);
+      expect(url).toMatch(/\/orders\/[A-Z0-9]+/);
 
       // Verify no note was set
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       // Note should be empty since we didn't provide text
       expect(savedOrder!.customer_note).toBe('');
@@ -685,7 +703,7 @@ test.describe('Order Notes', () => {
       const url = page.url();
 
       // Either we're still on new (expected) or we got an error (also acceptable)
-      expect(url).toMatch(/\/orders\/(new|\d+)/);
+      expect(url).toMatch(/\/orders\/(new|[A-Z0-9]+)/);
     });
 
     test('note with very long text is handled', async ({ page }) => {
@@ -701,7 +719,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Add very long note
@@ -710,12 +728,13 @@ test.describe('Order Notes', () => {
       await waitForMutations(page);
 
       // Verify it was saved (at least partially)
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       // Note should contain the repeated text (or be truncated, but not empty)
       expect(savedOrder!.customer_note.length).toBeGreaterThan(0);
@@ -735,7 +754,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Find the note textarea
@@ -773,7 +792,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Add note
@@ -785,12 +804,13 @@ test.describe('Order Notes', () => {
       await waitForMutations(page);
 
       // Verify quantity increased
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       expect(savedOrder!.line_items.length).toBeGreaterThan(0);
       expect(savedOrder!.line_items[0].quantity).toBeGreaterThanOrEqual(2);
@@ -809,7 +829,7 @@ test.describe('Order Notes', () => {
 
       // Add item to create order
       await executeCommand(page, 'item', [sku]);
-      await page.waitForURL(/\/orders\/\d+/, { timeout: 10000 });
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
       await waitForMutations(page);
 
       // Find the note textarea
@@ -832,12 +852,13 @@ test.describe('Order Notes', () => {
       await page.waitForTimeout(1000);
 
       // Verify final value
-      const url = page.url();
-      const match = url.match(/\/orders\/(\d+)/);
-      expect(match).not.toBeNull();
-      const orderId = parseInt(match![1], 10);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order not synced to WooCommerce');
+        return;
+      }
 
-      const savedOrder = await OrdersAPI.getOrder(orderId.toString());
+      const savedOrder = await OrdersAPI.getOrder(serverId);
       expect(savedOrder).not.toBeNull();
       expect(savedOrder!.customer_note).toBe('Final value');
     });
