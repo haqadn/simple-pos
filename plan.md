@@ -63,7 +63,7 @@ Make the API credentials flow production-ready by removing hardcoded credentials
       "On save, call updateApi and close modal",
       "Style consistently with existing app design"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 5,

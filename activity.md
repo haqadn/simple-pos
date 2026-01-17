@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-17
-Tasks completed: 3
+Tasks completed: 4
 Current task: None
 
 ---
@@ -66,5 +66,29 @@ Current task: None
 
 ### Commit
 - feat: extract ApiConfigSection to shared component with test connection support
+
+---
+
+## 2026-01-17 - Task 4: Create SetupModal component for first-run experience
+
+### Changes Made
+- Created `/next/app/components/setup-modal.tsx` - new blocking modal component for first-run API configuration
+- Component features:
+  - Full-page blocking modal using HeroUI Modal with `isDismissable={false}` and `hideCloseButton={true}`
+  - Integrates `ApiConfigSection` for credential input
+  - Integrates `useTestConnection` hook for credential validation
+  - "Save & Continue" button only enabled after successful connection test (`status === 'success'`)
+  - Resets connection status when credentials are changed (to require re-testing)
+  - Header with settings icon and clear setup instructions
+  - Calls `updateApi` to save credentials and `onSetupComplete` callback on successful save
+
+### Verification
+- Ran `npm run build` - compiles successfully with no TypeScript errors
+- Ran `npm run lint` - no ESLint warnings or errors
+- Component follows existing patterns (similar Modal structure to SettingsModal)
+- UI design follows PRD.md specification with non-closable modal and test-before-save flow
+
+### Commit
+- feat: create SetupModal component for first-run experience
 
 ---
