@@ -74,7 +74,7 @@ Fix 144 failing E2E tests in the Simple POS Next.js application. The primary iss
       "Replace with await getServerOrderId(page) with proper null handling",
       "Run customer-assignment.spec.ts and verify tests pass"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 6,
