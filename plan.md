@@ -88,7 +88,7 @@ Make the API credentials flow production-ready by removing hardcoded credentials
       "Allow users to test connection when editing credentials",
       "Show connection status in the API tab"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 7,

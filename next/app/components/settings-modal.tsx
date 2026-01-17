@@ -17,6 +17,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, Delete02Icon } from '@hugeicons/core-free-icons';
 import { useSettingsStore, type PageShortcut, type ApiConfig, type PaymentMethodConfig } from '@/stores/settings';
 import { useCategoriesQuery } from '@/stores/products';
+import { useTestConnection } from '@/hooks';
 import { PrinterSettingsTab } from './settings/PrinterSettingsTab';
 import { PaymentMethodsTab } from './settings/PaymentMethodsTab';
 import { ApiConfigSection } from './settings/ApiConfigSection';
@@ -173,6 +174,23 @@ export function SettingsModal({ isOpen, onOpenChange }: SettingsModalProps) {
   const [localShortcuts, setLocalShortcuts] = useState<PageShortcut[]>(pageShortcuts);
   const [localPaymentMethods, setLocalPaymentMethods] = useState<PaymentMethodConfig[]>(paymentMethods);
 
+  // Connection test hook for API credentials
+  const { test: testConnection, status: connectionStatus, error: connectionError, reset: resetConnection } = useTestConnection();
+
+  // Handler for test connection button
+  const handleTestConnection = async () => {
+    return await testConnection(localApi);
+  };
+
+  // Handler for API config changes - resets connection status when credentials change
+  const handleApiChange = (newApi: ApiConfig) => {
+    setLocalApi(newApi);
+    // Reset connection status when user changes credentials
+    if (connectionStatus !== 'idle') {
+      resetConnection();
+    }
+  };
+
   // Reset local state when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -180,8 +198,10 @@ export function SettingsModal({ isOpen, onOpenChange }: SettingsModalProps) {
       setLocalSkipCategories(skipKotCategories);
       setLocalShortcuts(pageShortcuts);
       setLocalPaymentMethods(paymentMethods);
+      // Reset connection status when modal opens
+      resetConnection();
     }
-  }, [isOpen, api, skipKotCategories, pageShortcuts, paymentMethods]);
+  }, [isOpen, api, skipKotCategories, pageShortcuts, paymentMethods, resetConnection]);
 
   const handleSave = (onClose: () => void) => {
     // Save API config
@@ -254,7 +274,10 @@ export function SettingsModal({ isOpen, onOpenChange }: SettingsModalProps) {
                   <div className="py-4">
                     <ApiConfigSection
                       localApi={localApi}
-                      setLocalApi={setLocalApi}
+                      setLocalApi={handleApiChange}
+                      onTestConnection={handleTestConnection}
+                      connectionStatus={connectionStatus}
+                      connectionError={connectionError ?? undefined}
                     />
                   </div>
                 </Tab>

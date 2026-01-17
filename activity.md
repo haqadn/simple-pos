@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-17
-Tasks completed: 5
+Tasks completed: 6
 Current task: None
 
 ---
@@ -118,3 +118,26 @@ Current task: None
 - feat: integrate SetupModal at app root level
 
 ---
+
+## 2026-01-17 - Task 6: Add test connection functionality to existing SettingsModal
+
+### Changes Made
+- Verified functionality was already implemented by previous workers:
+  - `/next/app/components/settings-modal.tsx` already imports `useTestConnection` from `@/hooks` (line 20)
+  - Hook is initialized on line 178 with `test`, `status`, `error`, and `reset` functions
+  - Handler `handleTestConnection` wraps the test function (lines 181-183)
+  - Handler `handleApiChange` resets connection status when credentials change (lines 186-192)
+  - Props are passed to `ApiConfigSection` (lines 277-280): `onTestConnection`, `connectionStatus`, `connectionError`
+  - Connection status is reset when modal opens (line 202)
+
+### Verification
+- Ran `npm run build` - compiles successfully with no TypeScript errors
+- Code review confirmed all task requirements are met:
+  1. useTestConnection imported in settings-modal.tsx
+  2. Connection test props passed to ApiConfigSection
+  3. Test Connection button appears in API tab (when `onTestConnection` prop is provided)
+  4. Status indicator shows idle/testing/success/error states
+  5. Error message displays in styled container
+
+### Commit
+- No code changes needed - task was verification only (implementation already complete)
