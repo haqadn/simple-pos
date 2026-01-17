@@ -635,3 +635,36 @@ Verified the fix in `/Users/adnan/Projects/simple-pos-e2e/next/commands/command-
 
 ### Commit
 - No new commit needed - fix was already committed as `046b67c`
+
+---
+
+## [2026-01-17] - Task 3: Fix KOT change detection on subsequent prints
+
+### Changes Made
+- No new code changes required - fix was already implemented in a previous session
+- Verified code changes are in place across three files:
+  1. `/Users/adnan/Projects/simple-pos-e2e/next/app/components/command-bar.tsx` (line 381-382)
+     - Changed to wait for mutations for both 'bill' AND 'kot' types
+     - `const order = (await waitForMutationsRef.current?.()) ?? orderQuery.data;`
+  2. `/Users/adnan/Projects/simple-pos-e2e/next/hooks/useGlobalShortcuts.ts` (lines 184-192)
+     - Modified handlePrintKot() to wait for mutations and use fresh order data
+     - `const freshOrder = await waitForMutationsRef.current?.();`
+  3. `/Users/adnan/Projects/simple-pos-e2e/next/app/orders/[orderId]/components/buttons.tsx` (lines 174-182)
+     - Same pattern - wait for mutations before KOT print
+
+### Root Cause
+The bug occurred because KOT printing used `orderQuery.data` which is React Query's cached data. When items were added/modified between KOT prints, the cached data might be stale. The `last_kot_items` meta was being saved with stale quantities, causing incorrect change detection on subsequent prints.
+
+### Verification
+1. TypeScript compilation: `npx tsc --noEmit` - passed with no errors
+2. Playwright test listing: `npx playwright test --list` shows test at line 684 is present
+3. Code review confirmed all three files now properly wait for fresh data before KOT operations
+4. Docker/wp-env not accessible in sandbox - E2E runtime test cannot be executed
+
+**NOTE**: E2E test verification requires Docker/wp-env which is not available in this environment. When wp-env is available, run:
+```bash
+npx playwright test print-command.spec.ts:684
+```
+
+### Commit
+- No new commit needed - fix was implemented in previous session
