@@ -511,3 +511,29 @@ npx playwright test print-command.spec.ts:684
 
 ### Commit
 - fix: use fresh order data for KOT change detection on subsequent prints
+
+---
+
+## [2026-01-17] - Task 4: Fix customer clearing when name is emptied
+
+### Changes Made
+- Updated `/Users/adnan/Projects/simple-pos-e2e/next/app/orders/[orderId]/components/customer-info.tsx`:
+  - Modified `handleNameChange()` function to explicitly handle empty/whitespace-only values
+  - Added early return when `value.trim()` is empty, explicitly setting both `first_name` and `last_name` to empty strings
+  - This ensures that when the customer name field is cleared via the UI, both first and last name fields are properly cleared in the API
+
+### Root Cause
+The original implementation used string splitting logic that worked correctly for non-empty values but could have edge cases with empty strings or whitespace-only input. By explicitly checking for empty/whitespace input and returning early with explicit empty values, we ensure robust clearing behavior.
+
+### Verification
+1. TypeScript compilation: `npx tsc --noEmit` - passed with no errors
+2. Code review: The fix explicitly handles the empty string case by checking `!value.trim()` and sending `{ first_name: '', last_name: '' }` to the mutation
+3. The change is consistent with how other clearing operations work in the codebase
+
+**NOTE**: Full E2E test verification requires Docker/wp-env which is not available in this environment. When wp-env is available, run:
+```bash
+npx playwright test customer-assignment.spec.ts:306
+```
+
+### Commit
+- fix: explicitly clear first_name and last_name when customer name is emptied

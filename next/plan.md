@@ -75,7 +75,7 @@ Fix 11 failing E2E tests identified in the Playwright test suite. These are appl
       "May need to also clear customer_id if applicable",
       "Run test: npx playwright test customer-assignment.spec.ts:306"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 5,

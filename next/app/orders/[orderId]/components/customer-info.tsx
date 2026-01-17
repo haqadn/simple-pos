@@ -22,16 +22,27 @@ export default function CustomerInfo() {
 
     const handleNameChange = (value: string) => {
         setLocalName(value);
-        
+
+        // If value is empty, explicitly clear both first_name and last_name
+        if (!value.trim()) {
+            customerInfoMutation.mutate({
+                billing: {
+                    first_name: '',
+                    last_name: ''
+                }
+            });
+            return;
+        }
+
         // Split the name and update the backend
         const [firstName, ...lastNameParts] = value.split(' ');
         const lastName = lastNameParts.join(' ');
-        
-        customerInfoMutation.mutate({ 
-            billing: { 
+
+        customerInfoMutation.mutate({
+            billing: {
                 first_name: firstName || '',
                 last_name: lastName || ''
-            } 
+            }
         });
     };
 
