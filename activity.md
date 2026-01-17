@@ -1,7 +1,7 @@
 # Activity Log
 
-Last updated: 2026-01-17T00:30:00Z
-Tasks completed: 2
+Last updated: 2026-01-17T02:00:00Z
+Tasks completed: 5
 Current task: None
 
 ---
@@ -77,3 +77,37 @@ Current task: None
 
 ### Commit
 - `feat: update payment-card to use configurable payment methods`
+
+---
+
+## [2026-01-17] - Task 4: Create coupon validation API hook
+
+### Changes Made
+- `/next/api/coupons.ts`:
+  - Added `CouponSchema` Zod schema with all WooCommerce coupon fields (id, code, amount, discount_type, minimum_amount, maximum_amount, product_ids, product_categories, usage_limit, usage_count, free_shipping, etc.)
+  - Added `CouponValidationResult` interface with isValid, coupon, summary, and error fields
+  - Added `generateCouponSummary()` function that creates human-readable discount descriptions:
+    - Handles percent, fixed_cart, and fixed_product discount types
+    - Shows scope (entire order, selected products, selected categories)
+    - Shows minimum order requirements and maximum discount caps
+    - Shows free shipping and usage limit information
+  - Added `validateCoupon()` function that checks coupon validity (status, expiration, usage limits)
+  - Added `getCouponByCode()` static method to fetch and validate coupons from WooCommerce API
+- `/next/stores/coupons.ts`:
+  - Created `CouponValidationStatus` type (idle, validating, valid, invalid, error)
+  - Created `UseCouponValidationReturn` interface for hook return type
+  - Created `useCouponValidation()` hook with:
+    - Debounced validation (default 500ms delay)
+    - TanStack Query for caching (30 second stale time)
+    - Status tracking (idle, validating, valid, invalid, error)
+    - Error handling for network errors and invalid coupons
+    - Methods: setCode, clear, validate
+    - Returns: code, status, result, coupon, summary, error, isLoading
+  - Created `generateCouponQueryKey()` helper function
+
+### Verification
+- `npm run build` - Completed successfully with no errors
+- `npm run lint` - No ESLint warnings or errors
+
+### Commit
+- `feat: add coupon validation API hook`

@@ -57,7 +57,7 @@ Enhance Simple POS with configurable payment methods, coupon validation card, of
       "Parse coupon to generate human-readable discount summary",
       "Handle API errors gracefully (invalid code, network error)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 5,
