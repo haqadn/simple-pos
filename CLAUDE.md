@@ -22,12 +22,17 @@ npm run build        # Production build
 npm run lint         # Next.js linting
 ```
 
-### WordPress Backend (for API testing)
+### WordPress Backend (wp-env)
 ```bash
-cp .env.example .env
-composer install
-docker-compose up -d
+cd next
+npm run wp-env:start   # Start WordPress environment (port 8888)
+npm run wp-env:stop    # Stop WordPress environment
 ```
+
+The wp-env configuration is in `/next/.wp-env.json` and automatically:
+- Installs WooCommerce
+- Loads the Simple POS plugin from the parent directory
+- Configures WooCommerce settings for testing
 
 ## Architecture
 
