@@ -1,8 +1,8 @@
 # Activity Log
 
 Last updated: 2026-01-17
-Tasks completed: 2
-Current task: Task 2
+Tasks completed: 3
+Current task: Task 3
 
 ---
 
@@ -119,5 +119,72 @@ This ensures that even if the new command fails, we still exit multi-mode becaus
 
 ### Commit
 fix: exit multi-input mode when switching to different command even if command fails
+
+---
+
+## [2026-01-17] - Task 3: Fix KOT change detection on subsequent prints
+
+### Status: CODE FIX APPLIED - TEST BLOCKED BY SANDBOX
+
+### Analysis
+Identified the root cause of the bug:
+
+**Problem**: When printing KOT multiple times, the `last_kot_items` meta was not being updated correctly on subsequent prints. The test expected that after changing item quantity and printing again, `last_kot_items` would reflect the new quantity.
+
+**Root Cause** in `command-bar.tsx` `handlePrint()`:
+1. WooCommerce REST API meta_data behavior: To UPDATE an existing meta field, you must include its `id`
+2. If you omit the `id`, WooCommerce creates a NEW meta field with the same key
+3. The original code filtered out existing meta entries and added new ones WITHOUT preserving their IDs
+4. Result: Multiple `last_kot_items` entries created, with `.find()` potentially returning the old one
+
+**Code Before Fix (line 481-492)**:
+```javascript
+const metaUpdates = [
+  ...order.meta_data.filter(m => m.key !== metaKey && m.key !== 'last_kot_items'),
+  { key: metaKey, value: new Date().toISOString() }  // No id - creates duplicate!
+];
+// ...
+metaUpdates.push({ key: 'last_kot_items', value: JSON.stringify(currentItems) });  // No id - creates duplicate!
+```
+
+### Fix Applied
+Modified `command-bar.tsx` `handlePrint()` to:
+1. Find existing `last_bill_print` / `last_kot_print` meta entry and preserve its `id`
+2. Find existing `last_kot_items` meta entry and preserve its `id`
+3. Include the `id` in the update payload so WooCommerce updates rather than creates
+
+### Changes Made
+- `/Users/adnan/Projects/simple-pos-e2e/next/app/components/command-bar.tsx`
+  - Added `existingPrintMeta` lookup to preserve print timestamp meta ID
+  - Added `existingKotMeta` lookup to preserve last_kot_items meta ID
+  - Updated both meta entries to include `id` when it exists
+
+### Verification
+- TypeScript compilation: PASSED (`npx tsc --noEmit` - no errors)
+- Next.js build: PASSED (`npm run build` - successful)
+- Playwright test: BLOCKED - Browser sandbox permission errors prevent test execution
+  - Error: `browserType.launch: Target page, context or browser has been closed`
+  - Cause: `Check failed: kr == KERN_SUCCESS. bootstrap_check_in org.chromium.Chromium.MachPortRendezvousServer: Permission denied`
+
+### Code Path (After Fix)
+```
+First KOT print:
+  -> handlePrint('kot')
+  -> order.meta_data has no last_kot_items
+  -> existingKotMeta = undefined
+  -> metaUpdates.push({ key: 'last_kot_items', value: '{"123-0":{"quantity":2,"name":"..."}}' })
+  -> WooCommerce creates meta id=100
+
+Second KOT print (after quantity change):
+  -> handlePrint('kot')
+  -> order.meta_data has last_kot_items with id=100
+  -> existingKotMeta = { id: 100, key: 'last_kot_items', value: '...' }
+  -> metaUpdates.push({ id: 100, key: 'last_kot_items', value: '{"123-0":{"quantity":4,"name":"..."}}' })
+  -> WooCommerce UPDATES meta id=100 (not create new)
+  -> Only one last_kot_items entry exists with new quantity
+```
+
+### Commit
+fix: preserve meta_data IDs in KOT print to prevent duplicate entries
 
 ---
