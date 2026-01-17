@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-17
-Tasks completed: 4
+Tasks completed: 5
 Current task: None
 
 ---
@@ -90,5 +90,31 @@ Current task: None
 
 ### Commit
 - feat: create SetupModal component for first-run experience
+
+---
+
+## 2026-01-17 - Task 5: Integrate SetupModal at app root level
+
+### Changes Made
+- Created `/next/app/components/setup-guard.tsx` - new wrapper component that enforces credential configuration
+  - Uses `useSettingsStore` to check if credentials are configured via `isConfigured()`
+  - Handles SSR hydration properly to avoid content mismatch
+  - Shows SetupModal when credentials are not configured
+  - Renders children underneath with reduced opacity and disabled pointer events while modal is shown
+  - After setup completion, renders children normally
+- Updated `/next/app/providers.tsx` to wrap app content with SetupGuard
+  - Added import for SetupGuard component
+  - SetupGuard wraps GlobalShortcutsProvider and ThermalPrint components
+  - ReactQueryDevtools remains outside SetupGuard (development tool, should always be accessible)
+
+### Verification
+- Ran `npm run build` - compiles successfully with no TypeScript errors
+- Ran `npm run lint` - no ESLint warnings or errors
+- Component follows existing patterns in the codebase
+- Existing users with localStorage credentials will bypass the modal (setupComplete is set to true on mount when isConfigured returns true)
+- Fresh browser without localStorage will show the blocking setup modal
+
+### Commit
+- feat: integrate SetupModal at app root level
 
 ---

@@ -76,7 +76,7 @@ Make the API credentials flow production-ready by removing hardcoded credentials
       "Test that existing users with localStorage credentials see no change",
       "Test that fresh browser shows setup modal"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 6,

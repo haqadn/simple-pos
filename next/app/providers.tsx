@@ -7,6 +7,7 @@ import {useRouter} from "next/navigation";
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { GlobalShortcutsProvider } from '@/components/global-shortcuts-provider'
 import { ThermalPrint } from '@/components/print'
+import { SetupGuard } from './components/setup-guard'
 
 
 export function Providers({children}: { children: React.ReactNode }) {
@@ -17,10 +18,12 @@ export function Providers({children}: { children: React.ReactNode }) {
   return (
     <HeroUIProvider navigate={router.push}>
       <QueryClientProvider client={queryClient}>
-        <GlobalShortcutsProvider>
-          {children}
-        </GlobalShortcutsProvider>
-        <ThermalPrint />
+        <SetupGuard>
+          <GlobalShortcutsProvider>
+            {children}
+          </GlobalShortcutsProvider>
+          <ThermalPrint />
+        </SetupGuard>
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
     </HeroUIProvider>
