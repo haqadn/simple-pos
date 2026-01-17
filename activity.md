@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-17
-Tasks completed: 1
+Tasks completed: 2
 Current task: None
 
 ---
@@ -22,5 +22,25 @@ Current task: None
 
 ### Commit
 - chore: remove hardcoded credentials from api/config.ts
+
+---
+
+## 2026-01-17 - Task 2: Create useTestConnection hook for API credential validation
+
+### Changes Made
+- Created `/next/hooks/useTestConnection.ts` - new hook for testing WooCommerce API credentials
+- Hook implements `test()` function that makes GET request to `/wp-json/wc/v3` endpoint
+- Handles success (200), auth errors (401/403), network errors, timeout, and 404 (WooCommerce not found)
+- Returns `status` ('idle' | 'testing' | 'success' | 'error'), `error` message, and `reset()` function
+- Updated `/next/hooks/index.ts` to export the new hook and its types
+
+### Verification
+- Ran `npm run build` - compiles successfully with no TypeScript errors
+- Ran `npm run lint` - no ESLint warnings or errors
+- Hook follows existing patterns in the codebase (similar structure to useConnectivity)
+- Interface matches the specification in PRD.md
+
+### Commit
+- feat: create useTestConnection hook for API credential validation
 
 ---

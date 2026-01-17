@@ -8,3 +8,4 @@ export { useDraftOrderState, useDraftOrderActions } from './useDraftOrderState';
 export { useSaveDraftOrder, useEnsureDraftSaved, isDraftOrder } from './useDraftOrderSave';
 export { useMaintainOrder } from './useMaintainOrder';
 export { useConnectivity, type ConnectivityStatus, type SyncCounts, type UseConnectivityReturn } from './useConnectivity';
+export { useTestConnection, type ConnectionStatus, type UseTestConnectionResult } from './useTestConnection';

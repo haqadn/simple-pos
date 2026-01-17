@@ -34,7 +34,7 @@ Make the API credentials flow production-ready by removing hardcoded credentials
       "Return status, error message, and reset function",
       "Export hook for use in setup and settings modals"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 3,
