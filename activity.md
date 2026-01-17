@@ -192,3 +192,35 @@ Current task: None
 
 ### Commit
 - docs: add dev:setup npm script and update documentation
+
+---
+
+## 2026-01-17 - Task 9: Update E2E tests for new setup flow
+
+### Changes Made
+- Created `/next/e2e/tests/setup-flow/setup-modal.spec.ts` - comprehensive E2E tests for the setup modal flow
+- Tests are organized into three describe blocks:
+  1. **Setup Modal - Fresh State**: Tests that run without any credentials
+     - `setup modal appears when no credentials are configured` - verifies modal appears on fresh install
+     - `setup modal is non-dismissable (no close button)` - verifies modal cannot be closed without completing setup
+     - `setup modal shows API configuration fields` - verifies all input fields and buttons are present
+     - `save button is disabled until connection test passes` - verifies save requires successful test
+     - `test connection shows error for invalid credentials` - verifies error handling for bad credentials
+     - `test connection shows error for invalid URL` - verifies error handling for network errors
+  2. **Setup Modal - Valid Credentials Flow**: Tests for completing setup
+     - `setup modal dismisses after valid credentials are saved` - verifies full setup flow works
+     - `credentials are persisted after setup` - verifies localStorage is updated correctly
+     - `setup modal does not appear on page reload after setup` - verifies credentials persist
+  3. **Setup Modal - Existing Users**: Tests for backward compatibility
+     - `existing users with localStorage credentials see no setup modal` - verifies existing users are not impacted
+     - `orders page is accessible without setup for configured users` - verifies app functionality for existing users
+
+### Verification
+- Ran `npm run build` - compiles successfully with no TypeScript errors
+- Ran `npm run lint` - no ESLint warnings or errors
+- Ran `npx tsc --noEmit e2e/tests/setup-flow/setup-modal.spec.ts` - TypeScript check passes
+- Existing E2E tests continue to work because `test-base.ts` uses `beforeEach` hook to pre-configure localStorage with valid credentials from wp-env config
+- The new tests properly handle fresh state by clearing localStorage before each test
+
+### Commit
+- test: add E2E tests for setup modal flow

@@ -127,7 +127,7 @@ Make the API credentials flow production-ready by removing hardcoded credentials
       "Add test for setup modal dismissing after valid credentials",
       "Ensure existing E2E tests still pass with the new flow"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 10,
