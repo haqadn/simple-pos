@@ -7,7 +7,7 @@ const LineItemSchema = z.object({
   product_id: z.number(),
   variation_id: z.number(),
   quantity: z.number(),
-  sku: z.string().optional(), // Product SKU
+  sku: z.string().nullable().optional(), // Product SKU
   price: z.union([z.string(), z.number()]).optional(), // Unit price
   subtotal: z.string().optional(), // Line subtotal before discounts
   total: z.string().optional(), // Line total after discounts

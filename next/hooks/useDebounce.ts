@@ -6,6 +6,11 @@ export function useDebounce<Args extends unknown[], Return>(
 ): (...args: Args) => Promise<Return> {
     const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
     const rejectRef = useRef<((reason?: string) => void) | undefined>(undefined);
+    const disableDebounce = (
+        (typeof globalThis !== 'undefined' && (globalThis as { __E2E_DISABLE_DEBOUNCE__?: boolean }).__E2E_DISABLE_DEBOUNCE__ === true) ||
+        process.env.NEXT_PUBLIC_DISABLE_DEBOUNCE === '1'
+    );
+    const effectiveDelay = disableDebounce ? 0 : delay;
 
     return useCallback(
         (...args: Args) => {
@@ -18,10 +23,10 @@ export function useDebounce<Args extends unknown[], Return>(
                 timeoutRef.current = setTimeout(async () => {
                     const result = await callback(...args);
                     resolve(result);
-                }, delay);
+                }, effectiveDelay);
                 rejectRef.current = reject;
             });
         },
-        [callback, delay]
+        [callback, effectiveDelay]
     );
-} 
+}

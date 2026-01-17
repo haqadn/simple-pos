@@ -22,6 +22,7 @@ const http = require("http");
 
 const PROJECT_ROOT = path.join(__dirname, "../..");
 const ENV_FILE = path.join(PROJECT_ROOT, ".env.test");
+const NEXT_ENV_FILE = path.join(PROJECT_ROOT, ".env.local");
 
 // ==========================================
 // Utility Functions
@@ -197,6 +198,30 @@ function loadCredentials() {
   return config;
 }
 
+/**
+ * Write Next.js env file with API credentials for browser usage
+ */
+function writeNextEnvFile(credentials) {
+  if (
+    !credentials ||
+    !credentials.WP_BASE_URL ||
+    !credentials.WC_CONSUMER_KEY ||
+    !credentials.WC_CONSUMER_SECRET
+  ) {
+    return;
+  }
+
+  const content = `# Auto-generated for E2E testing
+# Source: .env.test
+
+NEXT_PUBLIC_SITE_URL=${credentials.WP_BASE_URL}
+NEXT_PUBLIC_CONSUMER_KEY=${credentials.WC_CONSUMER_KEY}
+NEXT_PUBLIC_CONSUMER_SECRET=${credentials.WC_CONSUMER_SECRET}
+`;
+
+  fs.writeFileSync(NEXT_ENV_FILE, content, "utf-8");
+}
+
 // ==========================================
 // Products Check
 // ==========================================
@@ -319,11 +344,14 @@ async function main() {
 
   if (credentialsExist() && !force) {
     logSuccess("API credentials already exist in .env.test");
+    const existingCredentials = loadCredentials();
+    writeNextEnvFile(existingCredentials);
   } else {
     log(force ? "Regenerating API credentials..." : "Creating API credentials...");
     try {
       const scriptArgs = force ? ["--force"] : [];
       await runScript(path.join(__dirname, "setup-api-credentials.js"), scriptArgs);
+      writeNextEnvFile(loadCredentials());
       logSuccess("API credentials created");
     } catch (error) {
       logError(`Failed to create credentials: ${error.message}`);

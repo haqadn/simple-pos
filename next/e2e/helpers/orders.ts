@@ -97,7 +97,7 @@ export async function createNewOrder(page: Page): Promise<string> {
  * Wait for order page to be fully loaded
  */
 export async function waitForOrderPageReady(page: Page): Promise<void> {
-  const commandInput = page.getByLabel('Command input field');
+  const commandInput = page.locator('input[aria-label="Command input field"]');
   const orderTitle = page.locator(ORDER_SELECTORS.orderTitle);
 
   // Wait for command bar to be ready (not disabled)

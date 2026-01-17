@@ -59,8 +59,8 @@ export class ItemCommand extends BaseMultiInputCommand {
     const hasQuantity = args.length > 1;
     const quantity = hasQuantity ? this.parseInt(args[1]) : 1;
 
-    if (quantity === null || quantity <= 0) {
-      throw new Error('Quantity must be a positive number');
+    if (quantity === null || quantity < 0) {
+      throw new Error('Quantity must be a non-negative number');
     }
 
     // If quantity is provided, set to that quantity. Otherwise, increment by 1

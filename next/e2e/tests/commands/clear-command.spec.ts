@@ -175,7 +175,7 @@ test.describe('Clear Command', () => {
       await page.waitForTimeout(500);
 
       // Should not crash - page still functional
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
 
       // Command bar should still be usable
@@ -210,7 +210,7 @@ test.describe('Clear Command', () => {
       await page.waitForTimeout(300);
 
       // Should still be functional
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
 
       // Order should still be empty and valid
@@ -289,7 +289,7 @@ test.describe('Clear Command', () => {
       await page.waitForTimeout(500);
 
       // Should not crash - page still functional
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
 
       // Order should remain empty

@@ -276,7 +276,10 @@ export function loadTestDataCache(): TestData | null {
     const fetchedAt = new Date(data.fetchedAt);
     const now = new Date();
     const ageMs = now.getTime() - fetchedAt.getTime();
-    const maxAgeMs = 60 * 60 * 1000; // 1 hour
+    const envMaxAgeMs = Number(process.env.TEST_DATA_CACHE_MAX_AGE_MS);
+    const maxAgeMs = Number.isFinite(envMaxAgeMs) && envMaxAgeMs > 0
+      ? envMaxAgeMs
+      : 12 * 60 * 60 * 1000; // 12 hours
 
     if (ageMs > maxAgeMs) {
       console.log('Test data cache is stale, will refetch');

@@ -150,7 +150,7 @@ test.describe('Print Command', () => {
       await page.waitForTimeout(500);
 
       // Command bar should still be functional
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
     });
   });
@@ -454,7 +454,7 @@ test.describe('Print Command', () => {
       await page.waitForTimeout(500);
 
       // Should not crash - command bar still functional
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
 
       // No print timestamp should be set
@@ -489,7 +489,7 @@ test.describe('Print Command', () => {
       await page.waitForTimeout(500);
 
       // Should not crash
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
 
       // No print should have occurred
@@ -508,7 +508,7 @@ test.describe('Print Command', () => {
       await page.waitForTimeout(500);
 
       // Should not crash - command bar still functional
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
 
       // Can still type commands

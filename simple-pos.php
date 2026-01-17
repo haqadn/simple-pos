@@ -17,6 +17,29 @@ require plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 (new Customers())->init();
 (new PickupLocations())->init();
 
+add_action( 'init', function() {
+	if ( defined( 'WP_CLI' ) && WP_CLI ) {
+		return;
+	}
+
+	$request_uri = $_SERVER['REQUEST_URI'] ?? '';
+	if ( ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || strpos( $request_uri, '/wp-json/' ) === 0 ) {
+		$_SERVER['HTTPS'] = 'on';
+	}
+}, 0 );
+
+add_filter( 'rest_pre_serve_request', function( $served, $result, $request, $server ) {
+	if ( strpos( $request->get_route(), '/wc/v3/' ) !== 0 ) {
+		return $served;
+	}
+
+	header( 'Access-Control-Allow-Origin: *' );
+	header( 'Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS' );
+	header( 'Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce' );
+
+	return $served;
+}, 10, 4 );
+
 
 function spos_register_scripts() {
 

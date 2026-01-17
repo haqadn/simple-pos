@@ -109,7 +109,7 @@ test.describe('Done Command', () => {
       await page.waitForTimeout(500);
 
       // Page should still be functional
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
     });
 
@@ -486,7 +486,7 @@ test.describe('Done Command', () => {
       await page.waitForTimeout(500);
 
       // Page should still be functional (error handled gracefully)
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
 
       // Order should not be created/completed
@@ -606,7 +606,7 @@ test.describe('Done Command', () => {
       await page.waitForTimeout(500);
 
       // Page should still be functional
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
     });
 
@@ -638,7 +638,7 @@ test.describe('Done Command', () => {
       await page.waitForTimeout(1000);
 
       // Verify command bar is still functional
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
       await expect(commandInput).toBeEnabled();
 

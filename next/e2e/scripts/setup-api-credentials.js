@@ -73,7 +73,7 @@ function getWpEnvPort() {
  * Generate WooCommerce API credentials using WP-CLI
  *
  * WooCommerce stores API keys in the woocommerce_api_keys table.
- * We use a custom WP-CLI command to generate credentials.
+ * We use a PHP file to generate credentials to avoid shell escaping issues.
  */
 function generateWooCommerceCredentials() {
   console.log("\nGenerating WooCommerce API credentials...");
@@ -85,59 +85,27 @@ function generateWooCommerceCredentials() {
     // Plugin might already be active
   }
 
-  // Generate a unique description for this key
-  const keyDescription = `E2E Tests - ${new Date().toISOString().split("T")[0]}`;
+  // Set up permalinks for REST API to work
+  console.log("Configuring permalinks for REST API...");
+  try {
+    wpEnvRun('wp rewrite structure "/%postname%/"', { silent: true, ignoreError: true });
+    wpEnvRun("wp rewrite flush", { silent: true, ignoreError: true });
+  } catch {
+    // Permalinks might already be set
+  }
 
-  // Use WP-CLI to execute PHP that generates API credentials
-  // WooCommerce provides the wc_create_api_key function for this
-  const phpScript = `
-    // Ensure WooCommerce is loaded
-    if (!function_exists('wc_create_api_key')) {
-      require_once WP_PLUGIN_DIR . '/woocommerce/includes/wc-api-functions.php';
-    }
+  // Copy the PHP script into the container and execute it
+  const phpScriptPath = path.join(__dirname, "generate-wc-keys.php");
+  const phpContent = fs.readFileSync(phpScriptPath, "utf-8");
 
-    // Get or create admin user
-    $admin_user = get_user_by('login', 'admin');
-    if (!$admin_user) {
-      $admin_id = wp_create_user('admin', 'password', 'admin@example.com');
-      $admin_user = get_user_by('ID', $admin_id);
-      $admin_user->set_role('administrator');
-    }
+  // Write PHP to a temp file in container via wp eval
+  const base64Content = Buffer.from(phpContent).toString("base64");
 
-    // Delete any existing E2E test keys
-    global $wpdb;
-    $wpdb->delete(
-      $wpdb->prefix . 'woocommerce_api_keys',
-      array('description' => '${keyDescription}'),
-      array('%s')
-    );
-
-    // Generate new API key
-    $consumer_key = 'ck_' . wc_rand_hash();
-    $consumer_secret = 'cs_' . wc_rand_hash();
-
-    $data = array(
-      'user_id' => $admin_user->ID,
-      'description' => '${keyDescription}',
-      'permissions' => 'read_write',
-      'consumer_key' => wc_api_hash($consumer_key),
-      'consumer_secret' => $consumer_secret,
-      'truncated_key' => substr($consumer_key, -7),
-    );
-
-    $wpdb->insert(
-      $wpdb->prefix . 'woocommerce_api_keys',
-      $data,
-      array('%d', '%s', '%s', '%s', '%s', '%s')
-    );
-
-    echo json_encode(array(
-      'consumer_key' => $consumer_key,
-      'consumer_secret' => $consumer_secret
-    ));
-  `.replace(/\n/g, " ").replace(/'/g, "'\\''");
-
-  const output = wpEnvRun(`wp eval '${phpScript}'`, { silent: true });
+  // Decode and execute the PHP
+  const output = wpEnvRun(
+    `wp eval "eval(base64_decode('${base64Content}'));"`,
+    { silent: true }
+  );
 
   // Parse the JSON output (it's at the end after any wp-env prefixes)
   const jsonMatch = output.match(/\{[^}]+\}/);

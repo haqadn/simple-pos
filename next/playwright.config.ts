@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { getWpPort, getWpBaseUrl } from './e2e/helpers/wp-env-config';
+import { getWpPort, getWpBaseUrl, getWpEnvConfig } from './e2e/helpers/wp-env-config';
 
 /**
  * Playwright configuration for Simple POS E2E tests
@@ -28,6 +28,14 @@ import { getWpPort, getWpBaseUrl } from './e2e/helpers/wp-env-config';
 // Get WordPress port from .env.test or environment
 const WP_PORT = getWpPort();
 const WP_BASE_URL = getWpBaseUrl();
+const WP_ENV_CONFIG = getWpEnvConfig();
+const NEXT_PORT = parseInt(process.env.NEXT_PORT || process.env.PORT || '3000', 10);
+
+if (WP_ENV_CONFIG.consumerKey && !process.env.NEXT_PUBLIC_CONSUMER_KEY) {
+  process.env.NEXT_PUBLIC_SITE_URL = WP_ENV_CONFIG.baseUrl;
+  process.env.NEXT_PUBLIC_CONSUMER_KEY = WP_ENV_CONFIG.consumerKey;
+  process.env.NEXT_PUBLIC_CONSUMER_SECRET = WP_ENV_CONFIG.consumerSecret;
+}
 
 export default defineConfig({
   // Global setup - fetches test data from WooCommerce before tests run
@@ -37,7 +45,7 @@ export default defineConfig({
   testDir: './e2e/tests',
 
   // Run tests in parallel
-  fullyParallel: true,
+  fullyParallel: false,
 
   // Fail the build on CI if you accidentally left test.only in the source code
   forbidOnly: !!process.env.CI,
@@ -46,7 +54,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
 
   // Opt out of parallel tests on CI for stability
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.PW_WORKERS ? parseInt(process.env.PW_WORKERS, 10) : 1,
 
   // Reporter to use
   // HTML reporter includes console logs, screenshots, traces, and videos
@@ -63,7 +71,7 @@ export default defineConfig({
   // Shared settings for all the projects below
   use: {
     // Base URL to use in actions like `await page.goto('/')`
-    baseURL: 'http://localhost:3000',
+    baseURL: `http://localhost:${NEXT_PORT}`,
 
     // Collect trace: 'on-first-retry' captures trace when test fails and retries
     // Use 'on' to always capture (slower) or 'retain-on-failure' to keep only failures
@@ -133,7 +141,7 @@ export default defineConfig({
     // Next.js frontend
     {
       command: 'npm run dev',
-      url: 'http://localhost:3000',
+      url: `http://localhost:${NEXT_PORT}`,
       reuseExistingServer: !process.env.CI,
       timeout: 120000, // 2 minutes to start
       stdout: 'pipe',
@@ -142,6 +150,10 @@ export default defineConfig({
       env: {
         WP_PORT,
         WP_BASE_URL,
+        PORT: NEXT_PORT.toString(),
+        NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || WP_ENV_CONFIG.baseUrl,
+        NEXT_PUBLIC_CONSUMER_KEY: process.env.NEXT_PUBLIC_CONSUMER_KEY || WP_ENV_CONFIG.consumerKey,
+        NEXT_PUBLIC_CONSUMER_SECRET: process.env.NEXT_PUBLIC_CONSUMER_SECRET || WP_ENV_CONFIG.consumerSecret,
       },
     },
   ],

@@ -220,7 +220,7 @@ test.describe('Customer Assignment', () => {
         await selectAutocompleteSuggestionByIndex(page, 0);
 
         // Press Enter to execute
-        const input = page.getByLabel('Command input field');
+        const input = page.locator('input[aria-label="Command input field"]');
         await input.press('Enter');
         await waitForMutations(page);
 

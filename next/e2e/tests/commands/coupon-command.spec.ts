@@ -252,7 +252,7 @@ test.describe('Coupon Command', () => {
       await page.waitForTimeout(500);
 
       // Should show error or enter multi-input mode, but not crash
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
 
       // Verify no coupon was applied
@@ -283,7 +283,7 @@ test.describe('Coupon Command', () => {
       await page.waitForTimeout(500);
 
       // Should not crash - page still functional
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
     });
   });
@@ -498,7 +498,7 @@ test.describe('Coupon Command', () => {
       await page.waitForTimeout(1000);
 
       // Check if command was processed (page still functional)
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
 
       // Verify coupon was attempted
@@ -532,7 +532,7 @@ test.describe('Coupon Command', () => {
       await page.waitForTimeout(1000);
 
       // Check if command was processed (page still functional)
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
 
       // Verify coupon was attempted
@@ -601,7 +601,7 @@ test.describe('Coupon Command', () => {
         await page.waitForTimeout(500);
 
         // Page should still be functional
-        const commandInput = page.getByLabel('Command input field');
+        const commandInput = page.locator('input[aria-label="Command input field"]');
         await expect(commandInput).toBeVisible();
 
         // Remove coupon (if applied)
@@ -622,7 +622,7 @@ test.describe('Coupon Command', () => {
       await page.waitForTimeout(500);
 
       // Should not crash - page still functional
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
     });
 
@@ -710,7 +710,7 @@ test.describe('Coupon Command', () => {
       await page.waitForTimeout(500);
 
       // Should not crash - page still functional
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
 
       // Order should still have no coupons
@@ -770,7 +770,7 @@ test.describe('Coupon Command', () => {
       await page.waitForTimeout(500);
 
       // Should not crash - page still functional
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
     });
   });

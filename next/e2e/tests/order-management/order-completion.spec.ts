@@ -745,7 +745,7 @@ test.describe('Order Completion Flow', () => {
       await page.waitForTimeout(500);
 
       // Page should remain functional
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
       await expect(commandInput).toBeEnabled();
     });
@@ -861,7 +861,7 @@ test.describe('Order Completion Flow', () => {
       await page.waitForTimeout(1500);
 
       // Page should still be functional
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
 
       // Order should be completed

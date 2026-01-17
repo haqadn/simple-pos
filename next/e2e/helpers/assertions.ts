@@ -522,7 +522,7 @@ export const POSAssert = {
     options: AssertionOptions = {}
   ): Promise<void> {
     const { timeout = DEFAULT_TIMEOUT, message } = options;
-    const commandInput = page.getByLabel('Command input field');
+    const commandInput = page.locator('input[aria-label="Command input field"]');
     await expect(
       commandInput,
       message || 'Expected command bar to be focused'
@@ -543,7 +543,7 @@ export const POSAssert = {
     options: AssertionOptions = {}
   ): Promise<void> {
     const { timeout = DEFAULT_TIMEOUT, message } = options;
-    const commandInput = page.getByLabel('Command input field');
+    const commandInput = page.locator('input[aria-label="Command input field"]');
     await expect(
       commandInput,
       message || 'Expected command bar to NOT be focused'

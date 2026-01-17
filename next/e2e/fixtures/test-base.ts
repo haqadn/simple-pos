@@ -1,4 +1,5 @@
 import { test as base, expect, Page, Locator } from '@playwright/test';
+import { getWpEnvConfig } from '../helpers/wp-env-config';
 
 /**
  * POSPage - Page Object Model for Simple POS application
@@ -39,7 +40,7 @@ export class POSPage {
     this.page = page;
 
     // Command bar - using aria-label for reliable selection
-    this.commandInput = page.getByLabel('Command input field');
+    this.commandInput = page.locator('input[aria-label="Command input field"]');
     this.commandPrompt = page.locator('.font-mono.text-gray-500');
     this.autocompleteDropdown = page.locator('.absolute.top-full');
     this.autocompleteSuggestions = this.autocompleteDropdown.locator('div[class*="cursor-pointer"]');
@@ -512,7 +513,7 @@ export class POSPage {
 /**
  * Extended test fixture that includes POSPage helper
  */
-export const test = base.extend<{ posPage: POSPage }>({
+const test = base.extend<{ posPage: POSPage }>({
   posPage: async ({ page }, use) => {
     const posPage = new POSPage(page);
     await use(posPage);
@@ -520,4 +521,25 @@ export const test = base.extend<{ posPage: POSPage }>({
 });
 
 // Re-export expect from Playwright
-export { expect };
+const wpEnvConfig = getWpEnvConfig();
+
+if (wpEnvConfig.consumerKey && wpEnvConfig.consumerSecret) {
+  const settingsPayload = {
+    api: {
+      baseUrl: wpEnvConfig.baseUrl,
+      consumerKey: wpEnvConfig.consumerKey,
+      consumerSecret: wpEnvConfig.consumerSecret,
+    },
+    skipKotCategories: [],
+    pageShortcuts: [],
+  };
+
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript((settings) => {
+      localStorage.setItem('pos-settings', JSON.stringify(settings));
+      (window as { __E2E_DISABLE_DEBOUNCE__?: boolean }).__E2E_DISABLE_DEBOUNCE__ = true;
+    }, settingsPayload);
+  });
+}
+
+export { test, expect };

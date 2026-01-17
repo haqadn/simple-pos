@@ -10,7 +10,7 @@ import { ServiceMethodSchema, useTablesQuery } from "./service";
 import { useAvoidParallel } from "@/hooks/useAvoidParallel";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useDraftOrderStore, DRAFT_ORDER_ID } from "./draft-order";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 function generateOrderQueryKey(context: string, order?: OrderSchema, product?: ProductSchema) {
 	switch (context) {
@@ -98,6 +98,7 @@ export const useOrderQuery = ( orderId: number ) => {
 
 export const useCurrentOrder = () => {
 	const params = useParams();
+	const router = useRouter();
 	const orderId = params?.orderId as string | undefined;
 	const draftOrder = useDraftOrderStore((state) => state.draftOrder);
 
@@ -107,6 +108,12 @@ export const useCurrentOrder = () => {
 	// Use DRAFT_ORDER_ID for new orders or undefined orderId
 	const queryOrderId = isDraft || !orderId ? DRAFT_ORDER_ID : parseInt(orderId);
 	const orderQuery = useOrderQuery(queryOrderId);
+
+	useEffect(() => {
+		if (!isDraft && orderId && orderQuery.isSuccess && orderQuery.data === null) {
+			router.replace('/orders');
+		}
+	}, [isDraft, orderId, orderQuery.data, orderQuery.isSuccess, router]);
 
 	// If it's a draft order, override the query data with draft store data
 	if (isDraft || !orderId) {
@@ -334,15 +341,20 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 
 			// Also update React Query cache
 			const newOrderQueryData = { ...order };
-			const existingLineItem = newOrderQueryData.line_items.find(lineItem => lineItem.product_id === newLineItem.product_id && lineItem.variation_id === newLineItem.variation_id);
-			if ( existingLineItem ) {
-				existingLineItem.quantity = params.quantity;
+			const existingLineItemIdx = newOrderQueryData.line_items.findIndex(lineItem => lineItem.product_id === newLineItem.product_id && lineItem.variation_id === newLineItem.variation_id);
+			if ( existingLineItemIdx >= 0 ) {
+				if (params.quantity > 0) {
+					newOrderQueryData.line_items[existingLineItemIdx].quantity = params.quantity;
+				} else {
+					// Remove the item from the array when quantity is 0
+					newOrderQueryData.line_items = newOrderQueryData.line_items.filter((_, idx) => idx !== existingLineItemIdx);
+				}
 			} else if ( params.quantity > 0 ) {
 				newOrderQueryData.line_items = [ ...newOrderQueryData.line_items, newLineItem ];
 			}
 
 			queryClient.setQueryData(orderQueryKey, newOrderQueryData);
-			queryClient.setQueryData(lineItemKey, newLineItem);
+			queryClient.setQueryData(lineItemKey, params.quantity > 0 ? newLineItem : null);
 		},
 		onError: (err) => {
 			if (err.toString() !== 'newer-call' && err.toString() !== 'debounce') {

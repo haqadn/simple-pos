@@ -178,7 +178,7 @@ test.describe('Product Search', () => {
       }
 
       // Focus command bar and type full command
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await commandInput.click();
       await commandInput.fill(`/item ${sku}`);
       await commandInput.press('Enter');
@@ -496,7 +496,7 @@ test.describe('Product Search', () => {
       await gotoNewOrder(page);
 
       // Try to add a non-existent SKU
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await commandInput.click();
       await commandInput.fill('/item INVALID_SKU_99999');
       await commandInput.press('Enter');

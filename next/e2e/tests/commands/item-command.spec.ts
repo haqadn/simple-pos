@@ -789,7 +789,7 @@ test.describe('Item Command', () => {
       await page.waitForTimeout(500);
 
       // Page should still be functional
-      const commandInput = page.getByLabel('Command input field');
+      const commandInput = page.locator('input[aria-label="Command input field"]');
       await expect(commandInput).toBeVisible();
 
       // No items should be added

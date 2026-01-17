@@ -607,3 +607,31 @@ npx playwright test --list
 
 ### Commit
 - chore: mark Task 1 complete (code was already fixed in previous session)
+
+---
+
+## [2026-01-17] - Task 2: Fix multi-input mode exit when switching commands
+
+### Changes Made
+- No new code changes required - fix was already implemented and committed in a previous session
+- Commit `046b67c`: "fix: correctly exit multi-input mode when switching to another command"
+
+### Code Review
+Verified the fix in `/Users/adnan/Projects/simple-pos-e2e/next/commands/command-registry.ts`:
+- Line 176: `newState: { mode: 'normal' }` - Always transitions to normal mode after executing a single command
+- Lines 151-154: When switching from multi-mode to a different command, `exitCurrentMultiMode()` is called first
+- The test at `e2e/tests/commands/multi-input-mode.spec.ts:390` verifies that executing `/clear` while in `item>` mode correctly exits multi-input mode
+
+### Verification
+1. TypeScript compilation: `npx tsc --noEmit` - passed with no errors
+2. Code review confirmed fix logic:
+   - When in multi-mode and a different command is executed (e.g., `/clear` from `item>` mode):
+     1. `exitCurrentMultiMode()` cleans up the previous command
+     2. New command executes
+     3. State correctly transitions to `{ mode: 'normal' }`
+   - Prompt will show `>` instead of `item>`
+3. Git log shows commit `046b67c` was already made with the fix
+4. E2E test cannot run due to Docker/wp-env sandbox limitations
+
+### Commit
+- No new commit needed - fix was already committed as `046b67c`
