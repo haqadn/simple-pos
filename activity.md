@@ -1,7 +1,7 @@
 # Activity Log
 
-Last updated: 2026-01-17T04:00:00Z
-Tasks completed: 7
+Last updated: 2026-01-17T05:00:00Z
+Tasks completed: 8
 Current task: None
 
 ---
@@ -199,3 +199,61 @@ Current task: None
 
 ### Commit
 - `feat: implement frontend ID generation utility`
+
+---
+
+## [2026-01-17] - Task 8: Create offline order store with Dexie integration
+
+### Changes Made
+- `/next/stores/offline-orders.ts`:
+  - Created new store module for offline order management with Dexie integration
+  - Implemented `OrderNotFoundError` class for error handling
+  - Implemented `createLocalOrder()` function:
+    - Generates unique frontend ID using `generateUniqueFrontendId()`
+    - Creates local order record with defaults using `createLocalOrderRecord()` from db/index.ts
+    - Stores order in Dexie and returns the created LocalOrder
+  - Implemented `updateLocalOrder()` function:
+    - Updates existing order data in Dexie
+    - Merges updates with existing data (handles line_items, shipping_lines, coupon_lines, billing separately)
+    - Preserves frontend ID in meta_data
+    - Updates `updatedAt` timestamp
+  - Implemented `updateLocalOrderSyncStatus()` function:
+    - Updates sync status (local, syncing, synced, error)
+    - Optionally updates serverId, syncError, lastSyncAttempt
+    - Clears syncError when status is not error
+    - Updates server ID in order data meta_data when synced
+  - Implemented `updateLocalOrderStatus()` function:
+    - Updates order status (draft, pending, completed, etc.)
+    - Updates both local status and data.status fields
+  - Implemented `getLocalOrder()` function:
+    - Retrieves order by frontend ID
+  - Implemented `getLocalOrderByServerId()` function:
+    - Retrieves order by WooCommerce server ID
+  - Implemented `listLocalOrders()` function:
+    - Lists all orders sorted by updatedAt descending
+    - Supports filtering by status and/or syncStatus
+    - Supports limit parameter
+  - Implemented `listOrdersNeedingSync()` function:
+    - Returns orders with local or error sync status
+  - Implemented `deleteLocalOrder()` function:
+    - Deletes order by frontend ID
+  - Implemented `clearAllLocalOrders()` function:
+    - Clears all orders from local database
+  - Implemented `importServerOrder()` function:
+    - Imports WooCommerce orders into local DB
+    - Checks for existing orders by server ID
+    - Generates frontend ID if not provided
+    - Sets syncStatus to synced
+  - Implemented `getOrderCountsBySyncStatus()` function:
+    - Returns counts for each sync status
+  - Implemented `hasPendingSyncOrders()` function:
+    - Checks if any orders need syncing
+  - Implemented `mergeMetaData()` helper function:
+    - Merges meta_data arrays preserving frontend ID
+
+### Verification
+- `npm run build` - Completed successfully with no errors
+- `npm run lint` - No ESLint warnings or errors
+
+### Commit
+- `feat: create offline order store with Dexie integration`

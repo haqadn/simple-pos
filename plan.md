@@ -106,7 +106,7 @@ Enhance Simple POS with configurable payment methods, coupon validation card, of
       "Implement getLocalOrder and listLocalOrders functions",
       "Add sync status tracking (local, syncing, synced, error)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 9,
