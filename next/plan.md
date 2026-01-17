@@ -1,9 +1,12 @@
-# Project Plan
+# E2E Test Fix Plan
 
 ## Overview
-Make the API credentials flow production-ready by removing hardcoded credentials, implementing a blocking setup modal for first-run configuration, and creating a streamlined development setup script.
+Fix 144 failing E2E tests in the Simple POS Next.js application. The primary issues are:
+1. Tests using `parseInt()` on alphanumeric frontend IDs instead of using `getServerOrderId()` helper
+2. Setup Modal tests timing out due to localStorage clearing issues
+3. Multi-order tests timing out due to order ID resolution problems
 
-**Reference:** `PRD.md`
+**Reference:** Test report at http://localhost:9323/
 
 ---
 
@@ -13,125 +16,149 @@ Make the API credentials flow production-ready by removing hardcoded credentials
 [
   {
     "id": 1,
-    "category": "setup",
-    "description": "Remove hardcoded credentials from api/config.ts",
+    "category": "investigation",
+    "description": "Investigate and fix getServerOrderId helper to properly wait for order sync",
     "steps": [
-      "Verify api/config.ts has empty strings (check in browser console if needed), fix if not",
-      "Verify .gitignore includes .env.local",
-      "Run npm run build to confirm no compilation errors"
+      "Read e2e/helpers/orders.ts and understand getServerOrderId implementation",
+      "Verify the helper properly waits for order to sync to WooCommerce",
+      "Add retry logic if order isn't synced yet (poll IndexedDB for serverId)",
+      "Export getServerOrderId from e2e/fixtures/index.ts if not already exported",
+      "Run a single test to verify the helper works correctly"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 2,
-    "category": "feature",
-    "description": "Create useTestConnection hook for API credential validation",
+    "category": "fix",
+    "description": "Fix notes.spec.ts - Replace parseInt with getServerOrderId",
     "steps": [
-      "Verify hooks/useTestConnection.ts exists and exports correctly, fix if not",
-      "Verify hook handles success, auth errors (401/403), and network errors",
-      "Run npm run build to confirm no TypeScript errors"
+      "Import getServerOrderId from fixtures",
+      "Find all occurrences of parseInt(match![1], 10) pattern",
+      "Replace with await getServerOrderId(page) and add null check",
+      "Ensure test skips gracefully if order not synced",
+      "Run notes.spec.ts and verify tests pass"
     ],
     "passes": false
   },
   {
     "id": 3,
-    "category": "feature",
-    "description": "Extract ApiConfigSection to shared component with test connection support",
+    "category": "fix",
+    "description": "Fix pay-command.spec.ts - Replace parseInt with getServerOrderId",
     "steps": [
-      "Verify app/components/settings/ApiConfigSection.tsx exists, fix if not",
-      "Verify settings-modal.tsx imports from new location",
-      "Test in browser: open Settings modal, verify API tab renders correctly",
-      "Run npm run build to confirm no errors"
+      "Import getServerOrderId from fixtures",
+      "Find all occurrences of parseInt pattern for order ID extraction",
+      "Replace with await getServerOrderId(page) with proper null handling",
+      "Run pay-command.spec.ts and verify tests pass"
     ],
     "passes": false
   },
   {
     "id": 4,
-    "category": "feature",
-    "description": "Create SetupModal component for first-run experience",
+    "category": "fix",
+    "description": "Fix done-command.spec.ts - Replace parseInt with getServerOrderId",
     "steps": [
-      "Verify app/components/setup-modal.tsx exists, fix if not",
-      "Test in browser: clear localStorage, reload - verify modal appears",
-      "Verify modal has: title, description, URL/key/secret inputs, Test Connection button",
-      "Verify modal is non-dismissable (no close button, no backdrop click)"
+      "Import getServerOrderId from fixtures",
+      "Find all occurrences of parseInt pattern for order ID extraction",
+      "Replace with await getServerOrderId(page) with proper null handling",
+      "Run done-command.spec.ts and verify tests pass"
     ],
     "passes": false
   },
   {
     "id": 5,
-    "category": "integration",
-    "description": "Integrate SetupModal at app root level",
+    "category": "fix",
+    "description": "Fix customer-assignment.spec.ts - Replace parseInt with getServerOrderId",
     "steps": [
-      "Verify setup-guard.tsx exists and is used in providers.tsx, fix if not",
-      "Test in browser: clear localStorage, reload - verify setup modal blocks app",
-      "Test in browser: with credentials in localStorage, verify modal does NOT appear",
-      "Verify app content is dimmed/disabled when modal is shown"
+      "Import getServerOrderId from fixtures",
+      "Find all occurrences of parseInt pattern for order ID extraction",
+      "Replace with await getServerOrderId(page) with proper null handling",
+      "Run customer-assignment.spec.ts and verify tests pass"
     ],
     "passes": false
   },
   {
     "id": 6,
-    "category": "feature",
-    "description": "Add test connection functionality to existing SettingsModal",
+    "category": "fix",
+    "description": "Fix order-completion.spec.ts - Replace parseInt with getServerOrderId",
     "steps": [
-      "Import useTestConnection in settings-modal.tsx",
-      "Pass connection test props to ApiConfigSection",
-      "Test in browser: open Settings > API tab, verify Test Connection button appears",
-      "Test in browser: click Test Connection with valid creds, verify success message",
-      "Test in browser: click Test Connection with invalid creds, verify error message"
+      "Import getServerOrderId from fixtures",
+      "Find all occurrences of parseInt pattern for order ID extraction",
+      "Replace with await getServerOrderId(page) with proper null handling",
+      "Run order-completion.spec.ts and verify tests pass"
     ],
     "passes": false
   },
   {
     "id": 7,
-    "category": "setup",
-    "description": "Create development setup script",
+    "category": "fix",
+    "description": "Fix clear-command.spec.ts - Replace parseInt with getServerOrderId if needed",
     "steps": [
-      "Create scripts/dev-setup.js adapting logic from e2e/scripts/setup.js",
-      "Implement wp-env start check and auto-start",
-      "Reuse credential generation from e2e/scripts/setup-api-credentials.js",
-      "Write credentials to .env.local with NEXT_PUBLIC_* prefix",
-      "Add --force flag to regenerate credentials",
-      "Test: run script and verify .env.local is created with valid credentials"
+      "Check if clear-command.spec.ts uses parseInt for order ID extraction",
+      "Import getServerOrderId from fixtures if needed",
+      "Replace any parseInt patterns with getServerOrderId",
+      "Run clear-command.spec.ts and verify tests pass"
     ],
     "passes": false
   },
   {
     "id": 8,
-    "category": "setup",
-    "description": "Add npm script and update documentation",
+    "category": "fix",
+    "description": "Fix multi-input-mode.spec.ts - Replace parseInt with getServerOrderId if needed",
     "steps": [
-      "Add dev:setup script to package.json",
-      "Update CLAUDE.md with new setup instructions",
-      "Document the first-run setup flow",
-      "Test: run npm run dev:setup and verify it works end-to-end"
+      "Check if multi-input-mode.spec.ts uses parseInt for order ID extraction",
+      "Import getServerOrderId from fixtures if needed",
+      "Replace any parseInt patterns with getServerOrderId",
+      "Run multi-input-mode.spec.ts and verify tests pass"
     ],
     "passes": false
   },
   {
     "id": 9,
-    "category": "testing",
-    "description": "Update E2E tests for new setup flow",
+    "category": "investigation",
+    "description": "Investigate setup-modal.spec.ts Fresh State test failures",
     "steps": [
-      "Review existing E2E test setup in e2e/scripts/",
-      "Update E2E setup to handle credentials before tests run",
-      "Add E2E test for setup modal appearing without credentials",
-      "Add E2E test for setup modal completing with valid credentials",
-      "Run npm run test:e2e and verify all tests pass"
+      "Read setup-modal.spec.ts to understand test setup",
+      "Check if clearBrowserStorage is working correctly with addInitScript",
+      "Investigate if test-base.ts beforeEach is interfering",
+      "Test localStorage clearing in isolation",
+      "Document findings for the fix"
     ],
     "passes": false
   },
   {
     "id": 10,
-    "category": "testing",
-    "description": "Final browser verification of complete flow",
+    "category": "fix",
+    "description": "Fix setup-modal.spec.ts Fresh State tests",
     "steps": [
-      "Test in browser: delete .env.local, clear localStorage, reload - setup modal appears",
-      "Test in browser: enter invalid credentials, click Test Connection - error shown",
-      "Test in browser: enter valid credentials, click Test Connection - success shown",
-      "Test in browser: click Save & Continue - modal closes, app loads, shows Online",
-      "Test in browser: open Settings > API, verify credentials are saved",
-      "Test in browser: reload page - app loads directly without setup modal"
+      "Implement proper localStorage clearing that executes before navigation",
+      "Consider using page.evaluate() instead of addInitScript for clearing",
+      "Ensure the setup modal component properly checks for credentials",
+      "Run setup-modal.spec.ts Fresh State tests and verify they pass"
+    ],
+    "passes": false
+  },
+  {
+    "id": 11,
+    "category": "fix",
+    "description": "Fix multi-order.spec.ts timeout issues",
+    "steps": [
+      "Read multi-order.spec.ts to understand test flow",
+      "Identify where tests are timing out (likely order ID resolution)",
+      "Update tests to use getServerOrderId helper",
+      "Add proper wait conditions for order sync",
+      "Run multi-order.spec.ts and verify tests pass or timeout is reasonable"
+    ],
+    "passes": false
+  },
+  {
+    "id": 12,
+    "category": "verification",
+    "description": "Run full E2E test suite and verify all fixes",
+    "steps": [
+      "Run npm run test:e2e to execute full test suite",
+      "Check test report for any remaining failures",
+      "Document any tests that still fail for further investigation",
+      "Ensure pass rate is significantly improved (target: 239+ passing)"
     ],
     "passes": false
   }

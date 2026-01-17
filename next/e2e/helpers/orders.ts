@@ -35,6 +35,13 @@ export interface OrderSummary {
 }
 
 /**
+ * Order URL pattern - matches both numeric server IDs and 6-char alphanumeric frontend IDs
+ * Examples: /orders/123, /orders/HVM2KM, /orders/new
+ */
+export const ORDER_ID_PATTERN = /\/orders\/(\d+|[A-Z0-9]{6}|new)/;
+export const ORDER_URL_PATTERN = /\/orders\/(\d+|[A-Z0-9]{6}|new)/;
+
+/**
  * Order page selectors
  */
 export const ORDER_SELECTORS = {
@@ -86,7 +93,7 @@ export async function createNewOrder(page: Page): Promise<string> {
   await newOrderButton.click();
 
   // Wait for navigation to new order page
-  await page.waitForURL(/\/orders\/(new|\d+)/);
+  await page.waitForURL(ORDER_URL_PATTERN);
   await page.waitForLoadState('networkidle');
 
   // Return the order ID from URL
@@ -108,18 +115,103 @@ export async function waitForOrderPageReady(page: Page): Promise<void> {
 
 /**
  * Get the current order ID from the URL
+ * Supports both numeric server IDs (e.g., 123) and 6-char frontend IDs (e.g., HVM2KM)
  */
 export async function getCurrentOrderId(page: Page): Promise<string> {
   const url = page.url();
-  const match = url.match(/\/orders\/(\d+|new)/);
+  const match = url.match(ORDER_ID_PATTERN);
   return match ? match[1] : '';
+}
+
+/**
+ * Get the WooCommerce server ID for the current order
+ * This queries the IndexedDB/Dexie database to get the numeric server ID needed for API calls
+ * Returns null if the order hasn't been synced to WooCommerce yet
+ *
+ * @param page - Playwright page object
+ * @param options - Optional configuration
+ * @param options.waitForSync - If true, retry polling until order syncs (default: true)
+ * @param options.timeout - Maximum time to wait for sync in ms (default: 10000)
+ * @param options.pollInterval - Time between polls in ms (default: 500)
+ */
+export async function getServerOrderId(
+  page: Page,
+  options: {
+    waitForSync?: boolean;
+    timeout?: number;
+    pollInterval?: number;
+  } = {}
+): Promise<string | null> {
+  const {
+    waitForSync = true,
+    timeout = 10000,
+    pollInterval = 500,
+  } = options;
+
+  const frontendId = await getCurrentOrderId(page);
+  if (!frontendId || frontendId === 'new') {
+    return null;
+  }
+
+  // If it's already a numeric ID, return it directly
+  if (/^\d+$/.test(frontendId)) {
+    return frontendId;
+  }
+
+  // Helper function to query IndexedDB for server ID
+  const queryServerId = async (): Promise<string | null> => {
+    return page.evaluate(async (fid) => {
+      return new Promise<string | null>((resolve) => {
+        const request = indexedDB.open('SimplePOSDB');
+
+        request.onerror = () => resolve(null);
+
+        request.onsuccess = () => {
+          const db = request.result;
+          try {
+            const transaction = db.transaction(['orders'], 'readonly');
+            const store = transaction.objectStore('orders');
+            const getRequest = store.get(fid);
+
+            getRequest.onsuccess = () => {
+              const order = getRequest.result;
+              resolve(order?.serverId?.toString() || null);
+            };
+
+            getRequest.onerror = () => resolve(null);
+          } catch {
+            resolve(null);
+          }
+        };
+      });
+    }, frontendId);
+  };
+
+  // First attempt
+  let serverId = await queryServerId();
+  if (serverId || !waitForSync) {
+    return serverId;
+  }
+
+  // If waitForSync is enabled, poll until we get a server ID or timeout
+  const startTime = Date.now();
+  while (Date.now() - startTime < timeout) {
+    await page.waitForTimeout(pollInterval);
+    serverId = await queryServerId();
+    if (serverId) {
+      return serverId;
+    }
+  }
+
+  // Timeout reached, return null
+  return null;
 }
 
 /**
  * Verify we're on an order page
  */
 export async function verifyOnOrderPage(page: Page): Promise<void> {
-  await expect(page).toHaveURL(/\/orders\/(\d+|new)/);
+  await expect(page).toHaveURL(ORDER_URL_PATTERN);
   const orderTitle = page.locator(ORDER_SELECTORS.orderTitle);
   await expect(orderTitle).toBeVisible();
 }
@@ -397,7 +489,7 @@ export const OrderVerify = {
     if (orderId) {
       await expect(page).toHaveURL(`/orders/${orderId}`);
     } else {
-      await expect(page).toHaveURL(/\/orders\/(\d+|new)/);
+      await expect(page).toHaveURL(ORDER_URL_PATTERN);
     }
     const orderTitle = page.locator(ORDER_SELECTORS.orderTitle);
     await expect(orderTitle).toBeVisible();
