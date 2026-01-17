@@ -7,6 +7,10 @@
  * 2. Setup modal is non-dismissable (blocking)
  * 3. Connection testing works with invalid/valid credentials
  * 4. Setup modal dismisses after valid credentials are saved
+ *
+ * Note: Since NEXT_PUBLIC_* env vars are baked into the Next.js bundle at build time,
+ * we use the ?forceSetup=true query parameter to simulate a fresh install state
+ * and force the Setup Modal to appear regardless of env var configuration.
  */
 
 import { test, expect, Page } from '@playwright/test';
@@ -54,8 +58,9 @@ test.describe('Setup Modal - Fresh State', () => {
   });
 
   test('setup modal appears when no credentials are configured', async ({ page }) => {
-    // Navigate to the app
-    await page.goto('/');
+    // Navigate to the app with forceSetup=true to simulate fresh install
+    // (env vars are baked into the Next.js bundle, so we need this to override)
+    await page.goto('/?forceSetup=true');
     await page.waitForLoadState('domcontentloaded');
 
     // The setup modal should be visible
@@ -72,7 +77,7 @@ test.describe('Setup Modal - Fresh State', () => {
   });
 
   test('setup modal is non-dismissable (no close button)', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?forceSetup=true');
     await page.waitForLoadState('domcontentloaded');
 
     // Wait for modal to appear
@@ -92,7 +97,7 @@ test.describe('Setup Modal - Fresh State', () => {
   });
 
   test('setup modal shows API configuration fields', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?forceSetup=true');
     await page.waitForLoadState('domcontentloaded');
 
     // Wait for modal
@@ -122,7 +127,7 @@ test.describe('Setup Modal - Fresh State', () => {
   });
 
   test('save button is disabled until connection test passes', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?forceSetup=true');
     await page.waitForLoadState('domcontentloaded');
 
     // Wait for modal
@@ -149,7 +154,7 @@ test.describe('Setup Modal - Fresh State', () => {
   });
 
   test('test connection shows error for invalid credentials', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?forceSetup=true');
     await page.waitForLoadState('domcontentloaded');
 
     // Wait for modal
@@ -183,7 +188,7 @@ test.describe('Setup Modal - Fresh State', () => {
   });
 
   test('test connection shows error for invalid URL', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?forceSetup=true');
     await page.waitForLoadState('domcontentloaded');
 
     // Wait for modal
@@ -229,7 +234,7 @@ test.describe('Setup Modal - Valid Credentials Flow', () => {
       return;
     }
 
-    await page.goto('/');
+    await page.goto('/?forceSetup=true');
     await page.waitForLoadState('domcontentloaded');
 
     // Wait for modal
@@ -277,7 +282,7 @@ test.describe('Setup Modal - Valid Credentials Flow', () => {
       return;
     }
 
-    await page.goto('/');
+    await page.goto('/?forceSetup=true');
     await page.waitForLoadState('domcontentloaded');
 
     // Complete setup flow
@@ -318,7 +323,7 @@ test.describe('Setup Modal - Valid Credentials Flow', () => {
       return;
     }
 
-    await page.goto('/');
+    await page.goto('/?forceSetup=true');
     await page.waitForLoadState('domcontentloaded');
 
     // Complete setup

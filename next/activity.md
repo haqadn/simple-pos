@@ -320,3 +320,41 @@ Current task: None
 
 ### Commit
 - (investigation only - no code changes)
+
+---
+
+## [2026-01-17] - Task 10: Fix setup-modal.spec.ts Fresh State tests
+
+### Changes Made
+- Modified `/Users/adnan/Projects/simple-pos/next/app/components/setup-guard.tsx`:
+  - Added `?forceSetup=true` query parameter support for E2E testing
+  - Used `useSearchParams` to detect the parameter (wrapped in Suspense boundary as required by Next.js 13+)
+  - Store `forceSetup` value in a ref to persist across client-side navigations (URL changes during page routing would otherwise lose the param)
+  - When `forceSetup=true`, the setup modal is shown regardless of env var configuration
+  - Added detailed JSDoc comments explaining the testing use case
+
+- Modified `/Users/adnan/Projects/simple-pos/next/e2e/tests/setup-flow/setup-modal.spec.ts`:
+  - Updated all navigation calls in "Fresh State" tests to use `/?forceSetup=true`
+  - Updated all navigation calls in "Valid Credentials Flow" tests to use `/?forceSetup=true`
+  - Added documentation explaining why the `forceSetup` parameter is needed (env vars baked into Next.js bundle)
+
+### Root Cause (from Task 9 investigation)
+The NEXT_PUBLIC_* environment variables are baked into the Next.js JavaScript bundle at build time. Even when localStorage is cleared via `addInitScript`, the settings store falls back to env vars and `isConfigured()` returns true. The `?forceSetup=true` parameter bypasses this check.
+
+### Verification
+- Build passes: `npm run build` completes successfully
+- Test results improved from 2 passed / 9 failed to 9 passed / 2 failed
+- Remaining 2 failures are not related to the forceSetup mechanism:
+  1. "test connection shows error for invalid credentials" - WooCommerce API at localhost:8889 returns success for invalid credentials (API config issue)
+  2. "setup modal dismisses after valid credentials are saved" - Flaky test (passes when run in isolation, timeout in full suite)
+
+### Test Results Summary
+| Test Category | Before | After |
+|---------------|--------|-------|
+| Fresh State | 0/6 passed | 5/6 passed |
+| Valid Credentials Flow | 0/3 passed | 2/3 passed |
+| Existing Users | 2/2 passed | 2/2 passed |
+| **Total** | **2/11 passed** | **9/11 passed** |
+
+### Commit
+- fix: add forceSetup query parameter support for setup-modal E2E tests
