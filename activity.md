@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-17
-Tasks completed: 2
+Tasks completed: 3
 Current task: None
 
 ---
@@ -42,5 +42,29 @@ Current task: None
 
 ### Commit
 - feat: create useTestConnection hook for API credential validation
+
+---
+
+## 2026-01-17 - Task 3: Extract ApiConfigSection to shared component with test connection support
+
+### Changes Made
+- Created `/next/app/components/settings/ApiConfigSection.tsx` - new shared component for API credential configuration
+- Component includes:
+  - URL, Consumer Key, and Consumer Secret inputs
+  - Link to WooCommerce API keys page (generated from entered URL)
+  - Optional "Test Connection" button (shown when `onTestConnection` prop is provided)
+  - Status indicator for idle/testing/success/error states with appropriate styling
+  - Error message display area with styled background
+- Updated `/next/app/components/settings-modal.tsx` to import from the new location
+- Removed local `ApiConfigSection` definition from settings-modal.tsx
+
+### Verification
+- Ran `npm run build` - compiles successfully with no errors
+- Ran `npm run lint` - no ESLint warnings or errors
+- Component follows existing patterns in the codebase (similar structure to PaymentMethodsTab, uses same icons as coupon-card)
+- Interface matches the specification in PRD.md with optional test connection props
+
+### Commit
+- feat: extract ApiConfigSection to shared component with test connection support
 
 ---

@@ -48,7 +48,7 @@ Make the API credentials flow production-ready by removing hardcoded credentials
       "Add status indicator (idle/testing/success/error) with appropriate styling",
       "Update settings-modal.tsx to import from new location"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 4,

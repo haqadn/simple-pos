@@ -19,6 +19,7 @@ import { useSettingsStore, type PageShortcut, type ApiConfig, type PaymentMethod
 import { useCategoriesQuery } from '@/stores/products';
 import { PrinterSettingsTab } from './settings/PrinterSettingsTab';
 import { PaymentMethodsTab } from './settings/PaymentMethodsTab';
+import { ApiConfigSection } from './settings/ApiConfigSection';
 
 const decodeHtmlEntities = (text: string) => {
   if (typeof document === 'undefined') return text;
@@ -26,54 +27,6 @@ const decodeHtmlEntities = (text: string) => {
   textarea.innerHTML = text;
   return textarea.value;
 };
-
-interface ApiConfigSectionProps {
-  localApi: ApiConfig;
-  setLocalApi: (api: ApiConfig) => void;
-}
-
-function ApiConfigSection({ localApi, setLocalApi }: ApiConfigSectionProps) {
-  const apiKeysUrl = localApi.baseUrl
-    ? `${localApi.baseUrl.replace(/\/+$/, '')}/wp-admin/admin.php?page=wc-settings&tab=advanced&section=keys`
-    : null;
-
-  return (
-    <div className="flex flex-col gap-4">
-      <Input
-        label="Website URL"
-        placeholder="https://example.com"
-        value={localApi.baseUrl}
-        onValueChange={(value) => setLocalApi({ ...localApi, baseUrl: value })}
-        description="Your WooCommerce site URL (without /wp-json)"
-      />
-      <Input
-        label="Consumer Key"
-        placeholder="ck_..."
-        value={localApi.consumerKey}
-        onValueChange={(value) => setLocalApi({ ...localApi, consumerKey: value })}
-      />
-      <Input
-        label="Consumer Secret"
-        placeholder="cs_..."
-        type="password"
-        value={localApi.consumerSecret}
-        onValueChange={(value) => setLocalApi({ ...localApi, consumerSecret: value })}
-      />
-      {apiKeysUrl && (
-        <p className="text-small text-default-500">
-          <a
-            href={apiKeysUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline"
-          >
-            Manage API keys in WooCommerce →
-          </a>
-        </p>
-      )}
-    </div>
-  );
-}
 
 interface KotCategoriesSectionProps {
   localSkipCategories: number[];
