@@ -135,7 +135,7 @@ export class CommandRegistry {
    * Execute a command (starts with /)
    */
   private async executeCommand(
-    input: string, 
+    input: string,
     currentState: CommandState
   ): Promise<CommandExecutionResult> {
     const { keyword, args } = CommandUtils.parseCommand(input);
@@ -148,8 +148,11 @@ export class CommandRegistry {
       };
     }
 
+    // Track if we're switching from multi-mode to a different command
+    const exitingMultiMode = currentState.mode === 'multi' && currentState.activeCommand !== keyword;
+
     // Exit current multi-mode if switching to a different command
-    if (currentState.mode === 'multi' && currentState.activeCommand !== keyword) {
+    if (exitingMultiMode) {
       await this.exitCurrentMultiMode(currentState);
     }
 
@@ -169,12 +172,21 @@ export class CommandRegistry {
     }
 
     // Execute single command
-    await command.execute(args);
-    return {
-      success: true,
-      message: `Command ${keyword} executed successfully`,
-      newState: { mode: 'normal' }
-    };
+    try {
+      await command.execute(args);
+      return {
+        success: true,
+        message: `Command ${keyword} executed successfully`,
+        newState: { mode: 'normal' }
+      };
+    } catch (error) {
+      // Even if command fails, we should still exit multi-mode when switching commands
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Command execution failed',
+        newState: exitingMultiMode ? { mode: 'normal' } : undefined
+      };
+    }
   }
 
   /**
