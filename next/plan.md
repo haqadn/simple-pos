@@ -16,10 +16,9 @@ Make the API credentials flow production-ready by removing hardcoded credentials
     "category": "setup",
     "description": "Remove hardcoded credentials from api/config.ts",
     "steps": [
-      "Read current api/config.ts file",
-      "Replace hardcoded BASE_URL, CONSUMER_KEY, CONSUMER_SECRET with empty strings",
+      "Verify api/config.ts has empty strings (check in browser console if needed), fix if not",
       "Verify .gitignore includes .env.local",
-      "Test that app still loads (will show empty state or error - expected)"
+      "Run npm run build to confirm no compilation errors"
     ],
     "passes": false
   },
@@ -28,11 +27,9 @@ Make the API credentials flow production-ready by removing hardcoded credentials
     "category": "feature",
     "description": "Create useTestConnection hook for API credential validation",
     "steps": [
-      "Create hooks/useTestConnection.ts",
-      "Implement test function that calls GET /wp-json/wc/v3 with provided credentials",
-      "Handle success (200), auth errors (401/403), and network errors",
-      "Return status, error message, and reset function",
-      "Export hook for use in setup and settings modals"
+      "Verify hooks/useTestConnection.ts exists and exports correctly, fix if not",
+      "Verify hook handles success, auth errors (401/403), and network errors",
+      "Run npm run build to confirm no TypeScript errors"
     ],
     "passes": false
   },
@@ -41,12 +38,10 @@ Make the API credentials flow production-ready by removing hardcoded credentials
     "category": "feature",
     "description": "Extract ApiConfigSection to shared component with test connection support",
     "steps": [
-      "Create app/components/settings/ApiConfigSection.tsx",
-      "Move ApiConfigSection from settings-modal.tsx to new file",
-      "Add optional props for connection testing (onTestConnection, status, error)",
-      "Add Test Connection button that shows when onTestConnection is provided",
-      "Add status indicator (idle/testing/success/error) with appropriate styling",
-      "Update settings-modal.tsx to import from new location"
+      "Verify app/components/settings/ApiConfigSection.tsx exists, fix if not",
+      "Verify settings-modal.tsx imports from new location",
+      "Test in browser: open Settings modal, verify API tab renders correctly",
+      "Run npm run build to confirm no errors"
     ],
     "passes": false
   },
@@ -55,13 +50,10 @@ Make the API credentials flow production-ready by removing hardcoded credentials
     "category": "feature",
     "description": "Create SetupModal component for first-run experience",
     "steps": [
-      "Create app/components/setup-modal.tsx",
-      "Build full-page blocking modal using HeroUI Modal (non-closable)",
-      "Include title, description, and ApiConfigSection",
-      "Integrate useTestConnection hook",
-      "Disable Save button until connection test passes",
-      "On save, call updateApi and close modal",
-      "Style consistently with existing app design"
+      "Verify app/components/setup-modal.tsx exists, fix if not",
+      "Test in browser: clear localStorage, reload - verify modal appears",
+      "Verify modal has: title, description, URL/key/secret inputs, Test Connection button",
+      "Verify modal is non-dismissable (no close button, no backdrop click)"
     ],
     "passes": false
   },
@@ -70,11 +62,10 @@ Make the API credentials flow production-ready by removing hardcoded credentials
     "category": "integration",
     "description": "Integrate SetupModal at app root level",
     "steps": [
-      "Identify correct location for setup check (likely app/providers.tsx or layout)",
-      "Add SetupModal that renders when !isConfigured()",
-      "Ensure SetupModal blocks all app content when shown",
-      "Test that existing users with localStorage credentials see no change",
-      "Test that fresh browser shows setup modal"
+      "Verify setup-guard.tsx exists and is used in providers.tsx, fix if not",
+      "Test in browser: clear localStorage, reload - verify setup modal blocks app",
+      "Test in browser: with credentials in localStorage, verify modal does NOT appear",
+      "Verify app content is dimmed/disabled when modal is shown"
     ],
     "passes": false
   },
@@ -85,8 +76,9 @@ Make the API credentials flow production-ready by removing hardcoded credentials
     "steps": [
       "Import useTestConnection in settings-modal.tsx",
       "Pass connection test props to ApiConfigSection",
-      "Allow users to test connection when editing credentials",
-      "Show connection status in the API tab"
+      "Test in browser: open Settings > API tab, verify Test Connection button appears",
+      "Test in browser: click Test Connection with valid creds, verify success message",
+      "Test in browser: click Test Connection with invalid creds, verify error message"
     ],
     "passes": false
   },
@@ -100,7 +92,7 @@ Make the API credentials flow production-ready by removing hardcoded credentials
       "Reuse credential generation from e2e/scripts/setup-api-credentials.js",
       "Write credentials to .env.local with NEXT_PUBLIC_* prefix",
       "Add --force flag to regenerate credentials",
-      "Print clear success message with next steps"
+      "Test: run script and verify .env.local is created with valid credentials"
     ],
     "passes": false
   },
@@ -112,7 +104,7 @@ Make the API credentials flow production-ready by removing hardcoded credentials
       "Add dev:setup script to package.json",
       "Update CLAUDE.md with new setup instructions",
       "Document the first-run setup flow",
-      "Verify end-to-end developer experience works"
+      "Test: run npm run dev:setup and verify it works end-to-end"
     ],
     "passes": false
   },
@@ -122,24 +114,24 @@ Make the API credentials flow production-ready by removing hardcoded credentials
     "description": "Update E2E tests for new setup flow",
     "steps": [
       "Review existing E2E test setup in e2e/scripts/",
-      "Update E2E tests to handle setup modal on fresh state",
-      "Add test for setup modal appearing without credentials",
-      "Add test for setup modal dismissing after valid credentials",
-      "Ensure existing E2E tests still pass with the new flow"
+      "Update E2E setup to handle credentials before tests run",
+      "Add E2E test for setup modal appearing without credentials",
+      "Add E2E test for setup modal completing with valid credentials",
+      "Run npm run test:e2e and verify all tests pass"
     ],
     "passes": false
   },
   {
     "id": 10,
     "category": "testing",
-    "description": "Manual testing of complete flow",
+    "description": "Final browser verification of complete flow",
     "steps": [
-      "Clear localStorage and test fresh install shows setup modal",
-      "Test invalid credentials show appropriate error",
-      "Test valid credentials allow app to load",
-      "Test npm run dev:setup creates working .env.local",
-      "Test existing users (with localStorage) see no change",
-      "Test SettingsModal API tab still works for credential updates"
+      "Test in browser: delete .env.local, clear localStorage, reload - setup modal appears",
+      "Test in browser: enter invalid credentials, click Test Connection - error shown",
+      "Test in browser: enter valid credentials, click Test Connection - success shown",
+      "Test in browser: click Save & Continue - modal closes, app loads, shows Online",
+      "Test in browser: open Settings > API, verify credentials are saved",
+      "Test in browser: reload page - app loads directly without setup modal"
     ],
     "passes": false
   }

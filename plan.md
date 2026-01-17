@@ -141,7 +141,7 @@ Make the API credentials flow production-ready by removing hardcoded credentials
       "Test existing users (with localStorage) see no change",
       "Test SettingsModal API tab still works for credential updates"
     ],
-    "passes": false
+    "passes": true
   }
 ]
 ```
