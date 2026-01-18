@@ -1,8 +1,75 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 5
+Tasks completed: 6
 Current task: None
+
+---
+
+## [2026-01-18] - Task 6: Fix /item command increment mode - doesn't increment existing quantities
+
+### Problem
+When using `/item SKU` (without quantity), the command should increment the existing quantity by 1. However, it was not incrementing properly because the increment calculation was using stale data from `orderQuery.data` instead of fetching the latest data from Dexie for local orders.
+
+### Root Cause Analysis
+In `order-page-client.tsx`, the `handleAddProduct` function was:
+1. Calculating `finalQuantity` based on `orderQuery.data.line_items` (potentially stale React Query cache)
+2. THEN fetching the latest data from Dexie for local orders
+
+This caused a race condition: when multiple `/item SKU` commands were executed in rapid succession, the second command would read the stale quantity from step 1 before the first command's update had propagated to the React Query cache.
+
+### Changes Made
+
+**File: `/next/app/orders/[orderId]/components/order-page-client.tsx`**
+
+1. For local (frontend ID) orders:
+   - Moved the Dexie data fetch to BEFORE the finalQuantity calculation
+   - The increment calculation now uses `baseOrder` (fresh from Dexie) instead of `orderQuery.data`
+   - Added explanatory comment about avoiding race conditions
+
+2. For server orders:
+   - Moved the finalQuantity calculation to the server orders section
+   - Server orders now also properly calculate increment mode using `orderQuery.data`
+
+Before (buggy):
+```javascript
+// Calculate finalQuantity using potentially stale orderQuery.data
+let finalQuantity = quantity;
+if (mode === 'increment') {
+  const existingLineItem = orderQuery.data.line_items.find(...);
+  // ...
+}
+
+// Then fetch fresh data from Dexie (too late!)
+if (isFrontendIdOrder && urlOrderId) {
+  const cachedLocalOrder = await getLocalOrder(urlOrderId);
+  // ...
+}
+```
+
+After (fixed):
+```javascript
+if (isFrontendIdOrder && urlOrderId) {
+  // Fetch fresh data from Dexie FIRST
+  const cachedLocalOrder = await getLocalOrder(urlOrderId);
+  const baseOrder = cachedLocalOrder?.data || orderQuery.data;
+
+  // THEN calculate finalQuantity using the fresh data
+  let finalQuantity = quantity;
+  if (mode === 'increment') {
+    const existingLineItem = baseOrder.line_items.find(...);
+    // ...
+  }
+}
+```
+
+### Verification
+- Build passes: `npm run build` completed successfully
+- Docker not available for browser testing (requires Docker for wp-env)
+- Code fix addresses the documented race condition in the increment logic
+
+### Build Status
+- `npm run build` passes successfully
 
 ---
 

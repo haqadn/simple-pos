@@ -50,23 +50,23 @@ export default function OrderPageClient({ orderId }: OrderPageClientProps) {
       throw new Error('No active order');
     }
 
-    // Calculate the final quantity based on mode
-    let finalQuantity = quantity;
-
-    if (mode === 'increment') {
-      // Find existing line item for this product
-      const existingLineItem = orderQuery.data.line_items.find(
-        li => li.product_id === productId && li.variation_id === variationId
-      );
-      const currentQty = existingLineItem?.quantity || 0;
-      finalQuantity = currentQty + quantity;
-    }
-
     // Handle frontend ID orders - save to Dexie only (local-first)
     if (isFrontendIdOrder && urlOrderId) {
       // Get the current local order from Dexie to get the latest state
+      // IMPORTANT: We must get the latest data BEFORE calculating finalQuantity
+      // to avoid race conditions when multiple commands are executed rapidly
       const cachedLocalOrder = await getLocalOrder(urlOrderId);
       const baseOrder = cachedLocalOrder?.data || orderQuery.data;
+
+      // Calculate the final quantity based on mode using the LATEST data
+      let finalQuantity = quantity;
+      if (mode === 'increment') {
+        const existingLineItem = baseOrder.line_items.find(
+          li => li.product_id === productId && li.variation_id === variationId
+        );
+        const currentQty = existingLineItem?.quantity || 0;
+        finalQuantity = currentQty + quantity;
+      }
 
       // Build the new line items array from the latest state
       const existingLineItems = [...baseOrder.line_items];
@@ -107,6 +107,16 @@ export default function OrderPageClient({ orderId }: OrderPageClientProps) {
     }
 
     // For server orders, use the API
+    // Calculate the final quantity based on mode
+    let finalQuantity = quantity;
+    if (mode === 'increment') {
+      const existingLineItem = orderQuery.data.line_items.find(
+        li => li.product_id === productId && li.variation_id === variationId
+      );
+      const currentQty = existingLineItem?.quantity || 0;
+      finalQuantity = currentQty + quantity;
+    }
+
     const patchLineItems: LineItemSchema[] = [];
     const existingLineItems = orderQuery.data.line_items.filter(
       li => li.product_id === productId && li.variation_id === variationId
