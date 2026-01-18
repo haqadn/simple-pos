@@ -16,6 +16,7 @@ import { isValidFrontendId } from "@/lib/frontend-id";
 import { getLocalOrder, getLocalOrderByServerId, updateLocalOrder, importServerOrder, listLocalOrders } from "./offline-orders";
 import type { LocalOrder } from "@/db";
 import { syncOrder } from "@/services/sync";
+import { calculateOrderTotal, calculateSubtotal } from "@/lib/order-utils";
 
 function generateOrderQueryKey(context: string, order?: OrderSchema, product?: ProductSchema) {
 	switch (context) {
@@ -466,6 +467,7 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 					product_id: product.product_id,
 					variation_id: product.variation_id,
 					quantity,
+					price: product.price,
 				});
 			}
 
@@ -576,6 +578,7 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 				product_id: product.product_id,
 				variation_id: product.variation_id,
 				quantity: quantity,
+				price: product.price,
 				id: undefined,
 			} );
 		}
@@ -603,6 +606,7 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 				variation_id: product.variation_id,
 				quantity: params.quantity,
 				name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
+				price: product.price,
 			};
 
 			// For frontend ID orders (local-first), update the local order query cache
@@ -614,13 +618,21 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 				);
 				if (existingLineItemIdx >= 0) {
 					if (params.quantity > 0) {
-						newOrderQueryData.line_items[existingLineItemIdx].quantity = params.quantity;
+						newOrderQueryData.line_items[existingLineItemIdx] = {
+							...newOrderQueryData.line_items[existingLineItemIdx],
+							quantity: params.quantity,
+							price: product.price, // Ensure price is always set
+						};
 					} else {
 						newOrderQueryData.line_items = newOrderQueryData.line_items.filter((_, idx) => idx !== existingLineItemIdx);
 					}
 				} else if (params.quantity > 0) {
 					newOrderQueryData.line_items = [...newOrderQueryData.line_items, newLineItem];
 				}
+
+				// Recalculate totals for optimistic update
+				newOrderQueryData.subtotal = calculateSubtotal(newOrderQueryData.line_items);
+				newOrderQueryData.total = calculateOrderTotal(newOrderQueryData);
 
 				// Update the local order query cache optimistically
 				queryClient.setQueryData(['localOrder', urlOrderId], (oldData: LocalOrder | undefined) => {

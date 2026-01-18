@@ -5,10 +5,12 @@ import { useCurrentOrder } from "@/stores/orders";
 import { useCouponValidation, CouponValidationStatus } from "@/stores/coupons";
 import { useState, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useParams } from "next/navigation";
 import OrdersAPI from "@/api/orders";
 import { CouponLineSchema } from "@/api/orders";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CheckmarkCircle02Icon, Cancel01Icon, Alert02Icon } from "@hugeicons/core-free-icons";
+import { isValidFrontendId } from "@/lib/frontend-id";
 
 // Status indicator component
 function StatusIndicator({ status }: { status: CouponValidationStatus }) {
@@ -42,10 +44,16 @@ function getStatusColor(status: CouponValidationStatus): "default" | "success" |
 }
 
 export default function CouponCard() {
+    const params = useParams();
+    const urlOrderId = params?.orderId as string | undefined;
     const orderQuery = useCurrentOrder();
     const orderData = orderQuery.data;
     const queryClient = useQueryClient();
     const [isApplying, setIsApplying] = useState(false);
+
+    // TODO: Use this for local-first coupon application (Task 4)
+    const _isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
+    void _isFrontendIdOrder; // Suppress unused warning until Task 4 is implemented
 
     const {
         code,

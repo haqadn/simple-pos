@@ -4,6 +4,7 @@
 Fix critical bugs in the Simple POS Next.js application affecting order management, command system, and UI state. Implement Today's Orders modal for viewing completed orders.
 
 **Reference:** `PRD.md`, `activity.md`, `CLAUDE.md`
+**Verification:** All tasks must be verified in browser before marking complete.
 
 ---
 
@@ -16,11 +17,9 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
     "category": "bug-fix",
     "description": "Fix sidebar order sorting - new orders should appear at the end (bottom)",
     "steps": [
-      "Review useCombinedOrdersStore in stores/orders.ts - understand how orders are combined",
-      "Review listLocalOrders in stores/offline-orders.ts - currently sorts by updatedAt descending",
-      "Modify useCombinedOrdersStore to sort combined orders by createdAt ascending",
-      "This ensures newer orders appear at the bottom of the sidebar list",
-      "Test by creating multiple orders and verifying consistent ordering"
+      "BROWSER TEST: Create a new order via + New Order button",
+      "BROWSER TEST: Verify the new order appears at the bottom of the sidebar list",
+      "BROWSER TEST: Create another order and verify it also appears at bottom"
     ],
     "passes": true
   },
@@ -29,13 +28,10 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
     "category": "bug-fix",
     "description": "Fix local order total calculation - totals show 0 for offline orders",
     "steps": [
-      "Create calculateOrderTotal utility function in lib/order-utils.ts",
-      "Calculate subtotal from line_items: sum of (price * quantity) for each item",
-      "Handle discount_total if coupon applied",
-      "Handle shipping_total from shipping_lines",
-      "Call calculateOrderTotal in updateLocalOrder when line_items change",
-      "Update the order.total field with calculated value",
-      "Test by adding items to a local order and verifying total updates correctly"
+      "BROWSER TEST: Create a new local order",
+      "BROWSER TEST: Click on a product to add it to the order",
+      "BROWSER TEST: Verify the Total field updates to show the product price",
+      "BROWSER TEST: Add multiple products and verify total sums correctly"
     ],
     "passes": true
   },
@@ -44,25 +40,19 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
     "category": "setup",
     "description": "Create test coupon in wp-env for coupon testing",
     "steps": [
-      "Add coupon creation to scripts/dev-setup.js using WP-CLI or WooCommerce REST API",
-      "Create a percentage coupon: code='testcoupon', discount_type='percent', amount='10'",
-      "Create a fixed amount coupon: code='fixedcoupon', discount_type='fixed_cart', amount='50'",
-      "Verify coupons exist by calling GET /wp-json/wc/v3/coupons",
-      "Update dev-setup to be idempotent (skip if coupons already exist)"
+      "Run npm run dev:setup to create test coupons",
+      "BROWSER TEST: In coupon code field, type 'testcoupon' and verify it validates"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 4,
     "category": "bug-fix",
     "description": "Fix coupon application for local orders - coupon disappears after adding",
     "steps": [
-      "Review coupon-card.tsx - it calls OrdersAPI.updateOrder() which needs server ID",
-      "Detect if order is local (frontend ID) using isValidFrontendId",
-      "For local orders, use updateLocalOrder instead of OrdersAPI.updateOrder",
-      "Update the correct React Query cache key after local update",
-      "Queue sync operation after local coupon update",
-      "Test by adding a coupon to a local order and verifying it persists"
+      "BROWSER TEST: Create a new local order and add items",
+      "BROWSER TEST: Apply coupon code 'testcoupon'",
+      "BROWSER TEST: Verify coupon persists and discount is applied to total"
     ],
     "passes": false
   },
@@ -71,18 +61,8 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
     "category": "feature",
     "description": "Implement complete CommandContext in pos-command-input.tsx",
     "steps": [
-      "Review CommandContext interface in command-manager.ts for required functions",
-      "Currently only updateLineItem, showMessage, showError are implemented",
-      "Import necessary functions: updateLocalOrder, updateLocalOrderStatus from offline-orders",
-      "Implement clearOrder: set line_items to empty array via updateLocalOrder",
-      "Implement completeOrder: update status to 'completed', navigate to /orders",
-      "Implement setPayment: update meta_data with payment_received and split_payments",
-      "Implement getPaymentReceived: read from order meta_data",
-      "Implement applyCoupon/removeCoupon: update coupon_lines via updateLocalOrder",
-      "Implement setNote: update customer_note via updateLocalOrder",
-      "Implement setCustomer: update billing info via updateLocalOrder",
-      "Implement print/openDrawer: show 'not implemented' or use existing print system",
-      "Implement navigateToNextOrder: router.push to /orders"
+      "Implement all CommandContext functions for local orders",
+      "BROWSER TEST: Verify commands work via command bar"
     ],
     "passes": false
   },
@@ -91,12 +71,9 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
     "category": "bug-fix",
     "description": "Fix /item command increment mode - doesn't increment existing quantities",
     "steps": [
-      "Review item.ts - passes mode 'increment' or 'set' to updateLineItem",
-      "Current updateLineItem in pos-command-input.tsx ignores mode parameter",
-      "Update updateLineItem signature to accept (productId, variationId, quantity, mode)",
-      "When mode is 'increment': find existing line item, add quantity to current",
-      "When mode is 'set': use the provided quantity directly",
-      "Test: /item SKU increments by 1, /item SKU 5 sets to 5"
+      "BROWSER TEST: Type '/item TEST-SIMPLE-001' - verify quantity becomes 1",
+      "BROWSER TEST: Type '/item TEST-SIMPLE-001' again - verify quantity increments to 2",
+      "BROWSER TEST: Type '/item TEST-SIMPLE-001 5' - verify quantity is set to 5"
     ],
     "passes": false
   },
@@ -105,12 +82,9 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
     "category": "bug-fix",
     "description": "Fix /clear command - not removing line items from orders",
     "steps": [
-      "Review clear.ts - calls context.clearOrder()",
-      "Ensure clearOrder is implemented in CommandContext (task 5)",
-      "For local orders: set line_items to [] via updateLocalOrder",
-      "Update React Query cache with empty line items",
-      "Invalidate localOrder query to refresh UI",
-      "Test: /clear removes all items from current order"
+      "BROWSER TEST: Add items to an order",
+      "BROWSER TEST: Type '/clear' command",
+      "BROWSER TEST: Verify all line items are removed from order"
     ],
     "passes": false
   },
@@ -119,13 +93,9 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
     "category": "bug-fix",
     "description": "Fix /pay command - payment amounts not persisting",
     "steps": [
-      "Review pay.ts - calls context.setPayment(amount)",
-      "Ensure setPayment is implemented in CommandContext (task 5)",
-      "Update meta_data with payment_received and split_payments keys",
-      "For local orders: use updateLocalOrder to persist",
-      "Update React Query cache with new meta_data",
-      "Ensure payment-card.tsx reads the stored values correctly",
-      "Test: /pay 100 stores payment, verify in UI"
+      "BROWSER TEST: Add items to order (e.g. total = 25)",
+      "BROWSER TEST: Type '/pay 100'",
+      "BROWSER TEST: Verify Cash field shows 100 and Change shows 75"
     ],
     "passes": false
   },
@@ -134,14 +104,9 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
     "category": "enhancement",
     "description": "Enhance /done command to accept optional payment amount",
     "steps": [
-      "Review done.ts - currently only checks if order is paid",
-      "Modify execute() to parse optional amount argument: /done [amount]",
-      "If amount provided: call setPayment(amount) first",
-      "Then check if total payment >= order total",
-      "If sufficient: complete order, show change, navigate away",
-      "If not: show error with remaining amount due",
-      "Update command metadata to document new usage: /done [amount]",
-      "Test: /done 500 adds payment and completes order"
+      "BROWSER TEST: Add items to order with total = 25",
+      "BROWSER TEST: Type '/done 100'",
+      "BROWSER TEST: Verify order completes and shows change amount"
     ],
     "passes": false
   },
@@ -150,13 +115,8 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
     "category": "bug-fix",
     "description": "Remove completed orders from sidebar",
     "steps": [
-      "Review useLocalOrdersQuery in stores/orders.ts",
-      "Currently filters by status: pending, processing, on-hold, draft",
-      "Verify 'completed' is not in the filter list",
-      "Review useCombinedOrdersStore to ensure completed orders excluded",
-      "Ensure sidebar re-renders when order status changes to completed",
-      "Invalidate localOrders query after order completion",
-      "Test: complete an order with /done and verify it disappears from sidebar"
+      "BROWSER TEST: Complete an order using /done command",
+      "BROWSER TEST: Verify the order disappears from the sidebar"
     ],
     "passes": false
   },
@@ -165,12 +125,9 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
     "category": "bug-fix",
     "description": "Fix New Order button navigation issues",
     "steps": [
-      "Review sidebar.tsx newOrder function",
-      "Verify createLocalOrder completes before router.push",
-      "Add error handling for failed order creation",
-      "Ensure frontend ID is correctly passed to URL",
-      "Check for race conditions between order creation and navigation",
-      "Test: click New Order, verify navigation to new order page"
+      "BROWSER TEST: Click '+ New Order' button",
+      "BROWSER TEST: Verify navigation to new order page with frontend ID in URL",
+      "BROWSER TEST: Verify new order appears in sidebar"
     ],
     "passes": false
   },
@@ -179,11 +136,9 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
     "category": "bug-fix",
     "description": "Fix line item UI updates - verify race condition fix",
     "steps": [
-      "Review recent race condition fix (removed debounce, use setQueryData)",
-      "Verify optimistic updates in onMutate preserve all items",
-      "Ensure setQueryData updates preserve other pending changes",
-      "Test rapid quantity changes don't cause items to disappear",
-      "Test quantity change from 1->2, 2->0 (removal) works correctly"
+      "BROWSER TEST: Rapidly click on a product multiple times",
+      "BROWSER TEST: Verify quantity increments correctly without items disappearing",
+      "BROWSER TEST: Click to set quantity to 0 and verify item is removed"
     ],
     "passes": false
   },
@@ -192,14 +147,8 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
     "category": "feature",
     "description": "Create Today's Orders modal component",
     "steps": [
-      "Create app/components/TodaysOrdersModal.tsx",
-      "Use HeroUI Modal component for container",
-      "Create two-panel layout: order list (left), receipt preview (right)",
-      "Add listTodaysOrders function to stores/offline-orders.ts",
-      "Query orders where createdAt >= start of today (all statuses)",
-      "Display columns: Frontend ID, Server ID, Sync Status, Total",
-      "Add summary footer showing order count and total revenue",
-      "Style selected row with highlight"
+      "Create TodaysOrdersModal.tsx component",
+      "BROWSER TEST: Verify modal displays list of today's orders"
     ],
     "passes": false
   },
@@ -208,12 +157,8 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
     "category": "feature",
     "description": "Add receipt preview to Today's Orders modal",
     "steps": [
-      "Import BillPrint component for receipt rendering",
-      "When order selected, display receipt preview in right panel",
-      "Add 'Reopen Order' button below receipt",
-      "Reopen navigates to /orders/{frontendId}",
-      "If order was completed, change status back to 'pending'",
-      "Close modal after navigation"
+      "Add receipt preview panel to modal",
+      "BROWSER TEST: Select an order and verify receipt preview appears"
     ],
     "passes": false
   },
@@ -222,25 +167,19 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
     "category": "feature",
     "description": "Connect OfflineIndicator to Today's Orders modal",
     "steps": [
-      "Modify app/components/OfflineIndicator.tsx",
-      "Add onClick handler to the indicator component",
-      "Use useDisclosure hook from HeroUI for modal state",
-      "Import and render TodaysOrdersModal",
-      "Pass isOpen and onClose props to modal",
-      "Test: click offline indicator opens Today's Orders modal"
+      "BROWSER TEST: Click on the 'Online' indicator in sidebar",
+      "BROWSER TEST: Verify Today's Orders modal opens"
     ],
     "passes": false
   },
   {
     "id": 16,
     "category": "testing",
-    "description": "Run E2E tests to verify all fixes",
+    "description": "Final browser verification of all features",
     "steps": [
-      "Run npm run test:e2e to execute full test suite",
-      "Compare results to baseline: 268 passing, 109 failing",
-      "Document improvements in each test category",
-      "Identify remaining failures needing additional fixes",
-      "Update activity.md with final test results"
+      "BROWSER TEST: Complete full order flow - create, add items, pay, complete",
+      "BROWSER TEST: Verify all commands work correctly",
+      "BROWSER TEST: Verify offline indicator and Today's Orders modal"
     ],
     "passes": false
   }
