@@ -50,12 +50,27 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
   const queryClient = useQueryClient();
 
   // Query for today's orders
-  const { data: orders = [], isLoading, refetch } = useQuery({
+  const { data: rawOrders = [], isLoading, refetch } = useQuery({
     queryKey: ['todaysOrders'],
     queryFn: listTodaysOrders,
     enabled: isOpen, // Only fetch when modal is open
     refetchInterval: isOpen ? 5000 : false, // Refresh every 5 seconds when open
   });
+
+  // Sort orders: local-only first (by creation time), then synced (by server ID)
+  const orders = useMemo(() => {
+    return [...rawOrders].sort((a, b) => {
+      // Local-only orders come first
+      if (!a.serverId && b.serverId) return -1;
+      if (a.serverId && !b.serverId) return 1;
+      // Both local-only: sort by creation time (newest first)
+      if (!a.serverId && !b.serverId) {
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      }
+      // Both synced: sort by server ID (highest = newest first)
+      return b.serverId! - a.serverId!;
+    });
+  }, [rawOrders]);
 
   // Reset selection when modal opens
   useEffect(() => {
@@ -70,17 +85,6 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
     if (!selectedOrderId) return null;
     return orders.find((order) => order.frontendId === selectedOrderId) || null;
   }, [selectedOrderId, orders]);
-
-  // Calculate summary stats
-  const summary = useMemo(() => {
-    const totalRevenue = orders.reduce((sum, order) => {
-      return sum + parseFloat(order.data.total || '0');
-    }, 0);
-    return {
-      count: orders.length,
-      totalRevenue: totalRevenue.toFixed(2),
-    };
-  }, [orders]);
 
   // Format sync status for display
   const getSyncStatusConfig = useCallback((status: SyncStatus) => {
@@ -223,12 +227,7 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
       <ModalContent>
         {() => (
           <>
-            <ModalHeader className="flex flex-col gap-1">
-              <span>Today&apos;s Orders</span>
-              <span className="text-sm font-normal text-default-500">
-                {summary.count} orders | {summary.totalRevenue} total
-              </span>
-            </ModalHeader>
+            <ModalHeader>Today&apos;s Orders</ModalHeader>
             <ModalBody className="pb-6">
               {isLoading ? (
                 <div className="flex justify-center items-center py-12">
@@ -248,6 +247,7 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
                       selectionMode="single"
                       selectedKeys={selectedOrderId ? new Set([selectedOrderId]) : new Set()}
                       onSelectionChange={handleSelectionChange}
+                      shadow="none"
                       classNames={{
                         wrapper: 'min-h-[400px]',
                       }}
