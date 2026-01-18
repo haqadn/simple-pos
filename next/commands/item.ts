@@ -1,6 +1,7 @@
 import { BaseMultiInputCommand, CommandMetadata, CommandSuggestion } from './command';
 import { CommandContext } from './command-manager';
 import { ProductSchema } from '@/stores/products';
+import { formatCurrencyWithSymbol } from '@/lib/format';
 
 interface ItemCommandData {
   itemsModified: number;
@@ -88,10 +89,11 @@ export class ItemCommand extends BaseMultiInputCommand {
         )
         .slice(0, 8); // Limit to 8 suggestions
 
+      const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
       matchingProducts.forEach(product => {
         suggestions.push({
           text: product.sku,
-          description: `${product.name} - $${product.price}`,
+          description: `${product.name} - ${formatCurrencyWithSymbol(product.price, currency.symbol, currency.position)}`,
           insertText: product.sku,
           type: 'parameter'
         });
@@ -155,9 +157,10 @@ export class ItemCommand extends BaseMultiInputCommand {
         )
         .slice(0, 8);
 
+      const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
       const productSuggestions: CommandSuggestion[] = matchingProducts.map(product => ({
         text: product.sku,
-        description: `${product.name} - $${product.price}`,
+        description: `${product.name} - ${formatCurrencyWithSymbol(product.price, currency.symbol, currency.position)}`,
         insertText: product.sku,
         type: 'parameter'
       }));

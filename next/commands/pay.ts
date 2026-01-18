@@ -1,6 +1,6 @@
 import { BaseMultiInputCommand, CommandMetadata, CommandSuggestion } from './command';
 import { CommandContext } from './command-manager';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, formatCurrencyWithSymbol } from '@/lib/format';
 import { OrderSchema } from '@/api/orders';
 
 interface PayCommandData {
@@ -50,11 +50,12 @@ export class PayCommand extends BaseMultiInputCommand {
 
     const orderTotal = parseFloat(order.total);
     const change = amount - orderTotal;
+    const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
 
     if (change >= 0) {
-      context.showMessage(`Cash: ${formatCurrency(amount)} | Change: ${formatCurrency(change)}`);
+      context.showMessage(`Cash: ${formatCurrencyWithSymbol(amount, currency.symbol, currency.position)} | Change: ${formatCurrencyWithSymbol(change, currency.symbol, currency.position)}`);
     } else {
-      context.showMessage(`Cash: ${formatCurrency(amount)} | Due: ${formatCurrency(Math.abs(change))}`);
+      context.showMessage(`Cash: ${formatCurrencyWithSymbol(amount, currency.symbol, currency.position)} | Due: ${formatCurrencyWithSymbol(Math.abs(change), currency.symbol, currency.position)}`);
     }
   }
 
@@ -72,7 +73,8 @@ export class PayCommand extends BaseMultiInputCommand {
       const orderTotal = parseFloat(context.currentOrder?.total || '0');
       const change = data.totalPaid - orderTotal;
       if (change >= 0) {
-        context.showMessage(`Total paid: $${formatCurrency(data.totalPaid)} | Change: $${formatCurrency(change)}`);
+        const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
+        context.showMessage(`Total paid: ${formatCurrencyWithSymbol(data.totalPaid, currency.symbol, currency.position)} | Change: ${formatCurrencyWithSymbol(change, currency.symbol, currency.position)}`);
       }
     }
   }
@@ -99,10 +101,11 @@ export class PayCommand extends BaseMultiInputCommand {
 
     // Suggest common round amounts
     const roundAmounts = [10, 20, 50, 100].filter(a => a >= remaining);
+    const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
     roundAmounts.slice(0, 2).forEach(amount => {
       suggestions.push({
         text: amount.toString(),
-        description: `$${amount} (change: $${formatCurrency(amount - remaining)})`,
+        description: `${formatCurrencyWithSymbol(amount, currency.symbol, currency.position)} (change: ${formatCurrencyWithSymbol(amount - remaining, currency.symbol, currency.position)})`,
         insertText: amount.toString(),
         type: 'parameter'
       });

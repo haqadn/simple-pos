@@ -8,7 +8,7 @@ import { useCommandManager } from '@/hooks/useCommandManager';
 import { useCurrentOrder, useOrdersStore } from '@/stores/orders';
 import { useProductsQuery, useGetProductById } from '@/stores/products';
 import { usePrintStore, PrintJobData } from '@/stores/print';
-import { CommandContext, CustomerData } from '@/commands/command-manager';
+import { CommandContext, CustomerData, CurrencyConfig } from '@/commands/command-manager';
 import { CommandSuggestion } from '@/commands/command';
 import OrdersAPI, { OrderSchema } from '@/api/orders';
 import { DRAFT_ORDER_ID, useDraftOrderStore } from '@/stores/draft-order';
@@ -20,6 +20,7 @@ import { HelpTextBar, CommandSuggestions, applySuggestion } from './command-bar/
 import { isValidFrontendId } from '@/lib/frontend-id';
 import { updateLocalOrderStatus, getLocalOrder } from '@/stores/offline-orders';
 import { syncOrder } from '@/services/sync';
+import { useCurrencySettings } from '@/stores/currency';
 
 export default function CommandBar() {
   const [input, setInput] = useState('');
@@ -37,6 +38,7 @@ export default function CommandBar() {
   const { ordersQuery } = useOrdersStore();
   const getProductById = useGetProductById();
   const skipKotCategories = useSettingsStore(state => state.skipKotCategories);
+  const { data: currencySettings } = useCurrencySettings();
 
   // Draft order support
   const updateDraftLineItems = useDraftOrderStore((state) => state.updateDraftLineItems);
@@ -619,6 +621,14 @@ export default function CommandBar() {
     queryClient.setQueryData(customerInfoKey, updatedOrder.billing);
   }, [orderQuery, queryClient]);
 
+  // Get currency configuration for commands
+  const getCurrency = useCallback((): CurrencyConfig => {
+    return {
+      symbol: currencySettings?.currency_symbol || '$',
+      position: currencySettings?.currency_position || 'left',
+    };
+  }, [currencySettings]);
+
   // Create the command context
   const commandContext = useMemo((): CommandContext | null => {
     if (!orderQuery.data || !products.length) {
@@ -642,10 +652,11 @@ export default function CommandBar() {
       },
       setNote: handleSetNote,
       setCustomer: handleSetCustomer,
+      getCurrency,
       showMessage: (msg) => console.log('[Command]', msg),
       showError: (err) => console.error('[Command Error]', err)
     };
-  }, [orderQuery.data, products, handleAddProduct, handleClearOrder, handleCompleteOrder, handleSetPayment, getPaymentReceived, handleApplyCoupon, handleRemoveCoupon, handlePrint, handleOpenDrawer, handleSetNote, handleSetCustomer, queryClient]);
+  }, [orderQuery.data, products, handleAddProduct, handleClearOrder, handleCompleteOrder, handleSetPayment, getPaymentReceived, handleApplyCoupon, handleRemoveCoupon, handlePrint, handleOpenDrawer, handleSetNote, handleSetCustomer, getCurrency, queryClient]);
 
   // Set up command context when ready
   useEffect(() => {

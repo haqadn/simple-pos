@@ -1,6 +1,6 @@
 import { BaseCommand, CommandMetadata, CommandSuggestion } from './command';
 import { CommandContext } from './command-manager';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, formatCurrencyWithSymbol } from '@/lib/format';
 import { OrderSchema } from '@/api/orders';
 
 /**
@@ -50,7 +50,8 @@ export class DoneCommand extends BaseCommand {
     // Check if payment is sufficient
     if (paymentReceived < orderTotal) {
       const remaining = orderTotal - paymentReceived;
-      throw new Error(`Insufficient payment. Due: $${formatCurrency(remaining)}`);
+      const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
+      throw new Error(`Insufficient payment. Due: ${formatCurrencyWithSymbol(remaining, currency.symbol, currency.position)}`);
     }
 
     // Complete the order
@@ -77,7 +78,8 @@ export class DoneCommand extends BaseCommand {
     }
 
     if (change > 0) {
-      context.showMessage(`Order completed! Change: $${formatCurrency(change)}`);
+      const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
+      context.showMessage(`Order completed! Change: ${formatCurrencyWithSymbol(change, currency.symbol, currency.position)}`);
     } else {
       context.showMessage('Order completed!');
     }
@@ -108,10 +110,11 @@ export class DoneCommand extends BaseCommand {
 
       // Suggest common round amounts that cover the remaining balance
       const roundAmounts = [10, 20, 50, 100, 200, 500].filter(a => a >= remaining);
+      const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
       roundAmounts.slice(0, 2).forEach(amount => {
         suggestions.push({
           text: amount.toString(),
-          description: `$${amount} (change: $${formatCurrency(amount - remaining)})`,
+          description: `${formatCurrencyWithSymbol(amount, currency.symbol, currency.position)} (change: ${formatCurrencyWithSymbol(amount - remaining, currency.symbol, currency.position)})`,
           insertText: `/${parts[0]} ${amount}`,
           type: 'parameter'
         });

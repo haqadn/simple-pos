@@ -16,6 +16,14 @@ import { OrderSchema } from '@/api/orders';
 import { ProductSchema } from '@/stores/products';
 
 /**
+ * Currency configuration for formatting
+ */
+export interface CurrencyConfig {
+  symbol: string;
+  position: 'left' | 'right' | 'left_space' | 'right_space';
+}
+
+/**
  * Command context that provides data and functions to commands
  */
 export interface CommandContext {
@@ -53,6 +61,9 @@ export interface CommandContext {
 
   // Navigation
   navigateToNextOrder?: () => void;
+
+  // Currency formatting
+  getCurrency?: () => CurrencyConfig;
 
   // UI feedback functions
   showMessage: (message: string) => void;

@@ -139,7 +139,7 @@ Fix 10 issues in the Simple POS Next.js application related to command handling,
       "Replace hardcoded symbols in UI components (payment-card.tsx, BillPrint.tsx, etc.)",
       "Verify: Check bill preview, KOT, and payment UI show correct currency based on store settings"
     ],
-    "passes": false
+    "passes": true
   }
 ]
 ```

@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 9
+Tasks completed: 10
 Current task: None
 
 ---
@@ -249,3 +249,59 @@ The issue was that `ThermalPrint.tsx` was missing `frontendId` and `serverId` fi
 
 ### Commit
 - `fix: properly track and display new items on KOT after previous print`
+
+---
+
+## [2026-01-18] - Task 10: Remove hardcoded currency symbols - use dynamic currency from store settings
+
+### Changes Made
+
+**New Files Created:**
+- `/Users/adnan/Projects/simple-pos/next/api/store.ts`:
+  - Created Store API module to fetch currency settings from WooCommerce
+  - Fetches settings from `/wp-json/wc/v3/settings/general/` endpoints
+  - Includes `getCurrencySymbol()` function to map currency codes to symbols (supports 30+ currencies)
+  - Exports `CurrencySettings` schema with currency, symbol, position, separators, and decimal places
+  - Provides `DEFAULT_CURRENCY_SETTINGS` fallback (USD, $, left position)
+
+- `/Users/adnan/Projects/simple-pos/next/stores/currency.ts`:
+  - Created currency store with TanStack Query hook `useCurrencySettings()`
+  - 24-hour cache duration since currency settings rarely change
+  - Exports `formatPrice()` and `formatAmount()` utility functions
+  - Functions respect WooCommerce currency position settings (left, right, left_space, right_space)
+
+**Updated Files:**
+- `/Users/adnan/Projects/simple-pos/next/lib/format.ts`:
+  - Added `formatCurrencyWithSymbol()` function that accepts symbol and position parameters
+  - Supports all four WooCommerce currency positions
+
+- `/Users/adnan/Projects/simple-pos/next/commands/command-manager.ts`:
+  - Added `CurrencyConfig` interface export
+  - Added `getCurrency?: () => CurrencyConfig` to `CommandContext` interface
+
+- `/Users/adnan/Projects/simple-pos/next/app/components/command-bar.tsx`:
+  - Added `useCurrencySettings()` hook
+  - Added `getCurrency` callback function that returns current currency settings
+  - Added `getCurrency` to command context
+
+- `/Users/adnan/Projects/simple-pos/next/commands/done.ts`:
+  - Updated all hardcoded `$` symbols to use `formatCurrencyWithSymbol()` with dynamic currency
+  - Updated error messages, success messages, and autocomplete suggestions
+
+- `/Users/adnan/Projects/simple-pos/next/commands/pay.ts`:
+  - Updated all hardcoded `$` symbols to use `formatCurrencyWithSymbol()` with dynamic currency
+  - Updated execute(), exitMultiMode(), and autocomplete suggestions
+
+- `/Users/adnan/Projects/simple-pos/next/commands/item.ts`:
+  - Updated product price display in autocomplete suggestions to use dynamic currency
+  - Both getMultiModeAutocompleteSuggestions() and getAutocompleteSuggestions() updated
+
+### Verification
+- Build: `npm run build` completed successfully with no errors
+- Lint: `npm run lint` passed with no warnings or errors
+- Currency settings are now fetched from WooCommerce store settings API
+- Commands display currency with correct symbol and position based on store configuration
+- Fallback to USD/$  if settings cannot be fetched
+
+### Commit
+- `feat: use dynamic currency from WooCommerce store settings`
