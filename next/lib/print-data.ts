@@ -134,3 +134,94 @@ export function buildPrintData(options: BuildPrintDataOptions): PrintJobData {
 
   return printData;
 }
+
+type MetaDataEntry = { id?: number; key: string; value: string };
+
+interface BuildPrintMetaUpdatesOptions {
+  order: OrderSchema;
+  type: 'bill' | 'kot';
+  printData: PrintJobData;
+}
+
+/**
+ * Build meta_data updates after printing.
+ * For KOT: uses two-phase tracking to preserve edit markers on reprints:
+ * - last_kot_items: baseline for comparison (only advances when NEW changes are printed)
+ * - last_kot_printed: snapshot of items at last print (always updated)
+ *
+ * Logic: If current items differ from last_kot_printed, this is a NEW print (not reprint),
+ * so we advance the baseline. Reprints keep the same baseline, preserving markers.
+ */
+export function buildPrintMetaUpdates(options: BuildPrintMetaUpdatesOptions): MetaDataEntry[] {
+  const { order, type } = options;
+  const metaKey = type === 'bill' ? 'last_bill_print' : 'last_kot_print';
+
+  // Build current items map
+  const currentItems: Record<string, { quantity: number; name: string }> = {};
+  order.line_items.forEach(item => {
+    const itemKey = `${item.product_id}-${item.variation_id}`;
+    currentItems[itemKey] = { quantity: item.quantity, name: item.name };
+  });
+  const currentItemsJson = JSON.stringify(currentItems);
+
+  // Keys to filter out (we'll re-add them with updated values)
+  const keysToFilter = [metaKey];
+  if (type === 'kot') {
+    keysToFilter.push('last_kot_items', 'last_kot_printed');
+  }
+
+  // Start with existing meta_data, filtering out keys we'll update
+  const metaUpdates: MetaDataEntry[] = order.meta_data
+    .filter(m => !keysToFilter.includes(m.key))
+    .map(m => m.id ? { id: m.id, key: m.key, value: String(m.value) } : { key: m.key, value: String(m.value) });
+
+  // Always add print timestamp
+  const existingPrintMeta = order.meta_data.find(m => m.key === metaKey);
+  if (existingPrintMeta?.id) {
+    metaUpdates.push({ id: existingPrintMeta.id, key: metaKey, value: new Date().toISOString() });
+  } else {
+    metaUpdates.push({ key: metaKey, value: new Date().toISOString() });
+  }
+
+  if (type === 'kot') {
+    // Get last printed state and existing baseline
+    const lastPrintedMeta = order.meta_data.find(m => m.key === 'last_kot_printed');
+    const lastPrintedJson = lastPrintedMeta?.value as string | undefined;
+    const existingBaselineMeta = order.meta_data.find(m => m.key === 'last_kot_items');
+    const existingBaselineJson = existingBaselineMeta?.value as string | undefined;
+
+    // Check if this is a reprint (current items match what was last printed)
+    const isReprint = lastPrintedJson !== undefined && lastPrintedJson === currentItemsJson;
+
+    // Determine new baseline value
+    let newBaselineJson: string;
+    if (isReprint) {
+      // Reprint: keep existing baseline (preserve markers)
+      newBaselineJson = existingBaselineJson || '{}';
+    } else if (lastPrintedJson !== undefined) {
+      // New print with changes: advance baseline to what was last printed
+      // Kitchen already knows about lastPrinted state, show only new changes
+      newBaselineJson = lastPrintedJson;
+    } else {
+      // First print: set baseline to current state
+      // Future changes will be shown relative to this initial state
+      newBaselineJson = currentItemsJson;
+    }
+
+    // Add baseline (last_kot_items)
+    if (existingBaselineMeta?.id) {
+      metaUpdates.push({ id: existingBaselineMeta.id, key: 'last_kot_items', value: newBaselineJson });
+    } else {
+      metaUpdates.push({ key: 'last_kot_items', value: newBaselineJson });
+    }
+
+    // Always update last_kot_printed to current state
+    if (lastPrintedMeta?.id) {
+      metaUpdates.push({ id: lastPrintedMeta.id, key: 'last_kot_printed', value: currentItemsJson });
+    } else {
+      metaUpdates.push({ key: 'last_kot_printed', value: currentItemsJson });
+    }
+  }
+
+  return metaUpdates;
+}
