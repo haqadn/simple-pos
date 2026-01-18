@@ -1,8 +1,42 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 9
+Tasks completed: 10
 Current task: None
+
+---
+
+## [2026-01-18] - Task 10: Remove completed orders from sidebar
+
+### Problem
+Completed orders should not appear in the sidebar. Only pending/processing/on-hold/draft orders should be displayed.
+
+### Verification
+This functionality was already implemented correctly in previous tasks. The code review confirms:
+
+1. **Status filtering** (`/next/stores/orders.ts` line 138):
+   - `useLocalOrdersQuery` filters by `status: ['pending', 'processing', 'on-hold', 'draft']`
+   - This automatically excludes 'completed' orders from the sidebar
+
+2. **Query invalidation** (`/next/components/pos-command-input.tsx` lines 108-110):
+   - When `/done` command completes an order, it invalidates:
+     - `['localOrder', urlOrderId]` - the specific order
+     - `['localOrders']` - the local orders list
+     - `['ordersWithFrontendIds']` - the combined orders used by sidebar
+
+3. **Combined orders update** (`/next/stores/orders.ts` lines 230-235):
+   - `useEffect` ensures `ordersWithFrontendIds` is invalidated when `localOrdersQuery.dataUpdatedAt` changes
+   - This triggers a re-fetch that excludes the completed order
+
+4. **E2E tests exist** (`/next/e2e/tests/order-management/order-completion.spec.ts` line 641):
+   - Test: "completed order disappears from sidebar" verifies this functionality
+   - Test was passing in recent test run (268 tests passing)
+
+### Changes Made
+No code changes required - functionality was already correctly implemented.
+
+### Build Status
+- `npm run build` passes successfully
 
 ---
 

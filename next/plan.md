@@ -118,7 +118,7 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
       "BROWSER TEST: Complete an order using /done command",
       "BROWSER TEST: Verify the order disappears from the sidebar"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 11,
