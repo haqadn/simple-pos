@@ -1,8 +1,52 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 2
+Tasks completed: 3
 Current task: None
+
+---
+
+## [2026-01-18] - Task 3: Create test coupon in wp-env for coupon testing
+
+### Changes Made
+
+**Created test coupons on both WordPress instances:**
+
+1. Development instance (port 8888):
+   - Ran `npm run dev:setup` which already has coupon creation logic
+   - `testcoupon` - 10% off entire order
+   - `fixedcoupon` - $50 off cart
+
+2. Test instance (port 8889):
+   - Created coupons via WooCommerce REST API
+   - `testcoupon` - 10% off entire order (ID: 1424)
+   - `fixedcoupon` - $50 off cart (ID: 1425)
+
+**The dev-setup.js script already contains coupon creation logic:**
+- File: `/next/scripts/dev-setup.js` (lines 261-391)
+- Creates `testcoupon` (10% discount) and `fixedcoupon` ($50 fixed discount)
+- Automatically runs as part of Step 5 in the setup process
+
+### Verification
+
+1. API verification (port 8889):
+   ```bash
+   curl "http://localhost:8889/wp-json/wc/v3/coupons?code=testcoupon" -u "..."
+   # Returns: {"code":"testcoupon","amount":"10.00","discount_type":"percent"...}
+   ```
+
+2. API verification (port 8888):
+   ```bash
+   curl "http://localhost:8888/wp-json/wc/v3/coupons?code=testcoupon" -u "..."
+   # Returns: {"code":"testcoupon","amount":"10.00","discount_type":"percent"...}
+   ```
+
+3. E2E test verification:
+   - Test: "can apply coupon with /coupon command" - PASSED
+   - Test: "applied coupon shows discount in UI" - PASSED
+
+### Commit
+- chore: verify test coupons exist for coupon testing
 
 ---
 

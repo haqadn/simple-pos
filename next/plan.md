@@ -43,7 +43,7 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
       "Run npm run dev:setup to create test coupons",
       "BROWSER TEST: In coupon code field, type 'testcoupon' and verify it validates"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 4,
