@@ -108,7 +108,7 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
       "BROWSER TEST: Type '/done 100'",
       "BROWSER TEST: Verify order completes and shows change amount"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 10,

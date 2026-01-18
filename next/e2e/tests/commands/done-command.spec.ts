@@ -166,6 +166,100 @@ test.describe('Done Command', () => {
       }
       expect(savedOrder.status).toBe('completed');
     });
+
+    test('/done <amount> records payment and completes order', async ({ page, posPage }) => {
+      await gotoNewOrder(page);
+
+      const { simple: product } = getTestProducts();
+      const sku = getTestSku(product);
+      const price = getTestPrice(product);
+
+      if (!sku || price <= 0) {
+        test.skip(true, 'No product with valid SKU and price available');
+        return;
+      }
+
+      // Add item (without recording payment first)
+      await CommandShortcuts.addItem(page, sku, 1);
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
+      await waitForMutations(page);
+
+      const orderTotal = await getOrderTotal(page);
+      expect(orderTotal).toBeGreaterThan(0);
+
+      // Verify order is NOT paid yet
+      const isPaid = await isOrderPaid(page);
+      expect(isPaid).toBe(false);
+
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order has not synced to WooCommerce yet');
+        return;
+      }
+
+      // Complete order with payment amount in one step
+      const paymentAmount = Math.ceil(orderTotal * 1.5); // Overpay for change
+      await posPage.focusCommandBar();
+      await posPage.typeCommand(`/done ${paymentAmount}`);
+      await posPage.commandInput.press('Enter');
+      await waitForMutations(page);
+      await page.waitForTimeout(1000);
+
+      // Verify order completed in WooCommerce
+      const savedOrder = await OrdersAPI.getOrder(serverId);
+      if (!savedOrder) {
+        test.skip(true, 'Order not found in WooCommerce');
+        return;
+      }
+      expect(savedOrder.status).toBe('completed');
+
+      // Verify payment was recorded
+      const paymentMeta = savedOrder.meta_data.find(
+        (meta) => meta.key === 'payment_received'
+      );
+      expect(paymentMeta).toBeDefined();
+      expect(parseFloat(String(paymentMeta!.value))).toBeCloseTo(paymentAmount, 1);
+    });
+
+    test('/done <amount> with insufficient amount shows error', async ({ page, posPage }) => {
+      await gotoNewOrder(page);
+
+      const { simple: product } = getTestProducts();
+      const sku = getTestSku(product);
+      const price = getTestPrice(product);
+
+      if (!sku || price <= 0) {
+        test.skip(true, 'No product with valid SKU and price available');
+        return;
+      }
+
+      // Add item
+      await CommandShortcuts.addItem(page, sku, 2);
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
+      await waitForMutations(page);
+
+      const orderTotal = await getOrderTotal(page);
+      const serverId = await getServerOrderId(page);
+      if (!serverId) {
+        test.skip(true, 'Order has not synced to WooCommerce yet');
+        return;
+      }
+
+      // Try to complete with insufficient payment
+      const insufficientAmount = Math.floor(orderTotal / 2);
+      await posPage.focusCommandBar();
+      await posPage.typeCommand(`/done ${insufficientAmount}`);
+      await posPage.commandInput.press('Enter');
+      await page.waitForTimeout(500);
+
+      // Order should NOT be completed due to insufficient payment
+      const savedOrder = await OrdersAPI.getOrder(serverId);
+      if (!savedOrder) {
+        test.skip(true, 'Order not found in WooCommerce');
+        return;
+      }
+      expect(savedOrder.status).not.toBe('completed');
+    });
   });
 
   test.describe('All aliases /dn, /d work correctly', () => {

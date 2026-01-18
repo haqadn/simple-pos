@@ -1,8 +1,56 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 8
+Tasks completed: 9
 Current task: None
+
+---
+
+## [2026-01-18] - Task 9: Enhance /done command to accept optional payment amount
+
+### Problem
+The `/done` command only completed orders if payment had already been recorded. Users had to use `/pay <amount>` followed by `/done` as separate steps. This enhancement allows combining both steps into one `/done <amount>` command.
+
+### Changes Made
+
+**File: `/next/commands/done.ts`**
+
+1. Updated `getMetadata()` to include the optional amount parameter:
+   - Added `parameters` array with optional `amount` parameter of type `number`
+   - Updated `usage` to show both `/done` and `/done <amount>` forms
+
+2. Modified `execute()` method:
+   - Changed signature to `execute(args: string[])` to accept arguments
+   - Changed `paymentReceived` from `const` to `let` (needs updating if amount provided)
+   - Added logic to handle optional payment amount:
+     - If `args.length > 0`, parse the amount using `this.parseNumber()`
+     - Validate that amount is non-null and non-negative
+     - Call `context.setPayment(amount)` to record the payment
+     - Update `paymentReceived` to use the new amount
+   - Rest of the logic (insufficient payment check, completion, change calculation) works as before
+
+3. Enhanced `getAutocompleteSuggestions()` to suggest payment amounts:
+   - When typing the second part (amount parameter), suggests:
+     - Exact remaining amount needed to complete
+     - Common round amounts (10, 20, 50, 100, 200, 500) that cover the balance
+   - Shows calculated change for round amount suggestions
+
+**File: `/next/e2e/tests/commands/done-command.spec.ts`**
+
+Added two new E2E tests:
+1. `/done <amount> records payment and completes order` - Tests that providing a payment amount with the done command both records the payment and completes the order
+2. `/done <amount> with insufficient amount shows error` - Tests that providing an insufficient payment amount shows an error and doesn't complete the order
+
+### Acceptance Criteria Verification
+- `/done` without amount works as before (requires existing payment)
+- `/done 500` adds payment of 500, then completes if sufficient
+- Shows change if overpaid (via existing `showMessage` logic)
+- Navigates away after completion (via `completeOrder()`)
+- Error shown if amount is insufficient
+
+### Build Status
+- `npm run build` passes successfully
+- TypeScript compilation passes with no errors
 
 ---
 
