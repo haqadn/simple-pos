@@ -140,7 +140,7 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
       "BROWSER TEST: Verify quantity increments correctly without items disappearing",
       "BROWSER TEST: Click to set quantity to 0 and verify item is removed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 13,

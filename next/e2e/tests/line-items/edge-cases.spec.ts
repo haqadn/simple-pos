@@ -619,5 +619,193 @@ test.describe('Line Item Edge Cases', () => {
       await OrderVerify.noLineItem(page, product.name);
       await OrderVerify.isEmpty(page);
     });
+
+    test('setting quantity to 0 via UI input removes item', async ({ page, posPage }) => {
+      // Navigate to new order page
+      await gotoNewOrder(page);
+
+      // Get test product
+      const { simple: product } = getTestProducts();
+      const sku = getTestSku(product);
+
+      if (!sku) {
+        test.skip(true, 'No SKU available for testing');
+        return;
+      }
+
+      // Add item first
+      await CommandShortcuts.addItem(page, sku, 3);
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
+      await waitForMutations(page);
+
+      // Verify item exists
+      await OrderVerify.lineItem(page, product.name, 3);
+
+      // Find the quantity input for this line item and set to 0
+      const quantityInput = page.locator('table[aria-label="Order line items"]')
+        .locator('tr')
+        .filter({ hasText: new RegExp(product.name, 'i') })
+        .locator('input[aria-label="Quantity of line item"]');
+
+      await quantityInput.fill('0');
+      await quantityInput.press('Tab');
+      await waitForMutations(page);
+
+      // Verify item is removed
+      await OrderVerify.noLineItem(page, product.name);
+      await OrderVerify.isEmpty(page);
+    });
+  });
+
+  test.describe('Rapid UI clicks on product cards', () => {
+    test('rapid product card clicks increment quantity correctly', async ({ page }) => {
+      // Navigate to new order page
+      await gotoNewOrder(page);
+
+      const { simple: product } = getTestProducts();
+
+      if (!product) {
+        test.skip(true, 'No product available for testing');
+        return;
+      }
+
+      // Ensure all products are visible
+      const allLink = page.getByLabel('Show all categories');
+      if (await allLink.isVisible().catch(() => false)) {
+        await allLink.click();
+        await page.waitForLoadState('networkidle');
+      }
+
+      // Find the product card button
+      const productSku = product.sku;
+      const cardButton = page.locator('button')
+        .filter({ hasText: new RegExp(product.name, 'i') })
+        .filter({ hasText: productSku ? new RegExp(productSku, 'i') : /.*/ })
+        .first();
+
+      if (!await cardButton.isVisible().catch(() => false)) {
+        test.skip(true, 'Product not visible in grid');
+        return;
+      }
+
+      // Rapid clicks without waiting - click 5 times quickly
+      await cardButton.click();
+      await cardButton.click();
+      await cardButton.click();
+      await cardButton.click();
+      await cardButton.click();
+
+      // Wait for order to save and mutations to settle
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
+      await waitForMutations(page);
+
+      // Final quantity should be 5 (clicked 5 times)
+      await OrderVerify.lineItem(page, product.name, 5);
+
+      // Verify only 1 line item exists (no duplicates)
+      await OrderVerify.lineItemCount(page, 1);
+    });
+
+    test('rapid product card clicks do not cause items to disappear', async ({ page }) => {
+      // Navigate to new order page
+      await gotoNewOrder(page);
+
+      const { simple: product } = getTestProducts();
+
+      if (!product) {
+        test.skip(true, 'No product available for testing');
+        return;
+      }
+
+      // Ensure all products are visible
+      const allLink = page.getByLabel('Show all categories');
+      if (await allLink.isVisible().catch(() => false)) {
+        await allLink.click();
+        await page.waitForLoadState('networkidle');
+      }
+
+      // Find the product card button
+      const productSku = product.sku;
+      const cardButton = page.locator('button')
+        .filter({ hasText: new RegExp(product.name, 'i') })
+        .filter({ hasText: productSku ? new RegExp(productSku, 'i') : /.*/ })
+        .first();
+
+      if (!await cardButton.isVisible().catch(() => false)) {
+        test.skip(true, 'Product not visible in grid');
+        return;
+      }
+
+      // Click multiple times rapidly with minimal delay
+      const clickCount = 7;
+      for (let i = 0; i < clickCount; i++) {
+        await cardButton.click({ delay: 50 });
+      }
+
+      // Wait for order to save and mutations to settle
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
+      await waitForMutations(page);
+
+      // Verify item still exists and quantity matches click count
+      const hasItem = await hasLineItem(page, product.name);
+      expect(hasItem).toBe(true);
+
+      const item = await getLineItem(page, product.name);
+      expect(item).not.toBeNull();
+      expect(item!.quantity).toBe(clickCount);
+
+      // Verify no duplicates
+      const items = await getLineItems(page);
+      expect(items.length).toBe(1);
+    });
+
+    test('rapid clicks sync correctly to WooCommerce', async ({ page }) => {
+      // Navigate to new order page
+      await gotoNewOrder(page);
+
+      const { simple: product } = getTestProducts();
+
+      if (!product) {
+        test.skip(true, 'No product available for testing');
+        return;
+      }
+
+      // Ensure all products are visible
+      const allLink = page.getByLabel('Show all categories');
+      if (await allLink.isVisible().catch(() => false)) {
+        await allLink.click();
+        await page.waitForLoadState('networkidle');
+      }
+
+      // Find the product card button
+      const productSku = product.sku;
+      const cardButton = page.locator('button')
+        .filter({ hasText: new RegExp(product.name, 'i') })
+        .filter({ hasText: productSku ? new RegExp(productSku, 'i') : /.*/ })
+        .first();
+
+      if (!await cardButton.isVisible().catch(() => false)) {
+        test.skip(true, 'Product not visible in grid');
+        return;
+      }
+
+      // Rapid clicks
+      const clickCount = 4;
+      for (let i = 0; i < clickCount; i++) {
+        await cardButton.click();
+      }
+
+      // Wait for order to save and mutations to settle
+      await page.waitForURL(/\/orders\/([A-Z0-9]+)/, { timeout: 10000 });
+      await waitForMutations(page);
+
+      // Get order ID and verify in WooCommerce
+      const orderId = await getCurrentOrderId(page);
+      const savedOrder = await OrdersAPI.getOrder(orderId);
+
+      expect(savedOrder).not.toBeNull();
+      expect(savedOrder!.line_items.length).toBe(1);
+      expect(savedOrder!.line_items[0].quantity).toBe(clickCount);
+    });
   });
 });
