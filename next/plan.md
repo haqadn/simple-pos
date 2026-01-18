@@ -170,7 +170,7 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
       "BROWSER TEST: Click on the 'Online' indicator in sidebar",
       "BROWSER TEST: Verify Today's Orders modal opens"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 16,

@@ -1,8 +1,42 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 14
+Tasks completed: 15
 Current task: None
+
+---
+
+## [2026-01-18] - Task 15: Connect OfflineIndicator to Today's Orders modal
+
+### Problem
+Users need a way to access the Today's Orders modal. The OfflineIndicator component in the sidebar should open this modal when clicked.
+
+### Changes Made
+
+**File: `/next/app/components/OfflineIndicator.tsx`**
+
+1. Added `OfflineIndicatorProps` interface with optional `onClick` callback
+2. Added `handleIndicatorClick` callback that calls the `onClick` prop when defined
+3. Changed the Status Row from a `<div>` to a `<button>` element to make it interactive
+4. Added hover styles (`hover:opacity-80 transition-opacity`) and `cursor-pointer` for visual feedback
+5. Added `aria-label="View today's orders"` for accessibility
+
+**File: `/next/app/components/sidebar.tsx`**
+
+1. Added `useState` import for modal state
+2. Added `TodaysOrdersModal` import
+3. Added `isTodaysOrdersOpen` state to track modal visibility
+4. Passed `onClick={() => setIsTodaysOrdersOpen(true)}` to `OfflineIndicator`
+5. Rendered `TodaysOrdersModal` with `isOpen` and `onOpenChange` props
+
+### Verification
+- `npm run build` passes successfully
+- `npm run lint` passes with no errors
+- The OfflineIndicator status row is now clickable
+- Clicking opens the Today's Orders modal
+
+### Commit
+- feat: connect OfflineIndicator to Today's Orders modal
 
 ---
 

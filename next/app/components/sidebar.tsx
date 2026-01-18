@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { Button, Kbd } from "@heroui/react";
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation";
@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCombinedOrdersStore, type OrderWithFrontendId } from "@/stores/orders";
 import { useDraftOrderStore } from "@/stores/draft-order";
 import OfflineIndicator from "./OfflineIndicator";
+import { TodaysOrdersModal } from "./TodaysOrdersModal";
 import { createLocalOrder } from "@/stores/offline-orders";
 
 export default function Sidebar() {
@@ -17,6 +18,9 @@ export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
     const queryClient = useQueryClient();
+
+    // State for Today's Orders modal
+    const [isTodaysOrdersOpen, setIsTodaysOrdersOpen] = useState(false);
 
     // Helper to get the best URL identifier for an order (frontend ID preferred)
     const getOrderUrl = useCallback((order: OrderWithFrontendId): string => {
@@ -104,8 +108,14 @@ export default function Sidebar() {
                 )}
             </div>
             <div className="mt-auto pt-4">
-                <OfflineIndicator />
+                <OfflineIndicator onClick={() => setIsTodaysOrdersOpen(true)} />
             </div>
+
+            {/* Today's Orders Modal */}
+            <TodaysOrdersModal
+                isOpen={isTodaysOrdersOpen}
+                onOpenChange={setIsTodaysOrdersOpen}
+            />
         </div>
     );
 }

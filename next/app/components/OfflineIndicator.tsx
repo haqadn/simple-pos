@@ -6,17 +6,23 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Wifi01Icon, WifiDisconnected01Icon, ArrowReloadHorizontalIcon, Alert02Icon } from "@hugeicons/core-free-icons";
 import { useState, useCallback } from "react";
 
+interface OfflineIndicatorProps {
+    /** Callback when the indicator is clicked (opens Today's Orders modal) */
+    onClick?: () => void;
+}
+
 /**
  * OfflineIndicator Component
  *
  * Displays the current connectivity status and pending sync count.
+ * Click to open the Today's Orders modal.
  * Shows:
  * - Online/Offline status with icon
  * - Number of orders pending sync
  * - Manual sync button
  * - Error indicator if syncs have failed
  */
-export default function OfflineIndicator() {
+export default function OfflineIndicator({ onClick }: OfflineIndicatorProps) {
     const {
         isOnline,
         isOffline,
@@ -72,10 +78,22 @@ export default function OfflineIndicator() {
 
     const config = getStatusConfig();
 
+    // Handle click on the indicator (opens Today's Orders modal)
+    const handleIndicatorClick = useCallback(() => {
+        if (onClick) {
+            onClick();
+        }
+    }, [onClick]);
+
     return (
         <div className={`flex flex-col gap-2 p-3 rounded-lg ${config.bgColor} border border-default-200`}>
-            {/* Status Row */}
-            <div className="flex items-center gap-2">
+            {/* Status Row - Clickable to open Today's Orders */}
+            <button
+                type="button"
+                onClick={handleIndicatorClick}
+                className="flex items-center gap-2 w-full text-left hover:opacity-80 transition-opacity cursor-pointer"
+                aria-label="View today's orders"
+            >
                 {isChecking ? (
                     <Spinner size="sm" color="warning" />
                 ) : (
@@ -87,7 +105,7 @@ export default function OfflineIndicator() {
                 <span className={`text-sm font-medium ${config.textColor}`}>
                     {config.label}
                 </span>
-            </div>
+            </button>
 
             {/* Pending Sync Count */}
             {pendingSyncCount > 0 && (
