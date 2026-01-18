@@ -97,7 +97,7 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
       "BROWSER TEST: Type '/pay 100'",
       "BROWSER TEST: Verify Cash field shows 100 and Change shows 75"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 9,

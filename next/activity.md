@@ -1,8 +1,62 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 7
+Tasks completed: 8
 Current task: None
+
+---
+
+## [2026-01-18] - Task 8: Fix /pay command - payment amounts not persisting
+
+### Problem
+When using the `/pay` command to set payment amounts, the payment was not persisting in the UI. The Cash field would not update to show the payment amount, and the Change field would not calculate correctly.
+
+### Root Cause Analysis
+The issue was multi-faceted:
+
+1. **PaymentCard reads from `split_payments` first**: The `PaymentCard` component reads payment data from the `split_payments` meta field (line 30), falling back to `payment_received` only if `split_payments` is not found.
+
+2. **setPayment only updated `payment_received`**: The `setPayment` function in `pos-command-input.tsx` was using `paymentMutation.mutateAsync` which only updated the `payment_received` meta field, NOT the `split_payments` field that the UI reads from.
+
+3. **PaymentCard didn't support local orders**: The `savePayments` function in `PaymentCard` used `OrdersAPI.updateOrder` directly without checking for local (frontend ID) orders, meaning payment changes from the UI wouldn't persist for local orders.
+
+### Changes Made
+
+**File: `/next/components/pos-command-input.tsx`**
+
+Updated the `setPayment` callback to:
+- Update BOTH `split_payments` AND `payment_received` meta fields
+- Handle local (frontend ID) orders by saving to Dexie
+- Handle server orders by using the API
+- Queue sync operation for local orders
+
+**File: `/next/app/orders/[orderId]/components/payment-card.tsx`**
+
+1. Added imports for local order handling:
+   - `useParams` from Next.js
+   - `isValidFrontendId` from `@/lib/frontend-id`
+   - `updateLocalOrder` from `@/stores/offline-orders`
+   - `syncOrder` from `@/services/sync`
+   - `LocalOrder` type from `@/db`
+
+2. Added state for detecting local orders:
+   - `urlOrderId` from `useParams()`
+   - `isFrontendIdOrder` boolean check
+
+3. Updated `savePayments` function to:
+   - Handle local orders by saving to Dexie
+   - Handle server orders by using the API
+   - Queue sync operation for local orders
+
+4. Updated `handleRemoveCoupon` function to also support local orders
+
+### Verification
+- Build passes: `npm run build` completed successfully
+- Docker not available for browser testing (requires Docker for wp-env)
+- Code follows established patterns from other local order mutations in the codebase
+
+### Build Status
+- `npm run build` passes successfully
 
 ---
 

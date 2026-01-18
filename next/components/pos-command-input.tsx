@@ -128,10 +128,36 @@ export function POSCommandInput({ onMessage, onAddProduct, onPrint, onOpenDrawer
     }
   }, [orderQuery.data, urlOrderId, isFrontendIdOrder, queryClient, router]);
 
-  // Set payment amount
+  // Set payment amount - updates both payment_received and split_payments for UI consistency
   const setPayment = useCallback(async (amount: number) => {
-    await paymentMutation.mutateAsync({ received: amount });
-  }, [paymentMutation]);
+    if (!orderQuery.data || !urlOrderId) return;
+
+    // Build meta_data with both split_payments (for UI) and payment_received (for legacy)
+    const existingMetaData = orderQuery.data.meta_data || [];
+    const metaData = existingMetaData.filter(
+      m => m.key !== 'payment_received' && m.key !== 'split_payments'
+    );
+    metaData.push({ key: 'split_payments', value: JSON.stringify({ cash: amount }) });
+    metaData.push({ key: 'payment_received', value: amount.toString() });
+
+    if (isFrontendIdOrder) {
+      // For local orders, save to Dexie
+      const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
+        meta_data: metaData,
+      });
+      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+      // Queue sync operation (async - don't await)
+      syncOrder(urlOrderId).catch(console.error);
+    } else {
+      // For server orders, use the mutation for API call
+      await paymentMutation.mutateAsync({ received: amount });
+      // Also need to update split_payments for UI consistency
+      const updatedOrder = await OrdersAPI.updateOrder(orderQuery.data.id.toString(), {
+        meta_data: metaData,
+      });
+      queryClient.setQueryData(['orders', orderQuery.data.id, 'detail'], updatedOrder);
+    }
+  }, [orderQuery.data, urlOrderId, isFrontendIdOrder, queryClient, paymentMutation]);
 
   // Apply coupon
   const applyCoupon = useCallback(async (code: string) => {

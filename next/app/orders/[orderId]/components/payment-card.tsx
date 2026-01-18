@@ -4,9 +4,14 @@ import { Input, Button, Chip, Dropdown, DropdownTrigger, DropdownMenu, DropdownI
 import { useCurrentOrder, usePaymentQuery } from "@/stores/orders";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useParams } from "next/navigation";
 import OrdersAPI from "@/api/orders";
 import { formatCurrency } from "@/lib/format";
 import { useSettingsStore } from "@/stores/settings";
+import { isValidFrontendId } from "@/lib/frontend-id";
+import { updateLocalOrder } from "@/stores/offline-orders";
+import { syncOrder } from "@/services/sync";
+import type { LocalOrder } from "@/db";
 
 // PaymentAmounts is now dynamic: cash is always present, other keys come from settings
 type PaymentAmounts = { cash: number } & Record<string, number>;
@@ -15,6 +20,9 @@ export default function PaymentCard() {
     const orderQuery = useCurrentOrder();
     const orderData = orderQuery.data;
     const queryClient = useQueryClient();
+    const params = useParams();
+    const urlOrderId = params?.orderId as string | undefined;
+    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
     const [paymentQuery, , paymentIsMutating] = usePaymentQuery(orderQuery);
     const [isRemovingCoupon, setIsRemovingCoupon] = useState(false);
 
@@ -60,33 +68,43 @@ export default function PaymentCard() {
 
     // Save payments to meta_data
     const savePayments = useCallback(async (newPayments: PaymentAmounts) => {
-        if (!orderData) return;
-
-        const orderId = orderData.id;
-        const orderQueryKey = ['orders', orderId, 'detail'];
-        const currentOrder = queryClient.getQueryData<typeof orderData>(orderQueryKey) || orderData;
+        if (!orderData || !urlOrderId) return;
 
         // Calculate total for legacy compatibility (sum all payment amounts dynamically)
         const total = Object.values(newPayments).reduce((sum, amount) => sum + (amount || 0), 0);
 
         // Update meta_data
-        const metaData = currentOrder.meta_data.filter(
+        const metaData = orderData.meta_data.filter(
             m => m.key !== 'split_payments' && m.key !== 'payment_received'
         );
         metaData.push({ key: 'split_payments', value: JSON.stringify(newPayments) });
         metaData.push({ key: 'payment_received', value: total.toString() });
 
-        // Optimistic update
-        queryClient.setQueryData(orderQueryKey, { ...currentOrder, meta_data: metaData });
+        if (isFrontendIdOrder) {
+            // For local orders, save to Dexie
+            const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
+                meta_data: metaData,
+            });
+            queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+            // Queue sync operation (async - don't await)
+            syncOrder(urlOrderId).catch(console.error);
+        } else {
+            // For server orders, update via API
+            const orderId = orderData.id;
+            const orderQueryKey = ['orders', orderId, 'detail'];
 
-        // API call
-        try {
-            await OrdersAPI.updateOrder(orderId.toString(), { meta_data: metaData });
-        } catch (error) {
-            console.error('Failed to save payments:', error);
-            queryClient.invalidateQueries({ queryKey: orderQueryKey });
+            // Optimistic update
+            queryClient.setQueryData(orderQueryKey, { ...orderData, meta_data: metaData });
+
+            // API call
+            try {
+                await OrdersAPI.updateOrder(orderId.toString(), { meta_data: metaData });
+            } catch (error) {
+                console.error('Failed to save payments:', error);
+                queryClient.invalidateQueries({ queryKey: orderQueryKey });
+            }
         }
-    }, [orderData, queryClient]);
+    }, [orderData, urlOrderId, isFrontendIdOrder, queryClient]);
 
     // Handle payment amount change
     const handlePaymentChange = useCallback((method: string, value: number) => {
@@ -115,21 +133,33 @@ export default function PaymentCard() {
 
     // Remove coupon handler
     const handleRemoveCoupon = useCallback(async () => {
-        if (!orderData) return;
+        if (!orderData || !urlOrderId) return;
 
         setIsRemovingCoupon(true);
         try {
-            const orderId = orderData.id;
-            const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), {
-                coupon_lines: []
-            });
-            queryClient.setQueryData(['orders', orderId, 'detail'], updatedOrder);
+            if (isFrontendIdOrder) {
+                // For local orders, save to Dexie
+                const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
+                    coupon_lines: [],
+                    discount_total: '0.00',
+                });
+                queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+                // Queue sync operation (async - don't await)
+                syncOrder(urlOrderId).catch(console.error);
+            } else {
+                // For server orders, update via API
+                const orderId = orderData.id;
+                const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), {
+                    coupon_lines: []
+                });
+                queryClient.setQueryData(['orders', orderId, 'detail'], updatedOrder);
+            }
         } catch (error) {
             console.error('Failed to remove coupon:', error);
         } finally {
             setIsRemovingCoupon(false);
         }
-    }, [orderData, queryClient]);
+    }, [orderData, urlOrderId, isFrontendIdOrder, queryClient]);
 
     const total = parseFloat(orderData?.total || '0');
     const discountTotal = parseFloat(orderData?.discount_total || '0');
