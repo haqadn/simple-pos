@@ -1,8 +1,58 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 12
+Tasks completed: 13
 Current task: None
+
+---
+
+## [2026-01-18] - Task 13: Create Today's Orders modal component
+
+### Problem
+Need to create a modal that displays all orders from today with sync status and receipt preview. This modal will be triggered by clicking on the OfflineIndicator component (Task 15).
+
+### Changes Made
+
+**File: `/next/stores/offline-orders.ts`**
+
+Added new function `listTodaysOrders()`:
+- Filters all orders by `createdAt >= start of today`
+- Returns orders sorted by `createdAt` descending (newest first)
+- Used by the TodaysOrdersModal to fetch today's orders
+
+**File: `/next/app/components/TodaysOrdersModal.tsx`** (NEW FILE)
+
+Created a new modal component with the following features:
+
+1. **Order List (Left Panel)**:
+   - Table displaying: Frontend ID, Server ID, Sync Status, Total
+   - Color-coded sync status chips (synced/syncing/pending/error)
+   - Single row selection mode
+   - Auto-refresh every 5 seconds when open
+
+2. **Receipt Preview (Right Panel)**:
+   - Uses existing `BillPrint` component for consistent receipt formatting
+   - Shows when an order is selected
+   - Displays order details, items, customer info, and totals
+
+3. **Summary Footer**:
+   - Shows total order count
+   - Shows total revenue
+
+4. **Features**:
+   - Uses TanStack Query for data fetching with `enabled: isOpen`
+   - Proper reset of selection when modal opens
+   - Loading spinner during initial fetch
+   - Empty state message when no orders exist
+
+### Verification
+- `npm run build` passes successfully
+- Component follows established patterns from `settings-modal.tsx`
+- Uses existing `BillPrint` component for receipt preview
+- Proper TypeScript types for all props and data
+
+### Commit
+- feat: create TodaysOrdersModal component for viewing today's orders
 
 ---
 

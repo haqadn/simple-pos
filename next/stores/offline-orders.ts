@@ -287,6 +287,29 @@ export async function listOrdersNeedingSync(): Promise<LocalOrder[]> {
 }
 
 /**
+ * List all orders created today (any status)
+ *
+ * @returns Array of LocalOrders created today, sorted by createdAt descending (newest first)
+ */
+export async function listTodaysOrders(): Promise<LocalOrder[]> {
+  // Get start of today (midnight)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Get all orders and filter by createdAt
+  const allOrders = await db.orders.toArray();
+  const todaysOrders = allOrders.filter((order) => {
+    const orderDate = new Date(order.createdAt);
+    return orderDate >= today;
+  });
+
+  // Sort by createdAt descending (newest first)
+  return todaysOrders.sort((a, b) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+}
+
+/**
  * Delete a local order
  *
  * @param frontendId - The frontend ID of the order to delete
