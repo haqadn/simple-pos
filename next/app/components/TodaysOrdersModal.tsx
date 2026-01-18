@@ -23,12 +23,13 @@ import {
   Alert02Icon,
   ArrowUpRight01Icon,
   ArrowTurnBackwardIcon,
+  Cancel01Icon,
 } from '@hugeicons/core-free-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { listTodaysOrders, updateLocalOrderStatus, updateLocalOrder } from '@/stores/offline-orders';
+import { listTodaysOrders, updateLocalOrderStatus, updateLocalOrder, updateLocalOrderSyncStatus } from '@/stores/offline-orders';
 import { syncOrder } from '@/services/sync';
-import type { LocalOrder, SyncStatus } from '@/db';
+import type { LocalOrder } from '@/db';
 import BillPrint from '@/components/print/BillPrint';
 import type { PrintJobData } from '@/stores/print';
 
@@ -86,9 +87,18 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
     return orders.find((order) => order.frontendId === selectedOrderId) || null;
   }, [selectedOrderId, orders]);
 
-  // Format sync status for display
-  const getSyncStatusConfig = useCallback((status: SyncStatus) => {
-    switch (status) {
+  // Format order status for display (cancelled takes priority over sync status)
+  const getStatusConfig = useCallback((order: LocalOrder) => {
+    // Check if order is cancelled first
+    if (order.status === 'cancelled') {
+      return {
+        label: 'Cancelled',
+        color: 'danger' as const,
+        icon: Cancel01Icon,
+      };
+    }
+    // Otherwise show sync status
+    switch (order.syncStatus) {
       case 'synced':
         return {
           label: 'Synced',
@@ -197,9 +207,13 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
         await updateLocalOrder(selectedOrder.frontendId, {
           meta_data: clearedMetaData,
         });
-        await updateLocalOrderStatus(selectedOrder.frontendId, 'pending');
+        await updateLocalOrderStatus(selectedOrder.frontendId, 'processing');
 
-        // Queue sync to update server
+        // Reset syncStatus to 'local' so the order will sync again when completed
+        // This ensures any changes made to the reopened order are pushed to the server
+        await updateLocalOrderSyncStatus(selectedOrder.frontendId, 'local');
+
+        // Queue sync to update server with reopened status
         syncOrder(selectedOrder.frontendId).catch(console.error);
         // Invalidate queries to refresh sidebar
         await queryClient.invalidateQueries({ queryKey: ['localOrders'] });
@@ -260,7 +274,7 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
                       </TableHeader>
                       <TableBody items={orders}>
                         {(order) => {
-                          const syncConfig = getSyncStatusConfig(order.syncStatus);
+                          const statusConfig = getStatusConfig(order);
                           return (
                             <TableRow key={order.frontendId}>
                               <TableCell>
@@ -280,16 +294,16 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
                               <TableCell>
                                 <Chip
                                   size="sm"
-                                  color={syncConfig.color}
+                                  color={statusConfig.color}
                                   variant="flat"
                                   startContent={
                                     <HugeiconsIcon
-                                      icon={syncConfig.icon}
+                                      icon={statusConfig.icon}
                                       className="h-3 w-3"
                                     />
                                   }
                                 >
-                                  {syncConfig.label}
+                                  {statusConfig.label}
                                 </Chip>
                               </TableCell>
                               <TableCell>

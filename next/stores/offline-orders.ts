@@ -356,6 +356,14 @@ export async function importServerOrder(
   // Generate frontend ID if not provided
   const id = frontendId ?? (await generateUniqueFrontendId());
 
+  // Filter out zombie items (WooCommerce sometimes keeps items marked for deletion)
+  // - Line items with quantity 0 are zombies
+  // - Shipping lines with empty method_title are zombies
+  const filteredLineItems = serverOrder.line_items.filter(li => li.quantity > 0);
+  const filteredShippingLines = serverOrder.shipping_lines.filter(
+    sl => sl.method_id && sl.method_id !== '' && sl.method_title && sl.method_title !== ''
+  );
+
   const now = new Date();
   const localOrder: LocalOrder = {
     frontendId: id,
@@ -364,6 +372,8 @@ export async function importServerOrder(
     syncStatus: "synced",
     data: {
       ...serverOrder,
+      line_items: filteredLineItems,
+      shipping_lines: filteredShippingLines,
       meta_data: [
         ...(serverOrder.meta_data ?? []),
         { key: "pos_frontend_id", value: id },

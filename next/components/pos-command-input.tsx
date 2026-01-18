@@ -9,7 +9,7 @@ import { useCurrentOrder, usePaymentQuery, useOrderNoteQuery, useCustomerInfoQue
 import { useProductsQuery } from '@/stores/products';
 import { CommandContext, CustomerData } from '@/commands/command-manager';
 import { isValidFrontendId } from '@/lib/frontend-id';
-import { updateLocalOrder, updateLocalOrderStatus } from '@/stores/offline-orders';
+import { getLocalOrder, updateLocalOrder, updateLocalOrderStatus } from '@/stores/offline-orders';
 import { syncOrder } from '@/services/sync';
 import type { LocalOrder } from '@/db';
 import type { LineItemSchema, CouponLineSchema } from '@/api/orders';
@@ -198,12 +198,36 @@ export function POSCommandInput({ onMessage, onAddProduct, onPrint, onOpenDrawer
     }, 0);
 
     if (isFrontendIdOrder) {
-      const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
-        coupon_lines: updatedCouponLines,
-        discount_total: totalDiscount.toFixed(2),
-      });
-      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
-      syncOrder(urlOrderId).catch(console.error);
+      // Get current local order to check for serverId
+      const currentLocalOrder = await getLocalOrder(urlOrderId);
+
+      // For orders with serverId, sync to server and use server response
+      if (currentLocalOrder?.serverId) {
+        try {
+          const existingCodes = existingCoupons.map(c => ({ code: c.code }));
+          const serverOrder = await OrdersAPI.updateOrder(currentLocalOrder.serverId.toString(), {
+            coupon_lines: [...existingCodes, { code: couponCode }] as CouponLineSchema[],
+          });
+
+          if (serverOrder) {
+            const finalLocalOrder = await updateLocalOrder(urlOrderId, {
+              coupon_lines: serverOrder.coupon_lines,
+              discount_total: serverOrder.discount_total,
+              total: serverOrder.total,
+            });
+            queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], finalLocalOrder);
+          }
+        } catch (err) {
+          console.error('Failed to sync coupon:', err);
+        }
+      } else {
+        // For orders without serverId, save locally
+        const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
+          coupon_lines: updatedCouponLines,
+          discount_total: totalDiscount.toFixed(2),
+        });
+        queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+      }
     } else {
       const existingCodes = existingCoupons.map(c => ({ code: c.code }));
       const updatedOrder = await OrdersAPI.updateOrder(orderQuery.data.id.toString(), {
@@ -218,12 +242,35 @@ export function POSCommandInput({ onMessage, onAddProduct, onPrint, onOpenDrawer
     if (!orderQuery.data || !urlOrderId) return;
 
     if (isFrontendIdOrder) {
-      const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
-        coupon_lines: [],
-        discount_total: '0.00',
-      });
-      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
-      syncOrder(urlOrderId).catch(console.error);
+      // Get current local order to check for serverId
+      const currentLocalOrder = await getLocalOrder(urlOrderId);
+
+      // For orders with serverId, sync to server and use server response
+      if (currentLocalOrder?.serverId) {
+        try {
+          const serverOrder = await OrdersAPI.updateOrder(currentLocalOrder.serverId.toString(), {
+            coupon_lines: [],
+          });
+
+          if (serverOrder) {
+            const finalLocalOrder = await updateLocalOrder(urlOrderId, {
+              coupon_lines: serverOrder.coupon_lines,
+              discount_total: serverOrder.discount_total,
+              total: serverOrder.total,
+            });
+            queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], finalLocalOrder);
+          }
+        } catch (err) {
+          console.error('Failed to sync coupon removal:', err);
+        }
+      } else {
+        // For orders without serverId, save locally
+        const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
+          coupon_lines: [],
+          discount_total: '0.00',
+        });
+        queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+      }
     } else {
       // For server orders, we need to remove all coupons
       // WooCommerce requires passing empty array or marking items for deletion
