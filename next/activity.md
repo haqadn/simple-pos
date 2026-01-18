@@ -541,3 +541,38 @@ The remaining 109 failures require **application code fixes**, not test fixes:
 
 ### Commit
 - fix: sort sidebar orders by createdAt ascending (newest at bottom)
+
+---
+
+## [2026-01-17] - Task 2: Fix local order total calculation - totals show 0 for offline orders
+
+### Changes Made
+- Created `/Users/adnan/Projects/simple-pos/next/lib/order-utils.ts`:
+  - `calculateOrderTotal(order)` - Calculates total from line_items, discount_total, and shipping_lines
+  - `calculateSubtotal(lineItems)` - Calculates subtotal before discounts and shipping
+  - `calculateDiscountTotal(couponLines)` - Sums discounts from coupon lines
+  - `calculateShippingTotal(shippingLines)` - Sums totals from shipping lines
+  - Formula: total = subtotal - discount_total + shipping_total
+
+- Modified `/Users/adnan/Projects/simple-pos/next/stores/offline-orders.ts`:
+  - Added import for `calculateOrderTotal` and `calculateSubtotal` from `lib/order-utils`
+  - Added logic in `updateLocalOrder()` to recalculate totals when:
+    - `line_items` are updated
+    - `shipping_lines` are updated
+    - `coupon_lines` are updated
+    - `discount_total` is updated
+  - Automatically sets both `subtotal` and `total` fields on the order data
+
+### Technical Details
+- WooCommerce calculates totals server-side, so local orders were showing $0.00
+- Now when any price-affecting field is updated, totals are recalculated client-side
+- Price values are parsed as floats and converted to strings with 2 decimal places
+- Handles edge cases: null/undefined prices default to 0
+
+### Verification
+- Build passes: `npm run build` completes successfully
+- TypeScript compilation passes: `npx tsc --noEmit` with no errors
+- E2E tests could not be run (Docker not running) but code logic verified manually
+
+### Commit
+- fix: calculate order totals client-side for local offline orders

@@ -15,6 +15,7 @@ import {
 } from "../db";
 import type { OrderSchema, LineItemSchema, ShippingLineSchema, CouponLineSchema, BillingSchema, MetaDataSchema } from "../api/orders";
 import { generateUniqueFrontendId } from "../lib/frontend-id";
+import { calculateOrderTotal, calculateSubtotal } from "../lib/order-utils";
 
 /**
  * Error thrown when an order is not found in the local database
@@ -94,6 +95,22 @@ export async function updateLocalOrder(
       ...existing.data.billing,
       ...updates.billing,
     };
+  }
+
+  // Recalculate order totals when line_items, shipping_lines, or coupon_lines change
+  // This is necessary because WooCommerce calculates totals server-side, but local orders
+  // need immediate total updates for the UI
+  const shouldRecalculateTotal =
+    updates.line_items !== undefined ||
+    updates.shipping_lines !== undefined ||
+    updates.coupon_lines !== undefined ||
+    updates.discount_total !== undefined;
+
+  if (shouldRecalculateTotal) {
+    // Calculate subtotal from line items
+    updatedData.subtotal = calculateSubtotal(updatedData.line_items);
+    // Calculate total: subtotal - discount + shipping
+    updatedData.total = calculateOrderTotal(updatedData);
   }
 
   const updatedOrder: LocalOrder = {
