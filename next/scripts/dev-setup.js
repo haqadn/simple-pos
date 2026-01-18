@@ -8,6 +8,7 @@
  * 2. Wait for WordPress to be ready
  * 3. Generate WooCommerce API credentials (if not present)
  * 4. Save credentials to .env.local with NEXT_PUBLIC_* prefix
+ * 5. Create test coupons for E2E testing (testcoupon, fixedcoupon)
  *
  * Usage: node scripts/dev-setup.js
  *
@@ -250,6 +251,145 @@ async function testCredentials(baseUrl, consumerKey, consumerSecret) {
   });
 }
 
+// ==========================================
+// Coupon Management
+// ==========================================
+
+/**
+ * Test coupons to create for development/testing
+ */
+const TEST_COUPONS = [
+  {
+    code: "testcoupon",
+    discount_type: "percent",
+    amount: "10",
+    description: "Test coupon for E2E tests - 10% off",
+  },
+  {
+    code: "fixedcoupon",
+    discount_type: "fixed_cart",
+    amount: "50",
+    description: "Test coupon for E2E tests - $50 off cart",
+  },
+];
+
+/**
+ * Check if a coupon exists by code using WooCommerce REST API
+ */
+async function couponExists(baseUrl, consumerKey, consumerSecret, couponCode) {
+  const http = require("http");
+  const url = `${baseUrl}/wp-json/wc/v3/coupons?code=${encodeURIComponent(couponCode)}`;
+  const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64");
+
+  return new Promise((resolve) => {
+    const parsedUrl = new URL(url);
+    const req = http.request(
+      {
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port || 80,
+        path: parsedUrl.pathname + parsedUrl.search,
+        method: "GET",
+        headers: {
+          Authorization: `Basic ${auth}`,
+        },
+      },
+      (res) => {
+        let data = "";
+        res.on("data", (chunk) => (data += chunk));
+        res.on("end", () => {
+          try {
+            const coupons = JSON.parse(data);
+            resolve(Array.isArray(coupons) && coupons.length > 0);
+          } catch {
+            resolve(false);
+          }
+        });
+      }
+    );
+
+    req.on("error", () => resolve(false));
+    req.setTimeout(5000, () => {
+      req.destroy();
+      resolve(false);
+    });
+    req.end();
+  });
+}
+
+/**
+ * Create a coupon using WooCommerce REST API
+ */
+async function createCoupon(baseUrl, consumerKey, consumerSecret, couponData) {
+  const http = require("http");
+  const url = `${baseUrl}/wp-json/wc/v3/coupons`;
+  const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64");
+  const postData = JSON.stringify(couponData);
+
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+    const req = http.request(
+      {
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port || 80,
+        path: parsedUrl.pathname,
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${auth}`,
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(postData),
+        },
+      },
+      (res) => {
+        let data = "";
+        res.on("data", (chunk) => (data += chunk));
+        res.on("end", () => {
+          if (res.statusCode === 201 || res.statusCode === 200) {
+            try {
+              resolve(JSON.parse(data));
+            } catch {
+              resolve(null);
+            }
+          } else {
+            reject(new Error(`Failed to create coupon: HTTP ${res.statusCode} - ${data}`));
+          }
+        });
+      }
+    );
+
+    req.on("error", reject);
+    req.setTimeout(10000, () => {
+      req.destroy();
+      reject(new Error("Timeout creating coupon"));
+    });
+    req.write(postData);
+    req.end();
+  });
+}
+
+/**
+ * Set up test coupons for development/E2E testing
+ */
+async function setupTestCoupons(baseUrl, consumerKey, consumerSecret) {
+  const results = [];
+
+  for (const coupon of TEST_COUPONS) {
+    const exists = await couponExists(baseUrl, consumerKey, consumerSecret, coupon.code);
+
+    if (exists) {
+      results.push({ code: coupon.code, status: "exists" });
+    } else {
+      try {
+        await createCoupon(baseUrl, consumerKey, consumerSecret, coupon);
+        results.push({ code: coupon.code, status: "created" });
+      } catch (error) {
+        results.push({ code: coupon.code, status: "error", error: error.message });
+      }
+    }
+  }
+
+  return results;
+}
+
 /**
  * Save credentials to .env.local file
  */
@@ -341,6 +481,39 @@ async function main() {
 
   // Step 4: Write .env.local
   log("Saved to .env.local", "success");
+
+  // Step 5: Set up test coupons
+  log("Setting up test coupons...", "pending");
+  try {
+    // Read credentials from the saved file or use the just-generated ones
+    const envContent = fs.readFileSync(ENV_LOCAL_FILE, "utf-8");
+    const keyMatch = envContent.match(/NEXT_PUBLIC_CONSUMER_KEY=(.+)/);
+    const secretMatch = envContent.match(/NEXT_PUBLIC_CONSUMER_SECRET=(.+)/);
+
+    if (keyMatch && secretMatch) {
+      const baseUrl = `http://localhost:${wpPort}`;
+      const consumerKey = keyMatch[1].trim();
+      const consumerSecret = secretMatch[1].trim();
+
+      const couponResults = await setupTestCoupons(baseUrl, consumerKey, consumerSecret);
+
+      // Log results
+      for (const result of couponResults) {
+        if (result.status === "created") {
+          log(`Coupon '${result.code}' created`, "success");
+        } else if (result.status === "exists") {
+          log(`Coupon '${result.code}' already exists`, "success");
+        } else {
+          log(`Coupon '${result.code}' failed: ${result.error}`, "error");
+        }
+      }
+    } else {
+      log("Could not read credentials for coupon setup", "error");
+    }
+  } catch (error) {
+    log(`Failed to set up test coupons: ${error.message}`, "error");
+    // Non-fatal error - continue with setup
+  }
 
   // Summary
   console.log("");

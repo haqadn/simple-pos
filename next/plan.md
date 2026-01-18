@@ -50,7 +50,7 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
       "Verify coupons exist by calling GET /wp-json/wc/v3/coupons",
       "Update dev-setup to be idempotent (skip if coupons already exist)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 4,

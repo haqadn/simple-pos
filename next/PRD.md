@@ -1,146 +1,181 @@
-# PRD: Production-Ready API Credentials Flow
+# PRD: Make the POS Production-Ready
 
 ## Overview
 
-Make the Simple POS API credentials flow production-ready by removing hardcoded development credentials, implementing a blocking setup modal for fresh installations, and creating a streamlined development setup script.
+Fix critical bugs in the Simple POS application and add essential features for production use. The app uses an offline-first architecture with local IndexedDB storage (Dexie) and background sync to WooCommerce.
 
 **Goals:**
-1. Remove hardcoded credentials from the codebase
-2. Block app usage until valid credentials are configured
-3. Provide a seamless first-run setup experience
-4. Simplify local development setup with a single command
+1. Fix command system (all POS commands working correctly)
+2. Fix order totals calculation for offline orders
+3. Remove completed orders from sidebar, add Today's Orders modal
+4. Ensure reliable order management workflow
 
 ## Target Audience
 
-- **End Users**: Restaurant/retail operators deploying Simple POS with their own WooCommerce instance
-- **Developers**: Contributors setting up the development environment
-
-## Core Features
-
-### 1. Remove Hardcoded Credentials
-
-**Current State:**
-- `api/config.ts` contains hardcoded development credentials
-- These credentials only work on the developer's local environment
-- Creates security concerns and confusion for new deployments
-
-**Target State:**
-- `api/config.ts` exports empty strings as defaults
-- No credentials committed to the repository
-- `.env.local` is gitignored and used only for local development
-
-**Acceptance Criteria:**
-- [ ] `api/config.ts` exports empty `BASE_URL`, `CONSUMER_KEY`, `CONSUMER_SECRET`
-- [ ] `.env.local` is in `.gitignore`
-- [ ] App functions correctly when credentials are provided via env vars or localStorage
+- **End Users**: Restaurant/retail operators using Simple POS with WooCommerce
+- **Developers**: Contributors maintaining and extending the application
 
 ---
 
-### 2. Setup Modal (Blocking First-Run Experience)
+## Bug Fixes
 
-**Behavior:**
-When the app loads without configured credentials (`!isConfigured()`), display a full-page blocking modal that:
-- Prevents any app interaction until credentials are saved
-- Reuses the existing `ApiConfigSection` component
-- Includes a "Test Connection" button before allowing save
-- Shows appropriate error messages for connection failures
-- Provides a link to WooCommerce API keys page based on entered URL
+### 1. Sidebar Order Sorting
 
-**UI Flow:**
-```
-┌─────────────────────────────────────────────────────────┐
-│                                                         │
-│              🔧 Setup Required                          │
-│                                                         │
-│   Connect to your WooCommerce store to get started.     │
-│                                                         │
-│   ┌─────────────────────────────────────────────────┐   │
-│   │ Website URL                                     │   │
-│   │ [https://example.com                          ] │   │
-│   │ Your WooCommerce site URL (without /wp-json)    │   │
-│   └─────────────────────────────────────────────────┘   │
-│                                                         │
-│   ┌─────────────────────────────────────────────────┐   │
-│   │ Consumer Key                                    │   │
-│   │ [ck_...                                       ] │   │
-│   └─────────────────────────────────────────────────┘   │
-│                                                         │
-│   ┌─────────────────────────────────────────────────┐   │
-│   │ Consumer Secret                                 │   │
-│   │ [••••••••••••••••                             ] │   │
-│   └─────────────────────────────────────────────────┘   │
-│                                                         │
-│   → Manage API keys in WooCommerce                      │
-│                                                         │
-│   ┌──────────────────┐  ┌──────────────────────────┐   │
-│   │ Test Connection  │  │    Save & Continue       │   │
-│   └──────────────────┘  └──────────────────────────┘   │
-│                                                         │
-│   [Connection Status Message Area]                      │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
-```
+**Current State:** New orders appear at random positions in the sidebar.
 
-**Connection Test Behavior:**
-- Makes a `GET /wp-json/wc/v3` request (WooCommerce store info endpoint)
-- On success: Show green checkmark, enable "Save & Continue"
-- On 401/403: Show error "Invalid credentials. Please check your Consumer Key and Secret."
-- On network error: Show error "Could not connect. Please check the URL."
-- Link format: `{baseUrl}/wp-admin/admin.php?page=wc-settings&tab=advanced&section=keys`
+**Target State:** New orders appear at the bottom of the sidebar list (most recent last).
 
 **Acceptance Criteria:**
-- [ ] Modal appears on fresh install (no localStorage settings, no env vars)
-- [ ] Modal is non-dismissable (no close button, no backdrop click)
-- [ ] "Test Connection" validates credentials before save is allowed
-- [ ] Error messages are clear and actionable
-- [ ] Link to WooCommerce API keys page is generated from entered URL
-- [ ] After successful save, modal closes and app loads normally
-- [ ] Existing `SettingsModal` API tab continues to work for updating credentials later
+- [ ] Orders sorted by `createdAt` ascending (oldest first, newest at bottom)
+- [ ] New order appears at bottom of list immediately after creation
 
 ---
 
-### 3. Development Setup Script
+### 2. Local Order Total Calculation
 
-**Purpose:**
-Provide a single command that sets up the complete development environment.
+**Current State:** Totals show as $0 for offline orders because WooCommerce calculates totals server-side.
 
-**Command:**
-```bash
-npm run dev:setup
+**Target State:** Totals calculated client-side for local orders.
+
+**Calculation:**
 ```
-
-**Script Behavior:**
-1. Start wp-env if not running
-2. Wait for WordPress to be ready
-3. Check if `.env.local` already has valid credentials
-4. If not, generate WooCommerce API credentials
-5. Test the credentials work
-6. Save to `.env.local` with `NEXT_PUBLIC_*` prefix
-7. Print success message with next steps
-
-**Output Example:**
-```
-=== Simple POS Development Setup ===
-
-[✓] wp-env is running on port 8888
-[✓] WooCommerce is active
-[✓] API credentials generated
-[✓] Saved to .env.local
-
-Environment ready! Start the app with:
-  npm run dev
-
-WordPress Admin: http://localhost:8888/wp-admin
-  Username: admin
-  Password: password
+subtotal = sum(line_items.map(item => item.price * item.quantity))
+total = subtotal - discount_total + shipping_total
 ```
 
 **Acceptance Criteria:**
-- [ ] Script creates `.env.local` with valid `NEXT_PUBLIC_*` variables
-- [ ] Script is idempotent (safe to run multiple times)
-- [ ] Script reuses existing credentials if valid
-- [ ] Script provides clear error messages if wp-env fails
-- [ ] `--force` flag regenerates credentials even if they exist
+- [ ] Total updates immediately when line items are added/removed
+- [ ] Discount applied correctly when coupon is used
+- [ ] Shipping fee included in total
+
+---
+
+### 3. Coupon Application for Local Orders
+
+**Current State:** Coupon disappears from UI after adding because it tries to update via server API.
+
+**Target State:** Coupons persist locally for frontend ID orders.
+
+**Acceptance Criteria:**
+- [ ] Coupon appears in UI after adding to local order
+- [ ] Coupon persists after page refresh
+- [ ] Coupon syncs to server when order syncs
+
+---
+
+### 4. Command System - Complete CommandContext
+
+**Current State:** `pos-command-input.tsx` has incomplete `CommandContext` - only `updateLineItem`, `showMessage`, `showError` implemented.
+
+**Target State:** All `CommandContext` methods implemented.
+
+**Required Methods:**
+| Method | Purpose |
+|--------|---------|
+| `updateLineItem(productId, variationId, quantity, mode)` | Add/update line items with 'set' or 'increment' mode |
+| `clearOrder()` | Remove all line items |
+| `completeOrder()` | Mark order as completed |
+| `setPayment(amount)` | Record payment amount |
+| `getPaymentReceived()` | Get current payment amount |
+| `applyCoupon(code)` | Apply coupon to order |
+| `removeCoupon()` | Remove coupon from order |
+| `setNote(note)` | Set customer note |
+| `setCustomer(customer)` | Set billing/customer info |
+| `print(type)` | Print bill or KOT |
+| `openDrawer()` | Open cash drawer |
+| `navigateToNextOrder()` | Navigate after order completion |
+
+---
+
+### 5. /done Command Enhancement
+
+**Current Behavior:** `/done` only completes order if fully paid.
+
+**New Behavior:** `/done [amount]` accepts optional payment amount.
+
+**Examples:**
+- `/done` - Complete if already paid
+- `/done 500` - Add 500 payment, then complete if total covered
+
+**Acceptance Criteria:**
+- [ ] `/done` without amount works as before (requires existing payment)
+- [ ] `/done 500` adds payment of 500, then completes if sufficient
+- [ ] Shows change if overpaid
+- [ ] Navigates away after completion
+- [ ] Completed order removed from sidebar
+
+---
+
+### 6. Remove Completed Orders from Sidebar
+
+**Current State:** Completed orders may still appear in sidebar.
+
+**Target State:** Only pending/processing/on-hold/draft orders in sidebar.
+
+**Acceptance Criteria:**
+- [ ] Completed orders filtered out of sidebar query
+- [ ] Order disappears from sidebar immediately after `/done`
+
+---
+
+## New Feature: Today's Orders Modal
+
+### Overview
+
+Click the connectivity indicator (online/offline status) to open a modal showing all orders from today. Provides quick access to view receipts and reopen orders for editing.
+
+### UI Design
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Today's Orders                                            [X]  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────┐  ┌──────────────────┐ │
+│  │ Order ID │ Server │ Status │ Total  │  │                  │ │
+│  ├──────────┼────────┼────────┼────────┤  │   Receipt        │ │
+│  │ A3X9K2   │ #1234  │ ✓ Sync │ 45  │  │   Preview        │ │
+│  │ B7Y2M4   │ #1235  │ ✓ Sync │ 32.50  │  │                  │ │
+│  │ C9Z1P8   │ --     │ ⏳ Pend│ 28     │  │   (Select order  │ │
+│  │ D4W6Q3   │ #1236  │ ✓ Sync │ 67.25 │  │    to preview)   │ │
+│  │ ...      │        │        │        │  │                  │ │
+│  └─────────────────────────────────────┘  │                  │ │
+│                                           │  [Reopen Order]  │ │
+│  Showing 15 orders • 523.75 total        └──────────────────┘ │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Behavior
+
+**Trigger:** Click on `OfflineIndicator` component in sidebar.
+
+**Order List (Left Panel):**
+- Shows all orders created today (any status)
+- Columns: Frontend ID, Server ID (or "--" if not synced), Sync Status, Total
+- Sorted by creation time (newest first)
+- Selected row highlighted
+- Summary footer: order count, total revenue
+
+**Receipt Preview (Right Panel):**
+- Shows when an order is selected
+- Uses existing `BillPrint` component for consistent formatting
+- "Reopen Order" button at bottom
+
+**Reopen Order:**
+- Navigates to `/orders/{frontendId}`
+- If order was completed, changes status back to "pending"
+- Closes the modal
+
+### Acceptance Criteria
+
+- [ ] Click on OfflineIndicator opens Today's Orders modal
+- [ ] Modal shows all orders from today (all statuses)
+- [ ] Order list shows frontend ID, server ID, sync status, total
+- [ ] Clicking an order shows receipt preview on right
+- [ ] "Reopen Order" button navigates to order and sets status to pending if needed
+- [ ] Summary shows order count and total revenue
+- [ ] Modal can be closed (X button, Escape key, backdrop click)
 
 ---
 
@@ -150,103 +185,41 @@ WordPress Admin: http://localhost:8888/wp-admin
 
 | File | Change |
 |------|--------|
-| `api/config.ts` | Export empty strings instead of hardcoded values |
-| `api/api.ts` | No changes needed (already handles empty config) |
-| `stores/settings.ts` | No changes needed (already has `isConfigured()`) |
-| `app/components/setup-modal.tsx` | **New file** - Blocking setup modal |
-| `app/components/settings-modal.tsx` | Extract `ApiConfigSection` for reuse, add test connection |
-| `app/layout.tsx` or `app/providers.tsx` | Add `SetupModal` wrapper |
-| `scripts/dev-setup.js` | **New file** - Development setup script |
-| `package.json` | Add `dev:setup` script |
-| `.gitignore` | Ensure `.env.local` is ignored |
+| `components/pos-command-input.tsx` | Implement complete CommandContext |
+| `commands/done.ts` | Add optional payment amount parameter |
+| `stores/offline-orders.ts` | Add `listTodaysOrders()` function |
+| `stores/orders.ts` | Fix sidebar query to exclude completed, fix sorting |
+| `lib/order-utils.ts` | **New file** - Order total calculation |
+| `app/components/OfflineIndicator.tsx` | Add click handler to open modal |
+| `app/components/TodaysOrdersModal.tsx` | **New file** - Today's orders modal |
+| `app/orders/[orderId]/components/coupon-card.tsx` | Handle local order updates |
 
-### Shared Components
-
-Extract `ApiConfigSection` to a shared location so both `SetupModal` and `SettingsModal` can use it:
+### Order Total Calculation
 
 ```typescript
-// app/components/settings/ApiConfigSection.tsx
-interface ApiConfigSectionProps {
-  localApi: ApiConfig;
-  setLocalApi: (api: ApiConfig) => void;
-  onTestConnection?: () => Promise<boolean>;
-  connectionStatus?: 'idle' | 'testing' | 'success' | 'error';
-  connectionError?: string;
+// lib/order-utils.ts
+export function calculateOrderTotal(order: OrderSchema): string {
+  const subtotal = order.line_items.reduce((sum, item) => {
+    const price = parseFloat(item.price || '0');
+    return sum + (price * item.quantity);
+  }, 0);
+
+  const discount = parseFloat(order.discount_total || '0');
+  const shipping = order.shipping_lines?.reduce((sum, line) => {
+    return sum + parseFloat(line.total || '0');
+  }, 0) || 0;
+
+  return (subtotal - discount + shipping).toFixed(2);
 }
 ```
-
-### Test Connection Hook
-
-```typescript
-// hooks/useTestConnection.ts
-interface UseTestConnectionResult {
-  test: (config: ApiConfig) => Promise<boolean>;
-  status: 'idle' | 'testing' | 'success' | 'error';
-  error: string | null;
-  reset: () => void;
-}
-```
-
-### Setup Modal Integration
-
-The `SetupModal` should be rendered at the app root level and check `isConfigured()`:
-
-```typescript
-// Pseudocode for app integration
-function App() {
-  const isConfigured = useSettingsStore(s => s.isConfigured());
-
-  if (!isConfigured) {
-    return <SetupModal />;
-  }
-
-  return <MainApp />;
-}
-```
-
----
-
-## Security Considerations
-
-- Credentials stored in localStorage (acceptable per requirements)
-- No encryption needed for this use case
-- `.env.local` should never be committed (already in `.gitignore`)
-
----
-
-## Out of Scope
-
-- Encrypted credential storage
-- OAuth/SSO authentication
-- Multi-store support
-- Credential migration between devices
-
----
-
-## Development Phases
-
-### Phase 1: Foundation
-- Remove hardcoded credentials
-- Verify `.gitignore` includes `.env.local`
-- Ensure app handles missing credentials gracefully
-
-### Phase 2: Setup Modal
-- Create test connection hook
-- Extract and enhance `ApiConfigSection`
-- Build `SetupModal` component
-- Integrate at app root level
-
-### Phase 3: Development Script
-- Create `scripts/dev-setup.js` (adapt from existing e2e setup)
-- Add `dev:setup` npm script
-- Test end-to-end development workflow
 
 ---
 
 ## Success Metrics
 
-1. Fresh clone + `npm run dev:setup` + `npm run dev` works in < 2 minutes
-2. Fresh browser (no localStorage) shows setup modal
-3. Invalid credentials show clear error message
-4. Valid credentials allow app to function normally
-5. Existing users (with localStorage) see no change in behavior
+1. All POS commands work correctly (/item, /pay, /done, /clear, /coupon)
+2. Order totals display correctly for offline orders
+3. Coupons persist for local orders
+4. Completed orders removed from sidebar
+5. Today's Orders modal accessible and functional
+6. E2E test pass rate improves from 64% to 85%+
