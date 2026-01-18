@@ -39,6 +39,9 @@ export interface SyncOptions {
 /**
  * Sync a single order to the WooCommerce server
  *
+ * Only syncs orders that are 'completed' or 'processing' status.
+ * Draft and pending orders are kept local-only until completion.
+ *
  * @param frontendId - The frontend ID of the order to sync
  * @param options - Sync options
  * @returns SyncResult indicating success or failure
@@ -63,6 +66,17 @@ export async function syncOrder(
       success: true,
       frontendId,
       serverId: order.serverId,
+    };
+  }
+
+  // Only sync orders that are completed or processing
+  // Draft and pending orders should remain local-only until marked complete
+  const syncableStatuses = ["completed", "processing"];
+  if (!options?.force && !syncableStatuses.includes(order.status)) {
+    return {
+      success: true,
+      frontendId,
+      error: `Order status "${order.status}" is not ready for sync (must be completed or processing)`,
     };
   }
 

@@ -1,9 +1,9 @@
-# Project Plan
+# Simple POS Bug Fix Plan
 
 ## Overview
-Make the API credentials flow production-ready by removing hardcoded credentials, implementing a blocking setup modal for first-run configuration, and creating a streamlined development setup script.
+Fix 10 issues in the Simple POS Next.js application related to command handling, payment auto-fill, sync timing, print formatting, and KOT behavior.
 
-**Reference:** `PRD.md`
+**Reference:** Issues reported by user testing
 
 ---
 
@@ -13,135 +13,133 @@ Make the API credentials flow production-ready by removing hardcoded credentials
 [
   {
     "id": 1,
-    "category": "setup",
-    "description": "Remove hardcoded credentials from api/config.ts",
+    "category": "bugfix",
+    "description": "Fix sync timing - only sync orders when completed, not on every change",
     "steps": [
-      "Read current api/config.ts file",
-      "Replace hardcoded BASE_URL, CONSUMER_KEY, CONSUMER_SECRET with empty strings",
-      "Verify .gitignore includes .env.local",
-      "Test that app still loads (will show empty state or error - expected)"
+      "In services/sync.ts, modify syncOrder() to check order status before syncing",
+      "Only allow sync when order status is 'completed' or 'processing'",
+      "Remove automatic syncOrder() calls from orders.ts after line item/note/service/payment updates for frontend ID orders",
+      "Keep manual sync available for explicit user actions",
+      "Verify: Create new order, add items, check no server order created until marked complete"
     ],
     "passes": true
   },
   {
     "id": 2,
-    "category": "feature",
-    "description": "Create useTestConnection hook for API credential validation",
+    "category": "bugfix",
+    "description": "Fix item command after server sync - handle synced orders with serverId",
     "steps": [
-      "Create hooks/useTestConnection.ts",
-      "Implement test function that calls GET /wp-json/wc/v3 with provided credentials",
-      "Handle success (200), auth errors (401/403), and network errors",
-      "Return status, error message, and reset function",
-      "Export hook for use in setup and settings modals"
+      "In order-page-client.tsx handleAddProduct(), check if order has serverId",
+      "For synced orders (has serverId), update both local Dexie AND queue server update",
+      "Ensure local order data reflects the change immediately via optimistic update",
+      "Verify sync.ts updateOrder properly handles adding items to existing server orders",
+      "Verify: Complete order (syncs), reopen it, add item via /item command, confirm item appears"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 3,
     "category": "feature",
-    "description": "Extract ApiConfigSection to shared component with test connection support",
+    "description": "Auto-fill short amount when selecting non-cash payment method",
     "steps": [
-      "Create app/components/settings/ApiConfigSection.tsx",
-      "Move ApiConfigSection from settings-modal.tsx to new file",
-      "Add optional props for connection testing (onTestConnection, status, error)",
-      "Add Test Connection button that shows when onTestConnection is provided",
-      "Add status indicator (idle/testing/success/error) with appropriate styling",
-      "Update settings-modal.tsx to import from new location"
+      "In payment-card.tsx handleAddMethod(), calculate remaining balance (total - totalReceived)",
+      "When adding a non-cash payment method, auto-set its value to the remaining balance",
+      "Call handlePaymentChange with the new method and calculated amount",
+      "Update the payment input state to show the auto-filled amount",
+      "Verify: Create order with items, select non-cash payment method, confirm amount auto-fills with total due"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 4,
-    "category": "feature",
-    "description": "Create SetupModal component for first-run experience",
+    "category": "bugfix",
+    "description": "Print frontend ID instead of server ID on invoice and KOT",
     "steps": [
-      "Create app/components/setup-modal.tsx",
-      "Build full-page blocking modal using HeroUI Modal (non-closable)",
-      "Include title, description, and ApiConfigSection",
-      "Integrate useTestConnection hook",
-      "Disable Save button until connection test passes",
-      "On save, call updateApi and close modal",
-      "Style consistently with existing app design"
+      "In buttons.tsx buildPrintData(), set frontendId from order data or URL param",
+      "For server orders without frontendId, generate one and store in meta_data",
+      "Ensure printData.frontendId is always set, not just orderReference",
+      "Update TodaysOrdersModal getPrintJobData() to include frontendId",
+      "Verify: Print bill and KOT, confirm they show 6-char frontend ID like 'A3X9K2'"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 5,
-    "category": "integration",
-    "description": "Integrate SetupModal at app root level",
+    "category": "bugfix",
+    "description": "Remove header and footer from receipt preview in orders modal",
     "steps": [
-      "Identify correct location for setup check (likely app/providers.tsx or layout)",
-      "Add SetupModal that renders when !isConfigured()",
-      "Ensure SetupModal blocks all app content when shown",
-      "Test that existing users with localStorage credentials see no change",
-      "Test that fresh browser shows setup modal"
+      "Add 'isPreview' prop to BillPrint component",
+      "Conditionally render header section based on isPreview prop",
+      "Conditionally render footer section based on isPreview prop",
+      "In TodaysOrdersModal, pass isPreview={true} to BillPrint",
+      "Verify: Open Today's Orders modal, click order, confirm preview shows only items/totals without header/footer"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 6,
-    "category": "feature",
-    "description": "Add test connection functionality to existing SettingsModal",
+    "category": "bugfix",
+    "description": "Add delivery fee to receipt preview in orders modal",
     "steps": [
-      "Import useTestConnection in settings-modal.tsx",
-      "Pass connection test props to ApiConfigSection",
-      "Allow users to test connection when editing credentials",
-      "Show connection status in the API tab"
+      "In TodaysOrdersModal getPrintJobData(), calculate shippingTotal from shipping_lines",
+      "Sum all shipping_lines costs like buttons.tsx does (lines 100-103)",
+      "Include shippingTotal in the returned print job data object",
+      "Verify: Create order with delivery fee, open modal preview, confirm delivery fee shows"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 7,
-    "category": "setup",
-    "description": "Create development setup script",
+    "category": "bugfix",
+    "description": "Add delivery fee to printed bill",
     "steps": [
-      "Create scripts/dev-setup.js adapting logic from e2e/scripts/setup.js",
-      "Implement wp-env start check and auto-start",
-      "Reuse credential generation from e2e/scripts/setup-api-credentials.js",
-      "Write credentials to .env.local with NEXT_PUBLIC_* prefix",
-      "Add --force flag to regenerate credentials",
-      "Print clear success message with next steps"
+      "Verify buttons.tsx buildPrintData() correctly sums shipping_lines (should already work)",
+      "Check bill-renderer.ts displays shippingTotal (lines 164-168)",
+      "If issue persists, trace data flow from order to print",
+      "Ensure shipping data is included when order has delivery service selected",
+      "Verify: Create order with delivery, print bill, confirm delivery fee line appears"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 8,
-    "category": "setup",
-    "description": "Add npm script and update documentation",
+    "category": "bugfix",
+    "description": "Clear payment info when reopening completed order",
     "steps": [
-      "Add dev:setup script to package.json",
-      "Update CLAUDE.md with new setup instructions",
-      "Document the first-run setup flow",
-      "Verify end-to-end developer experience works"
+      "In TodaysOrdersModal handleReopenOrder(), clear payment metadata",
+      "Reset meta_data keys: payment_received=0, split_payments={}",
+      "Update the local order via updateLocalOrder() with cleared payment",
+      "Ensure payment-card.tsx reads fresh state after reopen",
+      "Verify: Complete order with payment, reopen from modal, confirm payment fields are empty"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 9,
-    "category": "testing",
-    "description": "Update E2E tests for new setup flow",
+    "category": "bugfix",
+    "description": "Fix KOT to include new items added after previous KOT print",
     "steps": [
-      "Review existing E2E test setup in e2e/scripts/",
-      "Update E2E tests to handle setup modal on fresh state",
-      "Add test for setup modal appearing without credentials",
-      "Add test for setup modal dismissing after valid credentials",
-      "Ensure existing E2E tests still pass with the new flow"
+      "In buttons.tsx KOT change detection, identify truly NEW items (not in last_kot_items)",
+      "Track new items separately from quantity changes",
+      "Show new items with full quantity, not as change from 0",
+      "Update last_kot_items tracking to properly handle new item additions",
+      "Verify: Print KOT, add new item, print KOT again, confirm new item appears with correct quantity"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 10,
-    "category": "testing",
-    "description": "Manual testing of complete flow",
+    "category": "bugfix",
+    "description": "Remove hardcoded currency symbols - use dynamic currency from store settings",
     "steps": [
-      "Clear localStorage and test fresh install shows setup modal",
-      "Test invalid credentials show appropriate error",
-      "Test valid credentials allow app to load",
-      "Test npm run dev:setup creates working .env.local",
-      "Test existing users (with localStorage) see no change",
-      "Test SettingsModal API tab still works for credential updates"
+      "Search codebase for hardcoded currency symbols in components and renderers",
+      "Create or use existing currency formatting utility that reads from WooCommerce store settings",
+      "Replace hardcoded symbols in bill-renderer.ts with dynamic currency",
+      "Replace hardcoded symbols in kot-renderer.ts with dynamic currency",
+      "Replace hardcoded symbols in UI components (payment-card.tsx, BillPrint.tsx, etc.)",
+      "Verify: Check bill preview, KOT, and payment UI show correct currency based on store settings"
     ],
-    "passes": true
+    "passes": false
   }
 ]
 ```

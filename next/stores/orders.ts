@@ -15,7 +15,6 @@ import { useEffect, useCallback } from "react";
 import { isValidFrontendId } from "@/lib/frontend-id";
 import { getLocalOrder, getLocalOrderByServerId, updateLocalOrder, importServerOrder, listLocalOrders } from "./offline-orders";
 import type { LocalOrder } from "@/db";
-import { syncOrder } from "@/services/sync";
 import { calculateOrderTotal, calculateSubtotal } from "@/lib/order-utils";
 
 function generateOrderQueryKey(context: string, order?: OrderSchema, product?: ProductSchema) {
@@ -479,10 +478,8 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 			// Update the cache directly instead of invalidating to preserve other optimistic updates
 			queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
 
-			// Queue sync operation (async - don't await)
-			syncOrder(urlOrderId).catch(err => {
-				console.error('Failed to queue sync for order:', urlOrderId, err);
-			});
+			// Note: Sync is NOT triggered here - orders only sync when completed
+			// This keeps drafts and pending orders local-only for faster operation
 
 			return updatedLocalOrder.data;
 		}
@@ -830,10 +827,8 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			// Invalidate local order query to refresh UI
 			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
 
-			// Queue sync operation (async - don't await)
-			syncOrder(urlOrderId).catch(err => {
-				console.error('Failed to queue sync for order:', urlOrderId, err);
-			});
+			// Note: Sync is NOT triggered here - orders only sync when completed
+			// This keeps drafts and pending orders local-only for faster operation
 
 			return updatedLocalOrder.data;
 		}
@@ -1043,10 +1038,8 @@ export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | 
 			});
 			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
 
-			// Queue sync operation (async - don't await)
-			syncOrder(urlOrderId).catch(err => {
-				console.error('Failed to queue sync for order:', urlOrderId, err);
-			});
+			// Note: Sync is NOT triggered here - orders only sync when completed
+			// This keeps drafts and pending orders local-only for faster operation
 
 			return updatedLocalOrder.data;
 		}
@@ -1172,10 +1165,8 @@ export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema
 			});
 			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
 
-			// Queue sync operation (async - don't await)
-			syncOrder(urlOrderId).catch(err => {
-				console.error('Failed to queue sync for order:', urlOrderId, err);
-			});
+			// Note: Sync is NOT triggered here - orders only sync when completed
+			// This keeps drafts and pending orders local-only for faster operation
 
 			return updatedLocalOrder.data;
 		}
@@ -1315,10 +1306,8 @@ export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			});
 			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
 
-			// Queue sync operation (async - don't await)
-			syncOrder(urlOrderId).catch(err => {
-				console.error('Failed to queue sync for order:', urlOrderId, err);
-			});
+			// Note: Sync is NOT triggered here - orders only sync when completed
+			// This keeps drafts and pending orders local-only for faster operation
 
 			return updatedLocalOrder.data;
 		}
