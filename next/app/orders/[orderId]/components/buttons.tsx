@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { ButtonGroup, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Kbd } from "@heroui/react";
-import { useCurrentOrder } from "@/stores/orders";
+import { useCurrentOrder, useCombinedOrdersStore } from "@/stores/orders";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useParams } from "next/navigation";
 import OrdersAPI, { OrderSchema } from "@/api/orders";
@@ -25,6 +25,7 @@ export default function Buttons() {
     const printStore = usePrintStore();
     const { data: products } = useProductsQuery();
     const skipKotCategories = useSettingsStore(state => state.skipKotCategories);
+    const { ordersQuery: combinedOrdersQuery } = useCombinedOrdersStore();
     const [isPrintingKot, setIsPrintingKot] = useState(false);
     const [isPrintingBill, setIsPrintingBill] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
@@ -171,14 +172,32 @@ export default function Buttons() {
                 await queryClient.invalidateQueries({ queryKey: ['orders'] });
             }
 
-            // Navigate to home
-            router.push('/');
+            // Navigate to next order or create new one (same logic as Done)
+            // Filter out the current order from the list
+            const otherOrders = combinedOrdersQuery.data?.filter(o => {
+                // Exclude current order by frontend ID or server ID
+                if (isFrontendIdOrder && o.frontendId === urlOrderId) return false;
+                if (!isFrontendIdOrder && o.id === orderQuery.data?.id) return false;
+                return true;
+            }) || [];
+
+            if (otherOrders.length > 0) {
+                // Navigate to the first (top) order in the list
+                const nextOrder = otherOrders[0];
+                const nextUrl = nextOrder.frontendId
+                    ? `/orders/${nextOrder.frontendId}`
+                    : `/orders/${nextOrder.id}`;
+                router.push(nextUrl);
+            } else {
+                // No other orders, create a new one
+                router.push('/orders/new');
+            }
         } catch (error) {
             console.error('Failed to cancel order:', error);
         } finally {
             setIsCancelling(false);
         }
-    }, [orderQuery.data, queryClient, router, isFrontendIdOrder, urlOrderId]);
+    }, [orderQuery.data, queryClient, router, isFrontendIdOrder, urlOrderId, combinedOrdersQuery.data]);
 
     // Done button handler for local orders
     const handleDone = useCallback(async () => {
@@ -253,13 +272,32 @@ export default function Buttons() {
                 }
             }
 
-            router.push('/');
+            // Navigate to next order or create new one
+            // Filter out the current order from the list
+            const otherOrders = combinedOrdersQuery.data?.filter(o => {
+                // Exclude current order by frontend ID or server ID
+                if (isFrontendIdOrder && o.frontendId === urlOrderId) return false;
+                if (!isFrontendIdOrder && o.id === orderQuery.data?.id) return false;
+                return true;
+            }) || [];
+
+            if (otherOrders.length > 0) {
+                // Navigate to the first (top) order in the list
+                const nextOrder = otherOrders[0];
+                const nextUrl = nextOrder.frontendId
+                    ? `/orders/${nextOrder.frontendId}`
+                    : `/orders/${nextOrder.id}`;
+                router.push(nextUrl);
+            } else {
+                // No other orders, create a new one
+                router.push('/orders/new');
+            }
         } catch (error) {
             console.error('Failed to complete order:', error);
         } finally {
             setIsCompleting(false);
         }
-    }, [orderQuery.data, queryClient, router, printStore, isFrontendIdOrder, urlOrderId]);
+    }, [orderQuery.data, queryClient, router, printStore, isFrontendIdOrder, urlOrderId, combinedOrdersQuery.data]);
 
     // isDraft is true only for the legacy /orders/new route, not for frontend ID orders
     const isDraft = orderQuery.data?.id === DRAFT_ORDER_ID && !isFrontendIdOrder;

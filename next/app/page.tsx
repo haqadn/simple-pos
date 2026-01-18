@@ -2,13 +2,11 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useOrdersStore } from '@/stores/orders';
-import { useDraftOrderStore } from '@/stores/draft-order';
+import { useCombinedOrdersStore } from '@/stores/orders';
 
 export default function Page() {
   const router = useRouter();
-  const { ordersQuery } = useOrdersStore();
-  const resetDraft = useDraftOrderStore((state) => state.resetDraft);
+  const { ordersQuery, isLoading } = useCombinedOrdersStore();
   const hasRedirectedRef = useRef(false);
 
   useEffect(() => {
@@ -17,22 +15,25 @@ export default function Page() {
       if (hasRedirectedRef.current) return;
 
       // Wait for orders to load
-      if (ordersQuery.isLoading) return;
+      if (isLoading) return;
 
       if (ordersQuery.data && ordersQuery.data.length > 0) {
-        // Redirect to first existing order
+        // Redirect to first existing order (prefer frontend ID URL)
         hasRedirectedRef.current = true;
-        router.replace(`/orders/${ordersQuery.data[0].id}`);
-      } else if (!ordersQuery.isLoading) {
-        // No orders exist, redirect to draft order (not saved to DB yet)
+        const firstOrder = ordersQuery.data[0];
+        const url = firstOrder.frontendId
+          ? `/orders/${firstOrder.frontendId}`
+          : `/orders/${firstOrder.id}`;
+        router.replace(url);
+      } else if (!isLoading) {
+        // No orders exist, create a new one
         hasRedirectedRef.current = true;
-        resetDraft(); // Reset draft to clean state
         router.replace('/orders/new');
       }
     };
 
     redirectToOrder();
-  }, [ordersQuery.isLoading, ordersQuery.data, router, resetDraft]);
+  }, [isLoading, ordersQuery.data, router]);
 
   return (
     <div className="flex items-center justify-center h-full">

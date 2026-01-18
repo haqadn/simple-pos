@@ -245,7 +245,8 @@ export const useCombinedOrdersStore = () => {
 		ordersQuery: ordersWithFrontendIds,
 		serverOrdersQuery: ordersQuery,
 		localOrdersQuery,
-		isLoading: ordersQuery.isLoading || localOrdersQuery.isLoading,
+		// Include all loading states - source queries AND the combined query
+		isLoading: ordersQuery.isLoading || localOrdersQuery.isLoading || ordersWithFrontendIds.isLoading || !ordersWithFrontendIds.data,
 	};
 };
 
