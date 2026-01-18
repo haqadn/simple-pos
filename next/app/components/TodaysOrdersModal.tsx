@@ -126,6 +126,12 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
     const shippingLine = order.data.shipping_lines?.[0];
     const isDelivery = shippingLine?.method_id === 'flat_rate';
 
+    // Calculate shipping total from all shipping lines
+    const shippingTotal = order.data.shipping_lines?.reduce(
+      (sum, line) => sum + parseFloat(String(line.total || '0')),
+      0
+    ) || 0;
+
     return {
       orderId: order.serverId,
       frontendId: order.frontendId,
@@ -150,6 +156,7 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
       },
       payment: paymentReceived,
       discountTotal: parseFloat(order.data.discount_total || '0'),
+      shippingTotal,
       total: parseFloat(order.data.total || '0'),
     };
   }, []);

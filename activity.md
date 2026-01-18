@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 5
+Tasks completed: 6
 Current task: None
 
 ---
@@ -128,3 +128,28 @@ Current task: None
 
 ### Commit
 - `fix: remove header and footer from receipt preview in orders modal`
+
+---
+
+## [2026-01-18] - Task 6: Add delivery fee to receipt preview in orders modal
+
+### Changes Made
+- `/Users/adnan/Projects/simple-pos/next/app/components/TodaysOrdersModal.tsx`:
+  - Added `shippingTotal` calculation in `getPrintJobData()` function
+  - Sums all `shipping_lines` costs using reduce, matching the pattern in `buttons.tsx`
+  - Included `shippingTotal` in the returned `PrintJobData` object
+
+- `/Users/adnan/Projects/simple-pos/next/components/print/BillPrint.tsx`:
+  - Added `shippingTotal` to destructured data props (default: 0)
+  - Updated total calculation to include shipping: `total = subtotal - discountTotal + shippingTotal`
+  - Added delivery fee line in the summary section (shown when shippingTotal > 0)
+  - Displays "Delivery" label consistent with ESC/POS bill-renderer.ts
+
+### Verification
+- Build: `npm run build` completed successfully with no errors
+- Lint: `npm run lint` passed with no warnings or errors
+- The receipt preview now shows delivery fee when an order has shipping charges
+- Total calculation correctly includes shipping in both preview and calculation
+
+### Commit
+- `fix: add delivery fee to receipt preview in orders modal`

@@ -86,7 +86,7 @@ Fix 10 issues in the Simple POS Next.js application related to command handling,
       "Include shippingTotal in the returned print job data object",
       "Verify: Create order with delivery fee, open modal preview, confirm delivery fee shows"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 7,

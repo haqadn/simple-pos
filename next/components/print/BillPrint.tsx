@@ -17,6 +17,7 @@ export default function BillPrint({ data, isPreview = false }: BillPrintProps) {
     orderTime,
     payment = 0,
     discountTotal = 0,
+    shippingTotal = 0,
     cartName,
     serviceType,
   } = data;
@@ -31,7 +32,7 @@ export default function BillPrint({ data, isPreview = false }: BillPrintProps) {
     0
   );
 
-  const total = subtotal - discountTotal;
+  const total = subtotal - discountTotal + shippingTotal;
   const change = payment - total;
 
   const formatCurrency = (amount: number) => amount.toFixed(0);
@@ -155,6 +156,12 @@ export default function BillPrint({ data, isPreview = false }: BillPrintProps) {
                 <tr>
                   <td className="w-full">Discount</td>
                   <td className="text-right">-{formatCurrency(discountTotal)}</td>
+                </tr>
+              )}
+              {shippingTotal > 0 && (
+                <tr>
+                  <td className="w-full">Delivery</td>
+                  <td className="text-right">{formatCurrency(shippingTotal)}</td>
                 </tr>
               )}
               <tr>
