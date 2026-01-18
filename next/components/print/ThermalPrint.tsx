@@ -54,6 +54,8 @@ export default function ThermalPrint() {
     const billData: BillData = {
       orderId: data.orderId,
       orderReference: data.orderReference,
+      frontendId: data.frontendId,
+      serverId: data.serverId,
       cartName: data.cartName,
       serviceType: data.serviceType,
       orderTime: data.orderTime,
@@ -78,6 +80,8 @@ export default function ThermalPrint() {
     const kotData: KotData = {
       orderId: data.orderId,
       orderReference: data.orderReference,
+      frontendId: data.frontendId,
+      serverId: data.serverId,
       cartName: data.cartName,
       serviceType: data.serviceType,
       customerNote: data.customerNote,

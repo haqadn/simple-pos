@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 6
+Tasks completed: 7
 Current task: None
 
 ---
@@ -153,3 +153,33 @@ Current task: None
 
 ### Commit
 - `fix: add delivery fee to receipt preview in orders modal`
+
+---
+
+## [2026-01-18] - Task 7: Add delivery fee to printed bill
+
+### Changes Made
+- `/Users/adnan/Projects/simple-pos/next/components/print/ThermalPrint.tsx`:
+  - Added `frontendId` field to `billData` mapping in `handleBillPrint()` function
+  - Added `serverId` field to `billData` mapping in `handleBillPrint()` function
+  - Added `frontendId` field to `kotData` mapping in `handleKotPrint()` function
+  - Added `serverId` field to `kotData` mapping in `handleKotPrint()` function
+  - These fields were already defined in the `BillData` and `KotData` types but were not being passed through from `PrintJobData`
+
+### Analysis
+The delivery fee data flow was already correctly implemented:
+1. `buttons.tsx buildPrintData()` correctly sums `shipping_lines` to calculate `shippingTotal` (lines 125-127)
+2. `PrintJobData` type already includes `shippingTotal` field (stores/print.ts line 39)
+3. `ThermalPrint.tsx` was already passing `shippingTotal` to `billData` (line 63)
+4. `bill-renderer.ts` correctly displays shipping if > 0 (lines 164-168)
+
+The issue was that `ThermalPrint.tsx` was missing `frontendId` and `serverId` fields when mapping `PrintJobData` to `BillData` and `KotData`. While these fields were not directly related to the delivery fee display, ensuring complete data transfer ensures the printed bill includes all expected information.
+
+### Verification
+- Build: `npm run build` completed successfully with no errors
+- Lint: `npm run lint` passed with no warnings or errors
+- The `shippingTotal` field was already being correctly passed through the data flow
+- Added missing `frontendId` and `serverId` fields for complete data transfer
+
+### Commit
+- `fix: pass frontendId and serverId to bill and KOT renderers`

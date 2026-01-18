@@ -99,7 +99,7 @@ Fix 10 issues in the Simple POS Next.js application related to command handling,
       "Ensure shipping data is included when order has delivery service selected",
       "Verify: Create order with delivery, print bill, confirm delivery fee line appears"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 8,
