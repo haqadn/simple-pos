@@ -12,7 +12,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { getMatchingShortcut } from '@/lib/shortcuts';
 import { createLocalOrder, updateLocalOrder, getLocalOrder } from '@/stores/offline-orders';
 import { isValidFrontendId } from '@/lib/frontend-id';
-import { buildPrintData } from '@/lib/print-data';
+import { buildPrintData, buildPrintMetaUpdates } from '@/lib/print-data';
 import { createShouldSkipForKot } from '@/lib/kot';
 import type { LocalOrder } from '@/db';
 
@@ -125,21 +125,8 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
         });
         await printStore.push('kot', printData);
 
-        // Store current items for next KOT change detection (with names for removed item display)
-        const currentItems: Record<string, { quantity: number; name: string }> = {};
-        freshOrder.line_items.forEach(item => {
-            const itemKey = `${item.product_id}-${item.variation_id}`;
-            currentItems[itemKey] = { quantity: item.quantity, name: item.name };
-        });
-
-        // Mark as printed in meta_data and store item quantities
-        const metaUpdates = [
-            ...freshOrder.meta_data.filter(m =>
-                m.key !== 'last_kot_print' && m.key !== 'last_kot_items'
-            ),
-            { key: 'last_kot_print', value: new Date().toISOString() },
-            { key: 'last_kot_items', value: JSON.stringify(currentItems) }
-        ];
+        // Build meta_data updates (only updates last_kot_items when there are actual changes)
+        const metaUpdates = buildPrintMetaUpdates({ order: freshOrder, type: 'kot', printData });
 
         try {
             // For frontend ID orders, save to Dexie
@@ -179,11 +166,8 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
             });
             await printStore.push('bill', printData);
 
-            // Mark as printed in meta_data
-            const metaUpdates = [
-                ...freshOrder.meta_data.filter(m => m.key !== 'last_bill_print'),
-                { key: 'last_bill_print', value: new Date().toISOString() }
-            ];
+            // Build meta_data updates
+            const metaUpdates = buildPrintMetaUpdates({ order: freshOrder, type: 'bill', printData });
 
             // For frontend ID orders, save to Dexie
             if (isFrontendIdOrder && urlOrderId) {

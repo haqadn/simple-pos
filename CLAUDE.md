@@ -23,6 +23,8 @@ npm run build        # Production build
 npm run lint         # Next.js linting
 ```
 
+**Note:** Do not run `npm run build` or `npm run lint` manually - a file watcher is typically running that handles this automatically.
+
 ### Quick Start (New Developers)
 
 ```bash

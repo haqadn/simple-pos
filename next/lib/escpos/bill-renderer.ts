@@ -96,10 +96,6 @@ export async function renderBill(
   if (customization.showOrderNumber && displayOrderNumber) {
     builder.alignCenter();
     builder.text(`Invoice#: ${displayOrderNumber}`).newline();
-    // Show server ID as small reference if synced
-    if (data.serverId && data.frontendId) {
-      builder.text(`Ref: #${data.serverId}`).newline();
-    }
   }
 
   // Date and time

@@ -51,11 +51,6 @@ export function renderKot(data: KotData, options: KotRenderOptions): Uint8Array 
     builder.alignCenter();
     builder.text(`Order #${displayOrderNumber}`);
     builder.newline();
-    // Show server ID as small reference if synced
-    if (data.serverId && data.frontendId) {
-      builder.text(`Ref: #${data.serverId}`);
-      builder.newline();
-    }
   }
 
   builder.separator('=', charWidth);

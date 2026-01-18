@@ -11,7 +11,6 @@ export default function KotPrint({ data }: KotPrintProps) {
     kotItems = [],
     orderReference,
     frontendId,
-    serverId,
     cartName,
     customerNote,
   } = data;
@@ -26,9 +25,6 @@ export default function KotPrint({ data }: KotPrintProps) {
         <p className="cart-name">{cartName}</p>
         {displayOrderNumber && (
           <p className="order-ref">Order# {displayOrderNumber}</p>
-        )}
-        {serverId && frontendId && (
-          <p className="server-ref">Ref: #{serverId}</p>
         )}
       </header>
 

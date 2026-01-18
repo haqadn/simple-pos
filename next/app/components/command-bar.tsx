@@ -8,7 +8,7 @@ import { useCommandManager } from '@/hooks/useCommandManager';
 import { useCurrentOrder, useOrdersStore } from '@/stores/orders';
 import { useProductsQuery, useGetProductById } from '@/stores/products';
 import { usePrintStore } from '@/stores/print';
-import { buildPrintData } from '@/lib/print-data';
+import { buildPrintData, buildPrintMetaUpdates } from '@/lib/print-data';
 import { CommandContext, CustomerData, CurrencyConfig } from '@/commands/command-manager';
 import { CommandSuggestion } from '@/commands/command';
 import OrdersAPI, { OrderSchema } from '@/api/orders';
@@ -538,31 +538,8 @@ export default function CommandBar() {
     // Queue the print job
     await printStore.push(type, printData);
 
-    // Build meta_data updates for print tracking
-    const metaKey = type === 'bill' ? 'last_bill_print' : 'last_kot_print';
-    const existingPrintMeta = order.meta_data.find(m => m.key === metaKey);
-    const metaUpdates = [
-      ...order.meta_data.filter(m => m.key !== metaKey && m.key !== 'last_kot_items'),
-      existingPrintMeta?.id
-        ? { id: existingPrintMeta.id, key: metaKey, value: new Date().toISOString() }
-        : { key: metaKey, value: new Date().toISOString() }
-    ];
-
-    // For KOT, also save current items for next change detection (with names for removed item display)
-    if (type === 'kot') {
-      const currentItems: Record<string, { quantity: number; name: string }> = {};
-      order.line_items.forEach(item => {
-        const itemKey = `${item.product_id}-${item.variation_id}`;
-        currentItems[itemKey] = { quantity: item.quantity, name: item.name };
-      });
-      // Preserve existing last_kot_items id if it exists
-      const existingKotMeta = order.meta_data.find(m => m.key === 'last_kot_items');
-      if (existingKotMeta?.id) {
-        metaUpdates.push({ id: existingKotMeta.id, key: 'last_kot_items', value: JSON.stringify(currentItems) });
-      } else {
-        metaUpdates.push({ key: 'last_kot_items', value: JSON.stringify(currentItems) });
-      }
-    }
+    // Build meta_data updates (only updates last_kot_items when there are actual changes)
+    const metaUpdates = buildPrintMetaUpdates({ order, type, printData });
 
     // For frontend ID orders - save print meta_data to Dexie
     if (isFrontendIdOrder && urlOrderId) {
