@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 3
+Tasks completed: 4
 Current task: None
 
 ---
@@ -78,3 +78,29 @@ Current task: None
 
 ### Commit
 - `feat: auto-fill remaining balance when selecting non-cash payment method`
+
+---
+
+## [2026-01-18] - Task 4: Print frontend ID instead of server ID on invoice and KOT
+
+### Changes Made
+- `/Users/adnan/Projects/simple-pos/next/app/orders/[orderId]/components/buttons.tsx`:
+  - Added imports for `useParams`, `isValidFrontendId`, and `generateFrontendId`
+  - Added `urlOrderId` extraction from URL params
+  - Modified `buildPrintData()` function to include `frontendId` and `serverId`:
+    - First checks if URL param is a valid frontend ID
+    - Falls back to extracting `pos_frontend_id` from order's `meta_data`
+    - If no frontend ID found (legacy server order), generates a new one for display
+    - Sets `serverId` only when order has been synced to server
+    - Sets `orderReference` to the frontend ID instead of server ID
+  - Updated `buildPrintData` useCallback dependency array to include `urlOrderId`
+
+### Verification
+- Build: `npm run build` completed successfully with no errors
+- Lint: `npm run lint` passed with no warnings or errors
+- TodaysOrdersModal already correctly includes frontendId in getPrintJobData()
+- BillPrint and KotPrint components already use frontendId as primary display identifier
+- bill-renderer.ts and kot-renderer.ts already handle frontendId correctly
+
+### Commit
+- `fix: print frontend ID instead of server ID on invoice and KOT`

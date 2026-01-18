@@ -4,24 +4,29 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { ButtonGroup, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Kbd } from "@heroui/react";
 import { useCurrentOrder } from "@/stores/orders";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import OrdersAPI, { OrderSchema } from "@/api/orders";
 import { DRAFT_ORDER_ID } from "@/stores/draft-order";
 import { usePrintStore, PrintJobData } from "@/stores/print";
 import { useProductsQuery } from "@/stores/products";
 import { useSettingsStore } from "@/stores/settings";
 import { createShouldSkipForKot } from "@/lib/kot";
+import { isValidFrontendId, generateFrontendId } from "@/lib/frontend-id";
 
 export default function Buttons() {
     const orderQuery = useCurrentOrder();
     const queryClient = useQueryClient();
     const router = useRouter();
+    const params = useParams();
     const printStore = usePrintStore();
     const { data: products } = useProductsQuery();
     const skipKotCategories = useSettingsStore(state => state.skipKotCategories);
     const [isPrintingKot, setIsPrintingKot] = useState(false);
     const [isPrintingBill, setIsPrintingBill] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
+
+    // Get frontend ID from URL params (primary source for frontend ID URLs)
+    const urlOrderId = params?.orderId as string | undefined;
 
     // Track order ID for mutation checks
     const orderId = orderQuery.data?.id;
@@ -68,9 +73,28 @@ export default function Buttons() {
         const shippingLine = order.shipping_lines?.find(s => s.method_title);
         const isTable = shippingLine?.method_id === 'pickup_location';
 
+        // Get frontend ID: prefer URL param if valid, then check meta_data, then generate new one
+        let frontendId: string | undefined;
+        if (urlOrderId && isValidFrontendId(urlOrderId)) {
+            frontendId = urlOrderId;
+        } else {
+            const frontendIdMeta = order.meta_data?.find(m => m.key === 'pos_frontend_id');
+            frontendId = frontendIdMeta?.value as string | undefined;
+        }
+        // If still no frontend ID (legacy server order), generate one for display purposes
+        if (!frontendId) {
+            frontendId = generateFrontendId();
+        }
+
+        // Determine server ID - only set if order has been synced to server
+        // (order.id > 0 means it has a server-assigned ID)
+        const serverId = order.id > 0 && order.id !== parseInt(urlOrderId || '0') ? order.id : undefined;
+
         const printData: PrintJobData = {
             orderId: order.id,
-            orderReference: order.id.toString(),
+            frontendId,
+            serverId,
+            orderReference: frontendId, // Use frontend ID as the order reference
             cartName: shippingLine?.method_title || 'Order',
             serviceType: shippingLine ? (isTable ? 'table' : 'delivery') : undefined,
             orderTime: order.date_created,
@@ -158,7 +182,7 @@ export default function Buttons() {
         }
 
         return printData;
-    }, [orderQuery.data, shouldSkipForKot]);
+    }, [orderQuery.data, shouldSkipForKot, urlOrderId]);
 
     const handlePrintKot = useCallback(async () => {
         if (!orderQuery.data) return;

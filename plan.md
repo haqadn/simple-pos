@@ -61,7 +61,7 @@ Fix 10 issues in the Simple POS Next.js application related to command handling,
       "Update TodaysOrdersModal getPrintJobData() to include frontendId",
       "Verify: Print bill and KOT, confirm they show 6-char frontend ID like 'A3X9K2'"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 5,
