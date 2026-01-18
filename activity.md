@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 2
+Tasks completed: 3
 Current task: None
 
 ---
@@ -54,3 +54,27 @@ Current task: None
 
 ### Commit
 - `fix: handle item command for synced orders with serverId`
+
+---
+
+## [2026-01-18] - Task 3: Auto-fill short amount when selecting non-cash payment method
+
+### Changes Made
+- `/Users/adnan/Projects/simple-pos/next/app/orders/[orderId]/components/payment-card.tsx`:
+  - Modified `handleAddMethod()` callback to auto-fill remaining balance when adding a non-cash payment method
+  - Calculates remaining balance as `orderTotal - totalReceived`
+  - When remaining > 0, automatically sets the new payment method's amount to the remaining balance
+  - Saves the auto-filled payment immediately via `savePayments()`
+  - Updated dependencies array to include `orderData?.total` and `totalReceived`
+
+### Verification
+- Build: `npm run build` completed successfully with no errors
+- Lint: `npm run lint` passed with no warnings or errors
+- Logic verified: When user selects a non-cash payment method (e.g., bKash, Nagad, Card):
+  1. The method is added to active payment methods
+  2. The remaining balance (total - totalReceived) is calculated
+  3. If remaining > 0, the new method is auto-filled with that amount
+  4. Payment is saved to order metadata
+
+### Commit
+- `feat: auto-fill remaining balance when selecting non-cash payment method`

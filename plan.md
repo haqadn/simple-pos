@@ -48,7 +48,7 @@ Fix 10 issues in the Simple POS Next.js application related to command handling,
       "Update the payment input state to show the auto-filled amount",
       "Verify: Create order with items, select non-cash payment method, confirm amount auto-fills with total due"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 4,

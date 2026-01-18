@@ -113,10 +113,20 @@ export default function PaymentCard() {
         savePayments(newPayments);
     }, [payments, savePayments]);
 
-    // Add a payment method
+    // Add a payment method (auto-fill with remaining balance for non-cash methods)
     const handleAddMethod = useCallback((method: string) => {
         setActiveAdditionalMethods(prev => new Set([...prev, method]));
-    }, []);
+
+        // Calculate remaining balance and auto-fill for non-cash methods
+        const orderTotal = parseFloat(orderData?.total || '0');
+        const remaining = orderTotal - totalReceived;
+        if (remaining > 0) {
+            // Auto-fill the new method with the remaining balance
+            const newPayments = { ...payments, [method]: remaining };
+            setPayments(newPayments);
+            savePayments(newPayments);
+        }
+    }, [orderData?.total, totalReceived, payments, savePayments]);
 
     // Remove a payment method
     const handleRemoveMethod = useCallback((method: string) => {
