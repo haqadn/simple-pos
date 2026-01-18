@@ -2,7 +2,48 @@
 
 Last updated: 2026-01-17
 Tasks completed: 12
-Current task: None
+Current task: Starting new bug fix plan (11 tasks)
+
+---
+
+## [2026-01-17] - New Bug Fix Plan Created
+
+### Issues to Address
+
+**User-Reported Issues:**
+1. New orders appear at random place in sidebar instead of at top/bottom
+2. Total is not being calculated for local orders
+3. Coupon disappears from UI when added to local orders
+
+**E2E Test Failures (from previous session - 109 failures):**
+4. "New Order" button navigation (16 failures)
+5. /done command - status not completing (12 failures)
+6. /pay command - payments not persisting (11 failures)
+7. /item command - increment mode not working (7 failures)
+8. /clear command - not removing items (7 failures)
+9. Line item operations - various issues (15 failures)
+
+### Root Cause Analysis
+
+The main issue identified is that `pos-command-input.tsx` has an **incomplete CommandContext implementation**. It only implements:
+- `updateLineItem` (partially)
+- `showMessage`
+- `showError`
+
+Missing implementations cause commands to fail:
+- `clearOrder` - /clear command fails
+- `completeOrder` - /done command fails
+- `setPayment` / `getPaymentReceived` - /pay command fails
+- `applyCoupon` / `removeCoupon` - coupon commands fail
+- `setNote`, `setCustomer`, `print`, `openDrawer`, `navigateToNextOrder`
+
+Additionally:
+- Local orders don't calculate totals (WooCommerce calculates server-side)
+- Coupon application uses server API instead of local storage for frontend ID orders
+- Sidebar order sorting doesn't preserve creation order
+
+### Plan Created
+See `plan.md` for 11 implementation tasks
 
 ---
 
@@ -476,3 +517,27 @@ The remaining 109 failures require **application code fixes**, not test fixes:
 
 ### Commit
 - (verification only - no code changes, updating documentation only)
+
+---
+
+## [2026-01-17] - Task 1: Fix sidebar order sorting - new orders should appear at the end (bottom)
+
+### Changes Made
+- Modified `/Users/adnan/Projects/simple-pos/next/stores/orders.ts`:
+  - Added sorting logic to `useCombinedOrdersStore` queryFn
+  - Combined orders are now sorted by `date_created` ascending (oldest first, newest at bottom)
+  - This ensures new orders appear at the bottom of the sidebar list
+
+### Technical Details
+- The `useCombinedOrdersStore` hook combines server orders with local orders
+- Previously, orders were not explicitly sorted after combination
+- Added sort: `combinedOrders.sort((a, b) => dateA - dateB)` where dates are parsed from `date_created`
+- Orders without `date_created` default to timestamp 0 (appear first)
+
+### Verification
+- Build passes: `npm run build` completes successfully
+- TypeScript compilation passes without errors
+- The sorting logic handles null/undefined `date_created` values gracefully
+
+### Commit
+- fix: sort sidebar orders by createdAt ascending (newest at bottom)

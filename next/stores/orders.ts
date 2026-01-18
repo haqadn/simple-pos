@@ -8,7 +8,6 @@ import { useParams, useRouter } from "next/navigation";
 import { ProductSchema } from "./products";
 import { ServiceMethodSchema, useTablesQuery } from "./service";
 import { useAvoidParallel } from "@/hooks/useAvoidParallel";
-import { useDebounce } from "@/hooks/useDebounce";
 import { DRAFT_ORDER_ID } from "./draft-order";
 import { useDraftOrderState, useDraftOrderActions } from "@/hooks/useDraftOrderState";
 import { isSkipError } from "./utils/mutation-helpers";
@@ -212,6 +211,14 @@ export const useCombinedOrdersStore = () => {
 					frontendId: localOrder.frontendId,
 				});
 			}
+
+			// Sort orders by createdAt ascending (oldest first, newest at bottom)
+			// This ensures new orders appear at the bottom of the sidebar
+			combinedOrders.sort((a, b) => {
+				const dateA = a.date_created ? new Date(a.date_created).getTime() : 0;
+				const dateB = b.date_created ? new Date(b.date_created).getTime() : 0;
+				return dateA - dateB;
+			});
 
 			return combinedOrders;
 		},
@@ -436,8 +443,13 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 
 		// Handle frontend ID orders - save to Dexie only (local-first)
 		if (isFrontendIdOrder && urlOrderId) {
-			// Build the new line items array
-			const existingLineItems = [...inputOrder.line_items];
+			// Get the current local order from cache to get the latest state
+			// This is important to avoid race conditions when multiple mutations overlap
+			const cachedLocalOrder = queryClient.getQueryData<LocalOrder>(['localOrder', urlOrderId]);
+			const baseOrder = cachedLocalOrder?.data || inputOrder;
+
+			// Build the new line items array from the latest cached state
+			const existingLineItems = [...baseOrder.line_items];
 			const existingIdx = existingLineItems.findIndex(
 				li => li.product_id === product.product_id && li.variation_id === product.variation_id
 			);
@@ -462,8 +474,8 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 				line_items: existingLineItems,
 			});
 
-			// Invalidate local order query to refresh UI
-			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+			// Update the cache directly instead of invalidating to preserve other optimistic updates
+			queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
 
 			// Queue sync operation (async - don't await)
 			syncOrder(urlOrderId).catch(err => {
@@ -573,7 +585,7 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 		return updatedOrder;
 	}
 
-	const tamedMutationFn = useDebounce(useAvoidParallel(updateLineItemQuantity), 1000);
+	const tamedMutationFn = useAvoidParallel(updateLineItemQuantity);
 
 	const mutation = useMutation({
 		mutationFn: (params: { quantity: number }) => {
@@ -666,9 +678,9 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 			}
 		},
 		onSuccess: (data: OrderSchema) => {
-			// For frontend ID orders, just invalidate the local order query
+			// For frontend ID orders, the cache is already updated by mutationFn
+			// We use setQueryData there instead of invalidate to preserve optimistic updates
 			if (isFrontendIdOrder && urlOrderId) {
-				queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
 				return;
 			}
 
@@ -900,7 +912,7 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 		return updatedOrder;
 	};
 
-	const tamedMutationFn = useDebounce(useAvoidParallel(updateServiceMethod), 1000);
+	const tamedMutationFn = useAvoidParallel(updateServiceMethod);
 
 	const mutation = useMutation({
 		mutationFn: (params: { service: ServiceMethodSchema }) => {
@@ -1050,7 +1062,7 @@ export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | 
 		return updatedOrder;
 	};
 
-	const tamedMutationFn = useDebounce(useAvoidParallel(updateOrderNote), 1000);
+	const tamedMutationFn = useAvoidParallel(updateOrderNote);
 
 	const mutation = useMutation({
 		mutationFn: (params: { note: string }) => {
@@ -1179,7 +1191,7 @@ export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema
 		return updatedOrder;
 	};
 
-	const tamedMutationFn = useDebounce(useAvoidParallel(updateCustomerInfo), 1000);
+	const tamedMutationFn = useAvoidParallel(updateCustomerInfo);
 
 	const mutation = useMutation({
 		mutationFn: (params: { billing: Partial<BillingSchema> }) => {
@@ -1324,7 +1336,7 @@ export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 		return updatedOrder;
 	};
 
-	const tamedMutationFn = useDebounce(useAvoidParallel(updatePaymentReceived), 1000);
+	const tamedMutationFn = useAvoidParallel(updatePaymentReceived);
 
 	const mutation = useMutation({
 		mutationFn: (params: { received: number }) => {
