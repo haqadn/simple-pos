@@ -11,6 +11,9 @@ import { CouponLineSchema } from "@/api/orders";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CheckmarkCircle02Icon, Cancel01Icon, Alert02Icon } from "@hugeicons/core-free-icons";
 import { isValidFrontendId } from "@/lib/frontend-id";
+import { updateLocalOrder } from "@/stores/offline-orders";
+import { syncOrder } from "@/services/sync";
+import type { LocalOrder } from "@/db";
 
 // Status indicator component
 function StatusIndicator({ status }: { status: CouponValidationStatus }) {
@@ -51,9 +54,8 @@ export default function CouponCard() {
     const queryClient = useQueryClient();
     const [isApplying, setIsApplying] = useState(false);
 
-    // TODO: Use this for local-first coupon application (Task 4)
-    const _isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
-    void _isFrontendIdOrder; // Suppress unused warning until Task 4 is implemented
+    // Check if this is a frontend ID (local-first) order
+    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
 
     const {
         code,
@@ -63,6 +65,7 @@ export default function CouponCard() {
         error,
         isLoading,
         clear,
+        coupon,
     } = useCouponValidation(500);
 
     // Check if a coupon is already applied to the order
@@ -74,21 +77,71 @@ export default function CouponCard() {
 
     // Apply coupon to the order
     const handleApplyCoupon = useCallback(async () => {
-        if (!orderData || status !== 'valid' || !code.trim()) return;
+        if (!orderData || status !== 'valid' || !code.trim() || !coupon) return;
 
         setIsApplying(true);
         try {
+            const couponCode = code.trim().toLowerCase();
+
+            // Calculate the discount amount based on the coupon type
+            let discountAmount = 0;
+            const subtotal = parseFloat(orderData.subtotal || orderData.total || '0');
+
+            if (coupon.discount_type === 'percent') {
+                discountAmount = (subtotal * parseFloat(coupon.amount)) / 100;
+            } else {
+                // fixed_cart or fixed_product
+                discountAmount = parseFloat(coupon.amount);
+            }
+
+            // Build new coupon line with calculated discount
+            const newCouponLine: CouponLineSchema = {
+                code: couponCode,
+                discount: discountAmount.toFixed(2),
+                discount_tax: '0.00',
+            };
+
+            // Merge with existing coupons
+            const existingCoupons = appliedCoupons.filter(c => c.code !== couponCode);
+            const updatedCouponLines = [...existingCoupons, newCouponLine];
+
+            // Calculate total discount
+            const totalDiscount = updatedCouponLines.reduce((sum, c) => {
+                return sum + parseFloat(c.discount || '0');
+            }, 0);
+
+            // Handle frontend ID orders - save to Dexie only (local-first)
+            if (isFrontendIdOrder && urlOrderId) {
+                // Save to Dexie
+                const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
+                    coupon_lines: updatedCouponLines,
+                    discount_total: totalDiscount.toFixed(2),
+                });
+
+                // Update the local order query cache optimistically
+                queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+
+                // Queue sync operation (async - don't await)
+                syncOrder(urlOrderId).catch(err => {
+                    console.error('Failed to queue sync for order:', urlOrderId, err);
+                });
+
+                // Clear the input after successful application
+                clear();
+                return;
+            }
+
+            // For server orders, use the API
             const orderId = orderData.id;
             const orderQueryKey = ['orders', orderId, 'detail'];
 
             // Add coupon to the order via API
             // WooCommerce accepts coupon_lines with just the code field for new coupons
-            // Keep existing coupon codes and add the new one
             const existingCodes = appliedCoupons.map(c => ({ code: c.code }));
             const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), {
                 coupon_lines: [
                     ...existingCodes,
-                    { code: code.trim().toLowerCase() }
+                    { code: couponCode }
                 ] as CouponLineSchema[]
             });
 
@@ -103,7 +156,7 @@ export default function CouponCard() {
         } finally {
             setIsApplying(false);
         }
-    }, [orderData, status, code, appliedCoupons, queryClient, clear]);
+    }, [orderData, status, code, coupon, appliedCoupons, queryClient, clear, isFrontendIdOrder, urlOrderId]);
 
     // Handle Enter key press
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {

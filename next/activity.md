@@ -1,8 +1,62 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 3
+Tasks completed: 4
 Current task: None
+
+---
+
+## [2026-01-18] - Task 4: Fix coupon application for local orders - coupon disappears after adding
+
+### Problem
+When applying a coupon to a local (frontend ID) order, the coupon would disappear from the UI because the code was trying to update via server API, which fails for orders that don't exist on the server yet.
+
+### Root Cause Analysis
+1. The `CouponCard` component's `handleApplyCoupon` function only used `OrdersAPI.updateOrder()`
+2. For frontend ID orders, this API call would fail because the order doesn't have a server ID yet
+3. Unlike other mutations in `orders.ts`, the coupon card didn't handle the local-first case
+
+### Changes Made
+
+**File: `/next/app/orders/[orderId]/components/coupon-card.tsx`**
+
+1. Added imports for local order handling:
+   ```typescript
+   import { updateLocalOrder } from "@/stores/offline-orders";
+   import { syncOrder } from "@/services/sync";
+   import type { LocalOrder } from "@/db";
+   ```
+
+2. Added `coupon` to the destructured values from `useCouponValidation()` to access coupon details for discount calculation
+
+3. Replaced the TODO placeholder with active `isFrontendIdOrder` check
+
+4. Updated `handleApplyCoupon` to:
+   - Calculate discount amount based on coupon type (percent vs fixed_cart/fixed_product)
+   - For frontend ID orders: save to Dexie using `updateLocalOrder()` with both `coupon_lines` and `discount_total`
+   - Update the React Query cache with `queryClient.setQueryData<LocalOrder>()`
+   - Queue sync operation using `syncOrder()` (non-blocking)
+   - For server orders: keep existing API-based update logic
+
+### Implementation Details
+
+The fix follows the same pattern as other local-first mutations in `stores/orders.ts`:
+- Check `isFrontendIdOrder` to determine if it's a local order
+- Use `updateLocalOrder()` from `offline-orders.ts` to persist to Dexie
+- Update the query cache directly for immediate UI feedback
+- Queue a background sync operation
+
+Discount calculation:
+- For percent coupons: `discountAmount = (subtotal * couponAmount) / 100`
+- For fixed coupons: `discountAmount = couponAmount`
+
+### Verification
+- Build passes: `npm run build` completed successfully
+- Docker not available for browser testing (requires Docker for wp-env)
+- Code follows established patterns from other mutations in the codebase
+
+### Build Status
+- `npm run build` passes successfully
 
 ---
 

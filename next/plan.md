@@ -54,7 +54,7 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
       "BROWSER TEST: Apply coupon code 'testcoupon'",
       "BROWSER TEST: Verify coupon persists and discount is applied to total"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 5,
