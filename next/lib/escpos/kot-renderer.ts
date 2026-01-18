@@ -85,25 +85,23 @@ export function renderKot(data: KotData, options: KotRenderOptions): Uint8Array 
     // Build quantity string
     let qtyStr: string;
     let itemName = item.name;
-    // Bold new items and removed items for visibility
-    const shouldBold = settings.highlightChanges && (isTrulyNewItem || wasRemoved || isRemoved);
+
+    // Bold rules:
+    // - Newly added items (first KOT or re-added after removal) should be bold
+    // - Items with changed quantity should be bold
+    // - Removed items should be bold
+    const shouldBold = settings.highlightChanges && (isTrulyNewItem || wasRemoved || hasQuantityChanged || isRemoved);
 
     if (settings.highlightChanges) {
       if (isRemoved) {
         // Removed item: show "~oldQty~ X" and strikethrough name
         qtyStr = `~${item.previousQuantity}~ X`;
         itemName = `~~${item.name}~~`;
-      } else if (isTrulyNewItem) {
-        // Truly new item: show with + prefix (full quantity)
-        qtyStr = `+${item.quantity}`;
-      } else if (wasRemoved) {
-        // Re-added item (was removed, now added back): show with + prefix
-        qtyStr = `+${item.quantity}`;
       } else if (hasQuantityChanged) {
         // Changed quantity: show "~oldQty~ newQty"
         qtyStr = `~${item.previousQuantity}~ ${item.quantity}`;
       } else {
-        // No change - just show quantity
+        // New items or no change - just show quantity (no + prefix)
         qtyStr = item.quantity.toString();
       }
     } else if (item.quantity === 0) {
@@ -114,7 +112,7 @@ export function renderKot(data: KotData, options: KotRenderOptions): Uint8Array 
     }
 
     // Print item row using columns (left-aligned name, right-aligned qty)
-    // Bold new/removed items for visibility
+    // Bold new/removed/changed items for visibility
     builder.alignLeft();
     if (shouldBold) builder.bold(true);
     builder.columns(itemName, qtyStr, charWidth);

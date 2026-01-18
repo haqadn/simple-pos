@@ -38,7 +38,7 @@ export default function KotPrint({ data }: KotPrintProps) {
           <thead>
             <tr>
               <td>Item</td>
-              <td className="text-right">Quantity</td>
+              <td className="text-right">Qty</td>
             </tr>
           </thead>
           <tbody>
@@ -53,21 +53,18 @@ export default function KotPrint({ data }: KotPrintProps) {
               const hasQuantityChanged = hadPrevious && item.quantity !== item.previousQuantity;
               // Item is being removed
               const isRemoved = item.quantity === 0 && hadPrevious;
-              // Show as new (with + prefix styling)
-              const isNew = isTrulyNewItem || wasRemoved;
+              // Show as bold (new items, changed quantity, removed items)
+              const shouldBold = isTrulyNewItem || wasRemoved || hasQuantityChanged || isRemoved;
 
               return (
-                <tr key={item.id} className={isRemoved ? 'removed-item' : ''}>
+                <tr key={item.id} className={`${isRemoved ? 'removed-item' : ''} ${shouldBold ? 'bold-row' : ''}`}>
                   <td className={isRemoved ? 'strikethrough' : ''}>{item.name}</td>
                   <td className="quantity-cell">
-                    {hasQuantityChanged && (
+                    {(hasQuantityChanged || isRemoved) && (
                       <span className="old-quantity">{item.previousQuantity}</span>
                     )}
-                    {isRemoved && (
-                      <span className="old-quantity">{item.previousQuantity}</span>
-                    )}
-                    <span className={`quantity ${hasQuantityChanged || isNew || isRemoved ? 'changed' : ''} ${isNew ? 'new-item' : ''}`}>
-                      {isNew && '+'}{isRemoved ? 'X' : item.quantity}
+                    <span className={`quantity ${hasQuantityChanged || isRemoved ? 'changed' : ''}`}>
+                      {isRemoved ? 'X' : item.quantity}
                     </span>
                   </td>
                 </tr>
@@ -168,7 +165,7 @@ export default function KotPrint({ data }: KotPrintProps) {
           opacity: 0.7;
         }
 
-        .new-item {
+        .bold-row td {
           font-weight: bold;
         }
 

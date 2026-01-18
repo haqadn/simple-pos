@@ -1,16 +1,20 @@
 'use client';
 
 import { useEffect, useCallback, useMemo, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useCurrentOrder } from '@/stores/orders';
 import { useDraftOrderStore, DRAFT_ORDER_ID } from '@/stores/draft-order';
-import { usePrintStore, PrintJobData } from '@/stores/print';
+import { usePrintStore } from '@/stores/print';
 import { useProductsQuery } from '@/stores/products';
 import { useSettingsStore } from '@/stores/settings';
 import OrdersAPI, { OrderSchema } from '@/api/orders';
 import { useQueryClient } from '@tanstack/react-query';
 import { getMatchingShortcut } from '@/lib/shortcuts';
-import { createLocalOrder } from '@/stores/offline-orders';
+import { createLocalOrder, updateLocalOrder, getLocalOrder } from '@/stores/offline-orders';
+import { isValidFrontendId } from '@/lib/frontend-id';
+import { buildPrintData } from '@/lib/print-data';
+import { createShouldSkipForKot } from '@/lib/kot';
+import type { LocalOrder } from '@/db';
 
 interface ShortcutHandlers {
     onPrintKot?: () => void;
@@ -22,6 +26,7 @@ interface ShortcutHandlers {
 
 export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
     const router = useRouter();
+    const params = useParams();
     const resetDraft = useDraftOrderStore((state) => state.resetDraft);
     const orderQuery = useCurrentOrder();
     const queryClient = useQueryClient();
@@ -29,13 +34,28 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
     const { data: products } = useProductsQuery();
     const skipKotCategories = useSettingsStore(state => state.skipKotCategories);
 
+    // Check if we're on a frontend ID URL
+    const urlOrderId = params?.orderId as string | undefined;
+    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
+
     // Track order ID for mutation checks
     const orderId = orderQuery.data?.id;
 
     // Helper to wait for mutations to settle and get fresh order data
     const waitForMutationsRef = useRef<() => Promise<OrderSchema | null>>(() => Promise.resolve(null));
     waitForMutationsRef.current = async () => {
-        if (!orderId || orderId === DRAFT_ORDER_ID) return orderQuery.data;
+        // For frontend ID orders, get from Dexie/cache
+        if (isFrontendIdOrder && urlOrderId) {
+            const cachedLocalOrder = queryClient.getQueryData<LocalOrder>(['localOrder', urlOrderId]);
+            if (cachedLocalOrder) {
+                return cachedLocalOrder.data;
+            }
+            // Fallback to fetching from Dexie
+            const localOrder = await getLocalOrder(urlOrderId);
+            return localOrder?.data || null;
+        }
+
+        if (!orderId || orderId === DRAFT_ORDER_ID) return orderQuery.data ?? null;
 
         // Poll until no mutations are in progress
         const checkMutations = () => {
@@ -61,17 +81,10 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
     };
 
     // Helper to check if a line item should be skipped on KOT based on category
-    const shouldSkipForKot = useMemo(() => {
-        if (!products || skipKotCategories.length === 0) return () => false;
-
-        return (productId: number, variationId: number) => {
-            const product = products.find(
-                p => p.product_id === productId && p.variation_id === variationId
-            );
-            if (!product) return false;
-            return product.categories.some(cat => skipKotCategories.includes(cat.id));
-        };
-    }, [products, skipKotCategories]);
+    const shouldSkipForKot = useMemo(
+        () => createShouldSkipForKot(products, skipKotCategories),
+        [products, skipKotCategories]
+    );
 
     const setCurrentFrontendId = useDraftOrderStore((state) => state.setCurrentFrontendId);
 
@@ -93,106 +106,6 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
         router.push(`/orders/${localOrder.frontendId}`);
     }, [resetDraft, setCurrentFrontendId, router, queryClient]);
 
-    // Build print data from order (accepts optional order override for fresh data)
-    const buildPrintData = useCallback((type: 'bill' | 'kot', orderOverride?: OrderSchema | null): PrintJobData | null => {
-        const order = orderOverride ?? orderQuery.data;
-        if (!order) return null;
-
-        const shippingLine = order.shipping_lines?.find(s => s.method_title);
-        const isTable = shippingLine?.method_id === 'pickup_location';
-
-        const printData: PrintJobData = {
-            orderId: order.id,
-            orderReference: order.id.toString(),
-            cartName: shippingLine?.method_title || 'Order',
-            serviceType: shippingLine ? (isTable ? 'table' : 'delivery') : undefined,
-            orderTime: order.date_created,
-            customerNote: order.customer_note,
-            customer: {
-                name: `${order.billing.first_name} ${order.billing.last_name}`.trim(),
-                phone: order.billing.phone,
-                address: [order.billing.address_1, order.billing.address_2, order.billing.city]
-                    .filter(Boolean)
-                    .join(', ') || undefined,
-            },
-        };
-
-        if (type === 'bill') {
-            printData.items = order.line_items.map(item => {
-                const subtotal = parseFloat(item.subtotal || '0');
-                const unitPrice = item.quantity > 0 ? subtotal / item.quantity : parseFloat(item.price?.toString() || '0');
-                return {
-                    id: item.id || 0,
-                    name: item.name,
-                    quantity: item.quantity,
-                    price: unitPrice,
-                };
-            });
-            printData.total = parseFloat(order.total);
-            printData.discountTotal = parseFloat(order.discount_total || '0');
-            // Sum up shipping costs from all shipping lines
-            printData.shippingTotal = order.shipping_lines?.reduce(
-                (sum, line) => sum + parseFloat(line.total || '0'), 0
-            ) || 0;
-            const paymentMeta = order.meta_data.find(m => m.key === 'payment_received');
-            printData.payment = paymentMeta ? parseFloat(paymentMeta.value?.toString() || '0') : 0;
-        } else {
-            // Get previous KOT items from meta_data for change detection
-            const lastKotMeta = order.meta_data.find(m => m.key === 'last_kot_items');
-            const previousItems: Record<string, { quantity: number; name: string }> = {};
-            if (lastKotMeta && typeof lastKotMeta.value === 'string') {
-                try {
-                    const parsed = JSON.parse(lastKotMeta.value);
-                    // Handle both old format (number) and new format ({quantity, name})
-                    Object.entries(parsed).forEach(([key, val]) => {
-                        if (typeof val === 'number') {
-                            previousItems[key] = { quantity: val, name: 'Unknown Item' };
-                        } else if (val && typeof val === 'object' && 'quantity' in val) {
-                            previousItems[key] = val as { quantity: number; name: string };
-                        }
-                    });
-                } catch { /* ignore parse errors */ }
-            }
-
-            // Track which previous items we've seen
-            const seenKeys = new Set<string>();
-
-            // Current items (filtered by category)
-            const kotItems = order.line_items
-                .filter(item => !shouldSkipForKot(item.product_id, item.variation_id))
-                .map(item => {
-                    const itemKey = `${item.product_id}-${item.variation_id}`;
-                    seenKeys.add(itemKey);
-                    return {
-                        id: item.id || 0,
-                        name: item.name,
-                        quantity: item.quantity,
-                        previousQuantity: previousItems[itemKey]?.quantity,
-                    };
-                });
-
-            // Add removed items (were in previous KOT but not in current order)
-            // Parse itemKey to get product/variation IDs for category filtering
-            Object.entries(previousItems).forEach(([itemKey, prev]) => {
-                if (!seenKeys.has(itemKey) && prev.quantity > 0) {
-                    const [productId, variationId] = itemKey.split('-').map(Number);
-                    if (!shouldSkipForKot(productId, variationId)) {
-                        kotItems.push({
-                            id: 0,
-                            name: prev.name,
-                            quantity: 0,
-                            previousQuantity: prev.quantity,
-                        });
-                    }
-                }
-            });
-
-            printData.kotItems = kotItems;
-        }
-
-        return printData;
-    }, [orderQuery.data, shouldSkipForKot]);
-
     const handlePrintKot = useCallback(async () => {
         if (!orderQuery.data) return;
 
@@ -203,13 +116,14 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
             return;
         }
 
-        const orderId = freshOrder.id;
-        const printData = buildPrintData('kot', freshOrder);
-
-        // Queue the print job
-        if (printData) {
-            await printStore.push('kot', printData);
-        }
+        // Build and queue print job using shared utility
+        const printData = buildPrintData({
+            order: freshOrder,
+            type: 'kot',
+            urlOrderId,
+            shouldSkipForKot,
+        });
+        await printStore.push('kot', printData);
 
         // Store current items for next KOT change detection (with names for removed item display)
         const currentItems: Record<string, { quantity: number; name: string }> = {};
@@ -219,23 +133,30 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
         });
 
         // Mark as printed in meta_data and store item quantities
+        const metaUpdates = [
+            ...freshOrder.meta_data.filter(m =>
+                m.key !== 'last_kot_print' && m.key !== 'last_kot_items'
+            ),
+            { key: 'last_kot_print', value: new Date().toISOString() },
+            { key: 'last_kot_items', value: JSON.stringify(currentItems) }
+        ];
+
         try {
-            await OrdersAPI.updateOrder(orderId.toString(), {
-                meta_data: [
-                    ...freshOrder.meta_data.filter(m =>
-                        m.key !== 'last_kot_print' && m.key !== 'last_kot_items'
-                    ),
-                    { key: 'last_kot_print', value: new Date().toISOString() },
-                    { key: 'last_kot_items', value: JSON.stringify(currentItems) }
-                ]
-            });
-            await queryClient.invalidateQueries({ queryKey: ['orders', orderId] });
+            // For frontend ID orders, save to Dexie
+            if (isFrontendIdOrder && urlOrderId) {
+                const updatedLocalOrder = await updateLocalOrder(urlOrderId, { meta_data: metaUpdates });
+                queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+            } else if (freshOrder.id > 0) {
+                // For server orders, update via API
+                await OrdersAPI.updateOrder(freshOrder.id.toString(), { meta_data: metaUpdates });
+                await queryClient.invalidateQueries({ queryKey: ['orders', freshOrder.id] });
+            }
         } catch (error) {
             console.error('Failed to print KOT:', error);
         }
 
         handlers?.onPrintKot?.();
-    }, [orderQuery.data, queryClient, handlers, buildPrintData, printStore]);
+    }, [orderQuery.data, queryClient, handlers, printStore, isFrontendIdOrder, urlOrderId, shouldSkipForKot]);
 
     const handlePrintBill = useCallback(async () => {
         if (!orderQuery.data) return;
@@ -249,27 +170,36 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
                 return;
             }
 
-            const printData = buildPrintData('bill', freshOrder);
-
-            // Queue the print job
-            if (printData) {
-                await printStore.push('bill', printData);
-            }
+            // Build and queue print job using shared utility
+            const printData = buildPrintData({
+                order: freshOrder,
+                type: 'bill',
+                urlOrderId,
+                shouldSkipForKot,
+            });
+            await printStore.push('bill', printData);
 
             // Mark as printed in meta_data
-            await OrdersAPI.updateOrder(freshOrder.id.toString(), {
-                meta_data: [
-                    ...freshOrder.meta_data.filter(m => m.key !== 'last_bill_print'),
-                    { key: 'last_bill_print', value: new Date().toISOString() }
-                ]
-            });
-            await queryClient.invalidateQueries({ queryKey: ['orders', freshOrder.id] });
+            const metaUpdates = [
+                ...freshOrder.meta_data.filter(m => m.key !== 'last_bill_print'),
+                { key: 'last_bill_print', value: new Date().toISOString() }
+            ];
+
+            // For frontend ID orders, save to Dexie
+            if (isFrontendIdOrder && urlOrderId) {
+                const updatedLocalOrder = await updateLocalOrder(urlOrderId, { meta_data: metaUpdates });
+                queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+            } else if (freshOrder.id > 0) {
+                // For server orders, update via API
+                await OrdersAPI.updateOrder(freshOrder.id.toString(), { meta_data: metaUpdates });
+                await queryClient.invalidateQueries({ queryKey: ['orders', freshOrder.id] });
+            }
         } catch (error) {
             console.error('Failed to print Bill:', error);
         }
 
         handlers?.onPrintBill?.();
-    }, [orderQuery.data, queryClient, handlers, buildPrintData, printStore]);
+    }, [orderQuery.data, queryClient, handlers, printStore, isFrontendIdOrder, urlOrderId, shouldSkipForKot]);
 
     const handleFocusCommandBar = useCallback(() => {
         const commandInput = document.querySelector('input[aria-label="Command input field"]') as HTMLInputElement;

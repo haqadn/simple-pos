@@ -7,7 +7,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { useCommandManager } from '@/hooks/useCommandManager';
 import { useCurrentOrder, useOrdersStore } from '@/stores/orders';
 import { useProductsQuery, useGetProductById } from '@/stores/products';
-import { usePrintStore, PrintJobData } from '@/stores/print';
+import { usePrintStore } from '@/stores/print';
+import { buildPrintData } from '@/lib/print-data';
 import { CommandContext, CustomerData, CurrencyConfig } from '@/commands/command-manager';
 import { CommandSuggestion } from '@/commands/command';
 import OrdersAPI, { OrderSchema } from '@/api/orders';
@@ -18,8 +19,9 @@ import { isAppShortcut } from '@/lib/shortcuts';
 import { createShouldSkipForKot } from '@/lib/kot';
 import { HelpTextBar, CommandSuggestions, applySuggestion } from './command-bar/index';
 import { isValidFrontendId } from '@/lib/frontend-id';
-import { updateLocalOrderStatus, getLocalOrder } from '@/stores/offline-orders';
+import { updateLocalOrderStatus, getLocalOrder, updateLocalOrder } from '@/stores/offline-orders';
 import { syncOrder } from '@/services/sync';
+import type { LocalOrder } from '@/db';
 import { useCurrencySettings } from '@/stores/currency';
 
 export default function CommandBar() {
@@ -84,6 +86,59 @@ export default function CommandBar() {
         throw new Error('No active order');
       }
 
+      // Check if we're on a frontend ID URL (local-first order)
+      const urlOrderId = params?.orderId as string | undefined;
+      const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
+
+      // For frontend ID orders - handle locally via Dexie
+      if (isFrontendIdOrder && urlOrderId) {
+        // Get the current local order from cache
+        const cachedLocalOrder = queryClient.getQueryData<LocalOrder>(['localOrder', urlOrderId]);
+        const baseOrder = cachedLocalOrder?.data || orderQuery.data;
+
+        // Find existing line items for this product
+        const existingLineItems = [...baseOrder.line_items];
+        const existingIdx = existingLineItems.findIndex(
+          li => li.product_id === productId && li.variation_id === variationId
+        );
+
+        // Calculate current quantity
+        const currentQuantity = existingIdx >= 0 ? existingLineItems[existingIdx].quantity : 0;
+        const newQuantity = mode === 'set' ? quantity : currentQuantity + quantity;
+
+        // Update line items array
+        if (existingIdx >= 0) {
+          if (newQuantity > 0) {
+            existingLineItems[existingIdx] = {
+              ...existingLineItems[existingIdx],
+              quantity: newQuantity,
+              price: product.price,
+            };
+          } else {
+            existingLineItems.splice(existingIdx, 1);
+          }
+        } else if (newQuantity > 0) {
+          existingLineItems.push({
+            name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
+            product_id: productId,
+            variation_id: variationId,
+            quantity: newQuantity,
+            price: product.price,
+          });
+        }
+
+        // Save to Dexie (local only - no server call)
+        const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
+          line_items: existingLineItems,
+        });
+
+        // Update the cache directly
+        queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+
+        return;
+      }
+
+      // Legacy flow for /orders/new or server orders
       const orderId = orderQuery.data.id;
       const orderQueryKey = ['orders', orderId, 'detail'];
 
@@ -117,8 +172,8 @@ export default function CommandBar() {
       }
       queryClient.setQueryData(orderQueryKey, optimisticOrder);
 
-      // Handle draft order - save to database first
-      if (orderId === DRAFT_ORDER_ID) {
+      // Handle draft order (/orders/new route) - save to database first
+      if (orderId === DRAFT_ORDER_ID && !isFrontendIdOrder) {
         // Update draft store optimistically
         updateDraftLineItems(optimisticOrder.line_items);
 
@@ -188,7 +243,7 @@ export default function CommandBar() {
         }
       }
 
-      // Prepare line items for the update (real order)
+      // Prepare line items for the update (real server order)
       const lineItems: Array<{ id?: number; product_id: number; variation_id: number; quantity: number; name: string }> = [];
 
       // Remove existing items (set quantity to 0)
@@ -224,7 +279,10 @@ export default function CommandBar() {
 
     } catch (error) {
       // On error, invalidate to refetch correct state
-      if (orderQuery.data?.id) {
+      const urlOrderId = params?.orderId as string | undefined;
+      if (urlOrderId && isValidFrontendId(urlOrderId)) {
+        queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+      } else if (orderQuery.data?.id) {
         queryClient.invalidateQueries({
           queryKey: ['orders', orderQuery.data.id]
         });
@@ -232,12 +290,29 @@ export default function CommandBar() {
       console.error('Failed to add product:', error);
       throw error;
     }
-  }, [orderQuery, getProductById, queryClient, router, updateDraftLineItems, getDraftData, acquireSaveLock, releaseSaveLock, getSavePromise, setSavePromise, getSavedOrderId, setSavedOrderId]);
+  }, [orderQuery, getProductById, queryClient, router, params, updateDraftLineItems, getDraftData, acquireSaveLock, releaseSaveLock, getSavePromise, setSavePromise, getSavedOrderId, setSavedOrderId]);
 
   // Clear all items from order
   const handleClearOrder = useCallback(async () => {
     if (!orderQuery.data) throw new Error('No active order');
 
+    // Check if we're on a frontend ID URL (local-first order)
+    const urlOrderId = params?.orderId as string | undefined;
+    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
+
+    // For frontend ID orders - handle locally via Dexie
+    if (isFrontendIdOrder && urlOrderId) {
+      // Save to Dexie with empty line items
+      const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
+        line_items: [],
+      });
+
+      // Update the cache directly
+      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+      return;
+    }
+
+    // Legacy flow for server orders
     const orderId = orderQuery.data.id;
     const orderQueryKey = ['orders', orderId, 'detail'];
 
@@ -259,7 +334,7 @@ export default function CommandBar() {
     queryClient.setQueryData(orderQueryKey, updatedOrder);
 
     await queryClient.invalidateQueries({ queryKey: ['orders', orderId, 'lineItem'] });
-  }, [orderQuery, queryClient]);
+  }, [orderQuery, queryClient, params]);
 
   // Complete the order
   const handleCompleteOrder = useCallback(async () => {
@@ -332,17 +407,30 @@ export default function CommandBar() {
   const handleSetPayment = useCallback(async (amount: number) => {
     if (!orderQuery.data) throw new Error('No active order');
 
-    const orderId = orderQuery.data.id;
-    const orderQueryKey = ['orders', orderId, 'detail'];
+    // Check if we're on a frontend ID URL (local-first order)
+    const urlOrderId = params?.orderId as string | undefined;
+    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
 
-    const currentOrder = queryClient.getQueryData<OrderSchema>(orderQueryKey) || orderQuery.data;
+    // Get fresh order data
+    const currentOrder = orderQuery.data;
 
     // Update meta_data with both split_payments (for UI) and payment_received (for legacy)
-    const metaData = currentOrder.meta_data.filter(
+    const metaData = (currentOrder.meta_data || []).filter(
       m => m.key !== 'payment_received' && m.key !== 'split_payments'
     );
     metaData.push({ key: 'split_payments', value: JSON.stringify({ cash: amount }) });
     metaData.push({ key: 'payment_received', value: amount.toString() });
+
+    // For frontend ID orders - handle locally via Dexie
+    if (isFrontendIdOrder && urlOrderId) {
+      const updatedLocalOrder = await updateLocalOrder(urlOrderId, { meta_data: metaData });
+      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+      return;
+    }
+
+    // Legacy flow for server orders
+    const orderId = currentOrder.id;
+    const orderQueryKey = ['orders', orderId, 'detail'];
 
     // Optimistic update
     queryClient.setQueryData(orderQueryKey, { ...currentOrder, meta_data: metaData });
@@ -350,7 +438,7 @@ export default function CommandBar() {
     // API call
     const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), { meta_data: metaData });
     queryClient.setQueryData(orderQueryKey, updatedOrder);
-  }, [orderQuery, queryClient]);
+  }, [orderQuery, queryClient, params]);
 
   // Get current payment received
   const getPaymentReceived = useCallback((): number => {
@@ -363,6 +451,21 @@ export default function CommandBar() {
   const handleApplyCoupon = useCallback(async (code: string) => {
     if (!orderQuery.data) throw new Error('No active order');
 
+    // Check if we're on a frontend ID URL (local-first order)
+    const urlOrderId = params?.orderId as string | undefined;
+    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
+
+    // For frontend ID orders - handle locally via Dexie
+    // Note: Coupon validation should still be done against the server before applying
+    if (isFrontendIdOrder && urlOrderId) {
+      const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
+        coupon_lines: [{ code, discount: '0.00', discount_tax: '0.00' }],
+      });
+      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+      return;
+    }
+
+    // Legacy flow for server orders
     const orderId = orderQuery.data.id;
 
     // WooCommerce expects coupon_lines array
@@ -372,12 +475,26 @@ export default function CommandBar() {
 
     const orderQueryKey = ['orders', orderId, 'detail'];
     queryClient.setQueryData(orderQueryKey, updatedOrder);
-  }, [orderQuery, queryClient]);
+  }, [orderQuery, queryClient, params]);
 
   // Remove coupon
   const handleRemoveCoupon = useCallback(async () => {
     if (!orderQuery.data) throw new Error('No active order');
 
+    // Check if we're on a frontend ID URL (local-first order)
+    const urlOrderId = params?.orderId as string | undefined;
+    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
+
+    // For frontend ID orders - handle locally via Dexie
+    if (isFrontendIdOrder && urlOrderId) {
+      const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
+        coupon_lines: [],
+      });
+      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+      return;
+    }
+
+    // Legacy flow for server orders
     const orderId = orderQuery.data.id;
 
     const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), {
@@ -386,153 +503,42 @@ export default function CommandBar() {
 
     const orderQueryKey = ['orders', orderId, 'detail'];
     queryClient.setQueryData(orderQueryKey, updatedOrder);
-  }, [orderQuery, queryClient]);
+  }, [orderQuery, queryClient, params]);
 
   // Print - uses print store queue
   const printStore = usePrintStore();
 
-  // Helper to wait for mutations to settle and get fresh order data
-  const waitForMutationsRef = useRef<() => Promise<OrderSchema | null>>(() => Promise.resolve(null));
-  waitForMutationsRef.current = async () => {
-    const currentOrderId = orderQuery.data?.id;
-    if (!currentOrderId || currentOrderId === DRAFT_ORDER_ID) return orderQuery.data;
-
-    // Poll until no mutations are in progress
-    const checkMutations = () => {
-      const mutating = queryClient.isMutating({
-        predicate: (mutation) => {
-          const key = mutation.options.mutationKey;
-          return Array.isArray(key) && key[0] === 'orders' && key[1] === currentOrderId;
-        }
-      });
-      return mutating > 0;
-    };
-
-    // Wait for mutations to complete (max 5 seconds)
-    let attempts = 0;
-    while (checkMutations() && attempts < 50) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      attempts++;
-    }
-
-    // Fetch fresh order data from server
-    const freshOrder = await OrdersAPI.getOrder(currentOrderId.toString());
-    return freshOrder;
-  };
-
   const handlePrint = useCallback(async (type: 'bill' | 'kot') => {
     if (!orderQuery.data) throw new Error('No active order');
 
-    // Wait for mutations and use fresh data for both bill (correct totals) and KOT (change detection)
-    const order = (await waitForMutationsRef.current?.()) ?? orderQuery.data;
-    const orderId = order.id;
-    const shippingLine = order.shipping_lines?.find(s => s.method_title);
-    const isTable = shippingLine?.method_id === 'pickup_location';
-
-    // Get frontend ID from URL params or order meta_data
+    // Check if we're on a frontend ID URL (local-first order)
     const urlOrderId = params?.orderId as string | undefined;
-    const frontendIdFromUrl = urlOrderId && isValidFrontendId(urlOrderId) ? urlOrderId : undefined;
-    const frontendIdFromMeta = order.meta_data?.find(m => m.key === 'pos_frontend_id')?.value as string | undefined;
-    const frontendId = frontendIdFromUrl || frontendIdFromMeta;
+    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
 
-    // Server ID is the WooCommerce order ID (only set if it's a real synced order)
-    const serverId = orderId !== DRAFT_ORDER_ID ? orderId : undefined;
-
-    // Build print data based on type
-    const printData: PrintJobData = {
-      orderId,
-      orderReference: orderId.toString(),
-      frontendId,
-      serverId,
-      cartName: shippingLine?.method_title || 'Order',
-      serviceType: shippingLine ? (isTable ? 'table' : 'delivery') : undefined,
-      orderTime: order.date_created,
-      customerNote: order.customer_note,
-      customer: {
-        name: `${order.billing.first_name} ${order.billing.last_name}`.trim(),
-        phone: order.billing.phone,
-      },
-    };
-
-    if (type === 'bill') {
-      // Bill data - use subtotal/quantity for unit price, or price field if available
-      printData.items = order.line_items.map(item => {
-        const subtotal = parseFloat(item.subtotal || '0');
-        const unitPrice = item.quantity > 0 ? subtotal / item.quantity : parseFloat(item.price?.toString() || '0');
-        return {
-          id: item.id || 0,
-          name: item.name,
-          quantity: item.quantity,
-          price: unitPrice,
-        };
-      });
-      printData.total = parseFloat(order.total);
-      printData.discountTotal = parseFloat(order.discount_total || '0');
-      // Sum up shipping costs from all shipping lines
-      printData.shippingTotal = order.shipping_lines?.reduce(
-        (sum, line) => sum + parseFloat(line.total || '0'), 0
-      ) || 0;
-      const paymentMeta = order.meta_data.find(m => m.key === 'payment_received');
-      printData.payment = paymentMeta ? parseFloat(paymentMeta.value?.toString() || '0') : 0;
-    } else {
-      // Get previous KOT items from meta_data for change detection
-      const lastKotMeta = order.meta_data.find(m => m.key === 'last_kot_items');
-      const previousItems: Record<string, { quantity: number; name: string }> = {};
-      if (lastKotMeta && typeof lastKotMeta.value === 'string') {
-        try {
-          const parsed = JSON.parse(lastKotMeta.value);
-          // Handle both old format (number) and new format ({quantity, name})
-          Object.entries(parsed).forEach(([key, val]) => {
-            if (typeof val === 'number') {
-              previousItems[key] = { quantity: val, name: 'Unknown Item' };
-            } else if (val && typeof val === 'object' && 'quantity' in val) {
-              previousItems[key] = val as { quantity: number; name: string };
-            }
-          });
-        } catch { /* ignore parse errors */ }
+    // For frontend ID orders, get fresh data from local cache
+    // For server orders, use the orderQuery.data directly (already fresh from cache)
+    let order = orderQuery.data;
+    if (isFrontendIdOrder && urlOrderId) {
+      const cachedLocalOrder = queryClient.getQueryData<LocalOrder>(['localOrder', urlOrderId]);
+      if (cachedLocalOrder) {
+        order = cachedLocalOrder.data;
       }
-
-      // Track which previous items we've seen
-      const seenKeys = new Set<string>();
-
-      // Current items (filtered by category)
-      const kotItems = order.line_items
-        .filter(item => !shouldSkipForKot(item.product_id, item.variation_id))
-        .map(item => {
-          const itemKey = `${item.product_id}-${item.variation_id}`;
-          seenKeys.add(itemKey);
-          return {
-            id: item.id || 0,
-            name: item.name,
-            quantity: item.quantity,
-            previousQuantity: previousItems[itemKey]?.quantity,
-          };
-        });
-
-      // Add removed items (were in previous KOT but not in current order)
-      // Parse itemKey to get product/variation IDs for category filtering
-      Object.entries(previousItems).forEach(([itemKey, prev]) => {
-        if (!seenKeys.has(itemKey) && prev.quantity > 0) {
-          const [productId, variationId] = itemKey.split('-').map(Number);
-          if (!shouldSkipForKot(productId, variationId)) {
-            kotItems.push({
-              id: 0,
-              name: prev.name,
-              quantity: 0,
-              previousQuantity: prev.quantity,
-            });
-          }
-        }
-      });
-
-      printData.kotItems = kotItems;
     }
+
+    const orderId = order.id;
+
+    // Build print data using shared utility
+    const printData = buildPrintData({
+      order,
+      type,
+      urlOrderId,
+      shouldSkipForKot,
+    });
 
     // Queue the print job
     await printStore.push(type, printData);
 
-    // Mark as printed in meta_data
-    // Preserve existing meta IDs to ensure WooCommerce updates rather than creates duplicates
+    // Build meta_data updates for print tracking
     const metaKey = type === 'bill' ? 'last_bill_print' : 'last_kot_print';
     const existingPrintMeta = order.meta_data.find(m => m.key === metaKey);
     const metaUpdates = [
@@ -558,10 +564,20 @@ export default function CommandBar() {
       }
     }
 
-    await OrdersAPI.updateOrder(orderId.toString(), {
-      meta_data: metaUpdates
-    });
-  }, [orderQuery, printStore, shouldSkipForKot, params]);
+    // For frontend ID orders - save print meta_data to Dexie
+    if (isFrontendIdOrder && urlOrderId) {
+      const updatedLocalOrder = await updateLocalOrder(urlOrderId, { meta_data: metaUpdates });
+      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+      return;
+    }
+
+    // For server orders - save to server
+    if (orderId !== DRAFT_ORDER_ID && orderId !== 0) {
+      await OrdersAPI.updateOrder(orderId.toString(), {
+        meta_data: metaUpdates
+      });
+    }
+  }, [orderQuery, printStore, shouldSkipForKot, params, queryClient]);
 
   // Open cash drawer
   const handleOpenDrawer = useCallback(async () => {
@@ -572,6 +588,18 @@ export default function CommandBar() {
   const handleSetNote = useCallback(async (note: string) => {
     if (!orderQuery.data) throw new Error('No active order');
 
+    // Check if we're on a frontend ID URL (local-first order)
+    const urlOrderId = params?.orderId as string | undefined;
+    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
+
+    // For frontend ID orders - handle locally via Dexie
+    if (isFrontendIdOrder && urlOrderId) {
+      const updatedLocalOrder = await updateLocalOrder(urlOrderId, { customer_note: note });
+      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+      return;
+    }
+
+    // Legacy flow for server orders
     const orderId = orderQuery.data.id;
     const orderQueryKey = ['orders', orderId, 'detail'];
     const noteQueryKey = ['orders', orderId, 'note'];
@@ -586,17 +614,15 @@ export default function CommandBar() {
     const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), { customer_note: note });
     queryClient.setQueryData(orderQueryKey, updatedOrder);
     queryClient.setQueryData(noteQueryKey, updatedOrder.customer_note);
-  }, [orderQuery, queryClient]);
+  }, [orderQuery, queryClient, params]);
 
   // Set customer info
   const handleSetCustomer = useCallback(async (customer: CustomerData) => {
     if (!orderQuery.data) throw new Error('No active order');
 
-    const orderId = orderQuery.data.id;
-    const orderQueryKey = ['orders', orderId, 'detail'];
-    const customerInfoKey = ['orders', orderId, 'customerInfo'];
-
-    const currentOrder = queryClient.getQueryData<OrderSchema>(orderQueryKey) || orderQuery.data;
+    // Check if we're on a frontend ID URL (local-first order)
+    const urlOrderId = params?.orderId as string | undefined;
+    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
 
     // Parse name into first and last
     const nameParts = customer.name.split(' ');
@@ -604,12 +630,26 @@ export default function CommandBar() {
     const lastName = nameParts.slice(1).join(' ') || '';
 
     const billing = {
-      ...currentOrder.billing,
+      ...orderQuery.data.billing,
       first_name: firstName,
       last_name: lastName,
       phone: customer.phone,
       ...(customer.address && { address_1: customer.address })
     };
+
+    // For frontend ID orders - handle locally via Dexie
+    if (isFrontendIdOrder && urlOrderId) {
+      const updatedLocalOrder = await updateLocalOrder(urlOrderId, { billing });
+      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+      return;
+    }
+
+    // Legacy flow for server orders
+    const orderId = orderQuery.data.id;
+    const orderQueryKey = ['orders', orderId, 'detail'];
+    const customerInfoKey = ['orders', orderId, 'customerInfo'];
+
+    const currentOrder = queryClient.getQueryData<OrderSchema>(orderQueryKey) || orderQuery.data;
 
     // Optimistic update
     queryClient.setQueryData(orderQueryKey, { ...currentOrder, billing });
@@ -619,7 +659,7 @@ export default function CommandBar() {
     const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), { billing });
     queryClient.setQueryData(orderQueryKey, updatedOrder);
     queryClient.setQueryData(customerInfoKey, updatedOrder.billing);
-  }, [orderQuery, queryClient]);
+  }, [orderQuery, queryClient, params]);
 
   // Get currency configuration for commands
   const getCurrency = useCallback((): CurrencyConfig => {

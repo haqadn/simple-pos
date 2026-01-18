@@ -1,17 +1,21 @@
 'use client'
 
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { ButtonGroup, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Kbd } from "@heroui/react";
 import { useCurrentOrder } from "@/stores/orders";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useParams } from "next/navigation";
 import OrdersAPI, { OrderSchema } from "@/api/orders";
 import { DRAFT_ORDER_ID } from "@/stores/draft-order";
-import { usePrintStore, PrintJobData } from "@/stores/print";
+import { usePrintStore } from "@/stores/print";
 import { useProductsQuery } from "@/stores/products";
 import { useSettingsStore } from "@/stores/settings";
 import { createShouldSkipForKot } from "@/lib/kot";
-import { isValidFrontendId, generateFrontendId } from "@/lib/frontend-id";
+import { isValidFrontendId } from "@/lib/frontend-id";
+import { buildPrintData } from "@/lib/print-data";
+import { getLocalOrder, updateLocalOrder, updateLocalOrderStatus } from "@/stores/offline-orders";
+import { syncOrder } from "@/services/sync";
+import type { LocalOrder } from "@/db";
 
 export default function Buttons() {
     const orderQuery = useCurrentOrder();
@@ -24,40 +28,34 @@ export default function Buttons() {
     const [isPrintingKot, setIsPrintingKot] = useState(false);
     const [isPrintingBill, setIsPrintingBill] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
+    const [isCompleting, setIsCompleting] = useState(false);
 
     // Get frontend ID from URL params (primary source for frontend ID URLs)
     const urlOrderId = params?.orderId as string | undefined;
+    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
 
     // Track order ID for mutation checks
     const orderId = orderQuery.data?.id;
 
-    // Helper to wait for mutations to settle and get fresh order data
-    const waitForMutationsRef = useRef<() => Promise<OrderSchema | null>>(() => Promise.resolve(null));
-    waitForMutationsRef.current = async () => {
-        if (!orderId || orderId === DRAFT_ORDER_ID) return orderQuery.data;
-
-        // Poll until no mutations are in progress
-        const checkMutations = () => {
-            const mutating = queryClient.isMutating({
-                predicate: (mutation) => {
-                    const key = mutation.options.mutationKey;
-                    return Array.isArray(key) && key[0] === 'orders' && key[1] === orderId;
-                }
-            });
-            return mutating > 0;
-        };
-
-        // Wait for mutations to complete (max 5 seconds)
-        let attempts = 0;
-        while (checkMutations() && attempts < 50) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
+    // Helper to get fresh order data (from cache for local orders, from server for server orders)
+    const getFreshOrderData = useCallback(async (): Promise<OrderSchema | null> => {
+        // For frontend ID orders, use local cache
+        if (isFrontendIdOrder && urlOrderId) {
+            const cachedLocalOrder = queryClient.getQueryData<LocalOrder>(['localOrder', urlOrderId]);
+            if (cachedLocalOrder) {
+                return cachedLocalOrder.data;
+            }
+            // Fallback to fetching from Dexie
+            const localOrder = await getLocalOrder(urlOrderId);
+            return localOrder?.data || null;
         }
 
-        // Fetch fresh order data from server
-        const freshOrder = await OrdersAPI.getOrder(orderId.toString());
-        return freshOrder;
-    };
+        // For server orders, use the order query data
+        if (!orderId || orderId === DRAFT_ORDER_ID) return orderQuery.data ?? null;
+
+        // For real server orders, fetch fresh data
+        return await OrdersAPI.getOrder(orderId.toString());
+    }, [isFrontendIdOrder, urlOrderId, orderId, orderQuery.data, queryClient]);
 
     // Helper to check if a line item should be skipped on KOT based on category
     const shouldSkipForKot = useMemo(
@@ -65,143 +63,26 @@ export default function Buttons() {
         [products, skipKotCategories]
     );
 
-    // Build print data from order (accepts optional order override for fresh data)
-    const buildPrintData = useCallback((type: 'bill' | 'kot', orderOverride?: OrderSchema | null): PrintJobData | null => {
-        const order = orderOverride ?? orderQuery.data;
-        if (!order) return null;
-
-        const shippingLine = order.shipping_lines?.find(s => s.method_title);
-        const isTable = shippingLine?.method_id === 'pickup_location';
-
-        // Get frontend ID: prefer URL param if valid, then check meta_data, then generate new one
-        let frontendId: string | undefined;
-        if (urlOrderId && isValidFrontendId(urlOrderId)) {
-            frontendId = urlOrderId;
-        } else {
-            const frontendIdMeta = order.meta_data?.find(m => m.key === 'pos_frontend_id');
-            frontendId = frontendIdMeta?.value as string | undefined;
-        }
-        // If still no frontend ID (legacy server order), generate one for display purposes
-        if (!frontendId) {
-            frontendId = generateFrontendId();
-        }
-
-        // Determine server ID - only set if order has been synced to server
-        // (order.id > 0 means it has a server-assigned ID)
-        const serverId = order.id > 0 && order.id !== parseInt(urlOrderId || '0') ? order.id : undefined;
-
-        const printData: PrintJobData = {
-            orderId: order.id,
-            frontendId,
-            serverId,
-            orderReference: frontendId, // Use frontend ID as the order reference
-            cartName: shippingLine?.method_title || 'Order',
-            serviceType: shippingLine ? (isTable ? 'table' : 'delivery') : undefined,
-            orderTime: order.date_created,
-            customerNote: order.customer_note,
-            customer: {
-                name: `${order.billing.first_name} ${order.billing.last_name}`.trim(),
-                phone: order.billing.phone,
-                address: [order.billing.address_1, order.billing.address_2, order.billing.city]
-                    .filter(Boolean)
-                    .join(', ') || undefined,
-            },
-        };
-
-        if (type === 'bill') {
-            printData.items = order.line_items.map(item => {
-                const subtotal = parseFloat(item.subtotal || '0');
-                const unitPrice = item.quantity > 0 ? subtotal / item.quantity : parseFloat(item.price?.toString() || '0');
-                return {
-                    id: item.id || 0,
-                    name: item.name,
-                    quantity: item.quantity,
-                    price: unitPrice,
-                };
-            });
-            printData.total = parseFloat(order.total);
-            printData.discountTotal = parseFloat(order.discount_total || '0');
-            // Sum up shipping costs from all shipping lines
-            printData.shippingTotal = order.shipping_lines?.reduce(
-                (sum, line) => sum + parseFloat(line.total || '0'), 0
-            ) || 0;
-            const paymentMeta = order.meta_data.find(m => m.key === 'payment_received');
-            printData.payment = paymentMeta ? parseFloat(paymentMeta.value?.toString() || '0') : 0;
-        } else {
-            // Get previous KOT items from meta_data for change detection
-            const lastKotMeta = order.meta_data.find(m => m.key === 'last_kot_items');
-            const previousItems: Record<string, { quantity: number; name: string }> = {};
-            if (lastKotMeta && typeof lastKotMeta.value === 'string') {
-                try {
-                    const parsed = JSON.parse(lastKotMeta.value);
-                    // Handle both old format (number) and new format ({quantity, name})
-                    Object.entries(parsed).forEach(([key, val]) => {
-                        if (typeof val === 'number') {
-                            previousItems[key] = { quantity: val, name: 'Unknown Item' };
-                        } else if (val && typeof val === 'object' && 'quantity' in val) {
-                            previousItems[key] = val as { quantity: number; name: string };
-                        }
-                    });
-                } catch { /* ignore parse errors */ }
-            }
-
-            // Track which previous items we've seen
-            const seenKeys = new Set<string>();
-
-            // Current items (filtered by category)
-            const kotItems = order.line_items
-                .filter(item => !shouldSkipForKot(item.product_id, item.variation_id))
-                .map(item => {
-                    const itemKey = `${item.product_id}-${item.variation_id}`;
-                    seenKeys.add(itemKey);
-                    return {
-                        id: item.id || 0,
-                        name: item.name,
-                        quantity: item.quantity,
-                        previousQuantity: previousItems[itemKey]?.quantity,
-                    };
-                });
-
-            // Add removed items (were in previous KOT but not in current order)
-            // Parse itemKey to get product/variation IDs for category filtering
-            Object.entries(previousItems).forEach(([itemKey, prev]) => {
-                if (!seenKeys.has(itemKey) && prev.quantity > 0) {
-                    const [productId, variationId] = itemKey.split('-').map(Number);
-                    if (!shouldSkipForKot(productId, variationId)) {
-                        kotItems.push({
-                            id: 0,
-                            name: prev.name,
-                            quantity: 0,
-                            previousQuantity: prev.quantity,
-                        });
-                    }
-                }
-            });
-
-            printData.kotItems = kotItems;
-        }
-
-        return printData;
-    }, [orderQuery.data, shouldSkipForKot, urlOrderId]);
-
     const handlePrintKot = useCallback(async () => {
         if (!orderQuery.data) return;
 
         setIsPrintingKot(true);
         try {
-            // Wait for mutations and get fresh order data for accurate change detection
-            const freshOrder = await waitForMutationsRef.current?.();
+            // Get fresh order data
+            const freshOrder = await getFreshOrderData();
             if (!freshOrder) {
                 console.error('Failed to get fresh order data for KOT');
                 return;
             }
 
-            const orderId = freshOrder.id;
-            const printData = buildPrintData('kot', freshOrder);
-
-            if (printData) {
-                await printStore.push('kot', printData);
-            }
+            // Build and queue print job using shared utility
+            const printData = buildPrintData({
+                order: freshOrder,
+                type: 'kot',
+                urlOrderId,
+                shouldSkipForKot,
+            });
+            await printStore.push('kot', printData);
 
             // Store current items for next KOT change detection (with names for removed item display)
             const currentItems: Record<string, { quantity: number; name: string }> = {};
@@ -210,79 +91,175 @@ export default function Buttons() {
                 currentItems[itemKey] = { quantity: item.quantity, name: item.name };
             });
 
-            // Mark as printed in meta_data and store item quantities
-            await OrdersAPI.updateOrder(orderId.toString(), {
-                meta_data: [
-                    ...freshOrder.meta_data.filter(m =>
-                        m.key !== 'last_kot_print' && m.key !== 'last_kot_items'
-                    ),
-                    { key: 'last_kot_print', value: new Date().toISOString() },
-                    { key: 'last_kot_items', value: JSON.stringify(currentItems) }
-                ]
-            });
+            // Build meta_data updates
+            const metaUpdates = [
+                ...freshOrder.meta_data.filter(m =>
+                    m.key !== 'last_kot_print' && m.key !== 'last_kot_items'
+                ),
+                { key: 'last_kot_print', value: new Date().toISOString() },
+                { key: 'last_kot_items', value: JSON.stringify(currentItems) }
+            ];
 
-            await queryClient.invalidateQueries({ queryKey: ['orders', orderId] });
+            // For frontend ID orders, save to Dexie
+            if (isFrontendIdOrder && urlOrderId) {
+                const updatedLocalOrder = await updateLocalOrder(urlOrderId, { meta_data: metaUpdates });
+                queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+            } else if (freshOrder.id > 0 && freshOrder.id !== DRAFT_ORDER_ID) {
+                // For server orders, update via API
+                await OrdersAPI.updateOrder(freshOrder.id.toString(), { meta_data: metaUpdates });
+                await queryClient.invalidateQueries({ queryKey: ['orders', freshOrder.id] });
+            }
         } catch (error) {
             console.error('Failed to print KOT:', error);
         } finally {
             setIsPrintingKot(false);
         }
-    }, [orderQuery.data, queryClient, buildPrintData, printStore]);
+    }, [orderQuery.data, queryClient, printStore, getFreshOrderData, isFrontendIdOrder, urlOrderId, shouldSkipForKot]);
 
     const handlePrintBill = useCallback(async () => {
         if (!orderQuery.data) return;
 
         setIsPrintingBill(true);
         try {
-            // Wait for any pending mutations to complete and get fresh order data
-            // This ensures the bill includes correct totals even if an item was just added
-            const freshOrder = await waitForMutationsRef.current?.();
+            // Get fresh order data
+            const freshOrder = await getFreshOrderData();
             if (!freshOrder) {
                 console.error('Failed to get fresh order data for bill');
                 return;
             }
 
-            const printData = buildPrintData('bill', freshOrder);
-
-            if (printData) {
-                await printStore.push('bill', printData);
-            }
-
-            // Mark as printed in meta_data
-            await OrdersAPI.updateOrder(freshOrder.id.toString(), {
-                meta_data: [
-                    ...freshOrder.meta_data.filter(m => m.key !== 'last_bill_print'),
-                    { key: 'last_bill_print', value: new Date().toISOString() }
-                ]
+            // Build and queue print job using shared utility
+            const printData = buildPrintData({
+                order: freshOrder,
+                type: 'bill',
+                urlOrderId,
+                shouldSkipForKot,
             });
+            await printStore.push('bill', printData);
 
-            await queryClient.invalidateQueries({ queryKey: ['orders', freshOrder.id] });
+            // Build meta_data updates
+            const metaUpdates = [
+                ...freshOrder.meta_data.filter(m => m.key !== 'last_bill_print'),
+                { key: 'last_bill_print', value: new Date().toISOString() }
+            ];
+
+            // For frontend ID orders, save to Dexie
+            if (isFrontendIdOrder && urlOrderId) {
+                const updatedLocalOrder = await updateLocalOrder(urlOrderId, { meta_data: metaUpdates });
+                queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+            } else if (freshOrder.id > 0 && freshOrder.id !== DRAFT_ORDER_ID) {
+                // For server orders, update via API
+                await OrdersAPI.updateOrder(freshOrder.id.toString(), { meta_data: metaUpdates });
+                await queryClient.invalidateQueries({ queryKey: ['orders', freshOrder.id] });
+            }
         } catch (error) {
             console.error('Failed to print Bill:', error);
         } finally {
             setIsPrintingBill(false);
         }
-    }, [orderQuery.data, queryClient, buildPrintData, printStore]);
+    }, [orderQuery.data, queryClient, printStore, getFreshOrderData, isFrontendIdOrder, urlOrderId, shouldSkipForKot]);
 
     const handleCancelOrder = useCallback(async () => {
         if (!orderQuery.data) return;
 
         setIsCancelling(true);
         try {
-            const orderId = orderQuery.data.id;
-            await OrdersAPI.cancelOrder(orderId.toString());
-            await queryClient.invalidateQueries({ queryKey: ['orders'] });
+            // For frontend ID orders, update local status
+            if (isFrontendIdOrder && urlOrderId) {
+                await updateLocalOrderStatus(urlOrderId, 'cancelled');
+                queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+                queryClient.invalidateQueries({ queryKey: ['localOrders'] });
+                queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
+            } else if (orderQuery.data.id > 0 && orderQuery.data.id !== DRAFT_ORDER_ID) {
+                // For server orders, cancel via API
+                await OrdersAPI.cancelOrder(orderQuery.data.id.toString());
+                await queryClient.invalidateQueries({ queryKey: ['orders'] });
+            }
 
-            // Navigate to home or next order
+            // Navigate to home
             router.push('/');
         } catch (error) {
             console.error('Failed to cancel order:', error);
         } finally {
             setIsCancelling(false);
         }
-    }, [orderQuery.data, queryClient, router]);
+    }, [orderQuery.data, queryClient, router, isFrontendIdOrder, urlOrderId]);
 
-    const isDraft = orderQuery.data?.id === DRAFT_ORDER_ID;
+    // Done button handler for local orders
+    const handleDone = useCallback(async () => {
+        if (!orderQuery.data) return;
+
+        setIsCompleting(true);
+        try {
+            // For frontend ID orders, complete locally then sync
+            if (isFrontendIdOrder && urlOrderId) {
+                await updateLocalOrderStatus(urlOrderId, 'completed');
+                queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+                queryClient.invalidateQueries({ queryKey: ['localOrders'] });
+                queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
+
+                // Check if there's cash payment (from split_payments meta)
+                const splitPaymentsMeta = orderQuery.data.meta_data?.find(m => m.key === 'split_payments');
+                let cashPayment = 0;
+                if (splitPaymentsMeta && typeof splitPaymentsMeta.value === 'string') {
+                    try {
+                        const payments = JSON.parse(splitPaymentsMeta.value);
+                        cashPayment = payments.cash || 0;
+                    } catch { /* ignore */ }
+                } else {
+                    // Legacy: if no split_payments, assume all payment is cash
+                    const paymentMeta = orderQuery.data.meta_data?.find(m => m.key === 'payment_received');
+                    cashPayment = paymentMeta ? parseFloat(String(paymentMeta.value)) : 0;
+                }
+
+                // Open drawer if there's cash payment or change
+                const total = parseFloat(orderQuery.data.total || '0');
+                const paymentMeta = orderQuery.data.meta_data?.find(m => m.key === 'payment_received');
+                const received = paymentMeta ? parseFloat(String(paymentMeta.value)) : 0;
+                const change = received - total;
+                if (cashPayment > 0 || change > 0) {
+                    await printStore.push('drawer', null);
+                }
+
+                // Sync to server in background (non-blocking)
+                syncOrder(urlOrderId).catch(err => console.error('Sync failed:', err));
+            } else if (orderQuery.data.id > 0 && orderQuery.data.id !== DRAFT_ORDER_ID) {
+                // For server orders, update via API
+                await OrdersAPI.updateOrder(orderQuery.data.id.toString(), { status: 'completed' });
+                await queryClient.invalidateQueries({ queryKey: ['orders'] });
+
+                // Check cash payment and open drawer
+                const splitPaymentsMeta = orderQuery.data.meta_data?.find(m => m.key === 'split_payments');
+                let cashPayment = 0;
+                if (splitPaymentsMeta && typeof splitPaymentsMeta.value === 'string') {
+                    try {
+                        const payments = JSON.parse(splitPaymentsMeta.value);
+                        cashPayment = payments.cash || 0;
+                    } catch { /* ignore */ }
+                } else {
+                    const paymentMeta = orderQuery.data.meta_data?.find(m => m.key === 'payment_received');
+                    cashPayment = paymentMeta ? parseFloat(String(paymentMeta.value)) : 0;
+                }
+
+                const total = parseFloat(orderQuery.data.total || '0');
+                const paymentMeta = orderQuery.data.meta_data?.find(m => m.key === 'payment_received');
+                const received = paymentMeta ? parseFloat(String(paymentMeta.value)) : 0;
+                const change = received - total;
+                if (cashPayment > 0 || change > 0) {
+                    await printStore.push('drawer', null);
+                }
+            }
+
+            router.push('/');
+        } catch (error) {
+            console.error('Failed to complete order:', error);
+        } finally {
+            setIsCompleting(false);
+        }
+    }, [orderQuery.data, queryClient, router, printStore, isFrontendIdOrder, urlOrderId]);
+
+    // isDraft is true only for the legacy /orders/new route, not for frontend ID orders
+    const isDraft = orderQuery.data?.id === DRAFT_ORDER_ID && !isFrontendIdOrder;
     const hasItems = (orderQuery.data?.line_items?.length ?? 0) > 0;
     const total = parseFloat(orderQuery.data?.total || '0');
     const paymentMeta = orderQuery.data?.meta_data?.find(m => m.key === 'payment_received');
@@ -320,32 +297,8 @@ export default function Buttons() {
             <Button
                 color="primary"
                 variant={isPaid ? "solid" : "flat"}
-                onPress={async () => {
-                    if (!isPaid || !orderQuery.data) return;
-                    const orderId = orderQuery.data.id;
-                    await OrdersAPI.updateOrder(orderId.toString(), { status: 'completed' });
-                    await queryClient.invalidateQueries({ queryKey: ['orders'] });
-
-                    // Check if there's cash payment (from split_payments meta)
-                    const splitPaymentsMeta = orderQuery.data.meta_data?.find(m => m.key === 'split_payments');
-                    let cashPayment = 0;
-                    if (splitPaymentsMeta && typeof splitPaymentsMeta.value === 'string') {
-                        try {
-                            const payments = JSON.parse(splitPaymentsMeta.value);
-                            cashPayment = payments.cash || 0;
-                        } catch { /* ignore */ }
-                    } else {
-                        // Legacy: if no split_payments, assume all payment is cash
-                        cashPayment = received;
-                    }
-
-                    // Open drawer if there's cash payment or change
-                    const change = received - total;
-                    if (cashPayment > 0 || change > 0) {
-                        await printStore.push('drawer', null);
-                    }
-                    router.push('/');
-                }}
+                onPress={handleDone}
+                isLoading={isCompleting}
                 isDisabled={isDraft || !isPaid}
                 className="font-semibold"
             >
