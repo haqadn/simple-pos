@@ -13,7 +13,7 @@ import { useSettingsStore } from "@/stores/settings";
 import { createShouldSkipForKot } from "@/lib/kot";
 import { isValidFrontendId } from "@/lib/frontend-id";
 import { buildPrintData, buildPrintMetaUpdates } from "@/lib/print-data";
-import { getLocalOrder, updateLocalOrder, updateLocalOrderStatus } from "@/stores/offline-orders";
+import { getLocalOrder, updateLocalOrder, updateLocalOrderStatus, updateLocalOrderSyncStatus, deleteLocalOrder } from "@/stores/offline-orders";
 import { syncOrder } from "@/services/sync";
 import type { LocalOrder } from "@/db";
 
@@ -150,10 +150,21 @@ export default function Buttons() {
         try {
             // For frontend ID orders, update local status
             if (isFrontendIdOrder && urlOrderId) {
-                await updateLocalOrderStatus(urlOrderId, 'cancelled');
+                // Check if order has been synced to server
+                const localOrder = await getLocalOrder(urlOrderId);
+                if (localOrder?.serverId) {
+                    // Cancel on server first
+                    await OrdersAPI.cancelOrder(localOrder.serverId.toString());
+                    // Update local status to cancelled
+                    await updateLocalOrderStatus(urlOrderId, 'cancelled');
+                } else {
+                    // Order hasn't synced yet - just delete it from local DB
+                    await deleteLocalOrder(urlOrderId);
+                }
                 queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
                 queryClient.invalidateQueries({ queryKey: ['localOrders'] });
                 queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
+                queryClient.invalidateQueries({ queryKey: ['todaysOrders'] });
             } else if (orderQuery.data.id > 0 && orderQuery.data.id !== DRAFT_ORDER_ID) {
                 // For server orders, cancel via API
                 await OrdersAPI.cancelOrder(orderQuery.data.id.toString());
@@ -178,6 +189,14 @@ export default function Buttons() {
             // For frontend ID orders, complete locally then sync
             if (isFrontendIdOrder && urlOrderId) {
                 await updateLocalOrderStatus(urlOrderId, 'completed');
+
+                // Check if this is a synced order (has serverId) - reset syncStatus to ensure completion is synced
+                const localOrder = await getLocalOrder(urlOrderId);
+                if (localOrder?.serverId) {
+                    // Reset syncStatus to 'local' so the completed status gets synced
+                    await updateLocalOrderSyncStatus(urlOrderId, 'local');
+                }
+
                 queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
                 queryClient.invalidateQueries({ queryKey: ['localOrders'] });
                 queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
