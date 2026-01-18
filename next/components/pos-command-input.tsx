@@ -67,11 +67,13 @@ export function POSCommandInput({ onMessage, onAddProduct, onPrint, onOpenDrawer
     if (!orderQuery.data || !urlOrderId) return;
 
     if (isFrontendIdOrder) {
-      // For local orders, just clear the line items in Dexie
-      const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
+      // For local orders, clear the line items in Dexie
+      await updateLocalOrder(urlOrderId, {
         line_items: [],
       });
-      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+      // Invalidate local order query to refresh UI
+      await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+      // Queue sync operation (async - don't await)
       syncOrder(urlOrderId).catch(console.error);
     } else {
       // For server orders, mark all line items for deletion

@@ -1,8 +1,56 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 6
+Tasks completed: 7
 Current task: None
+
+---
+
+## [2026-01-18] - Task 7: Fix /clear command - not removing line items from orders
+
+### Problem
+The `/clear` command was not properly refreshing the UI after clearing line items from local (frontend ID) orders.
+
+### Root Cause Analysis
+The `clearOrder` function in `pos-command-input.tsx` was using `queryClient.setQueryData()` to update the cache directly after calling `updateLocalOrder()`. While this approach can work, it was inconsistent with other similar operations in the codebase (like `useServiceQuery` and `useOrderNoteQuery`) which use `queryClient.invalidateQueries()` instead.
+
+Using `setQueryData` updates the cache synchronously but may not always trigger a proper re-render in all scenarios. Using `invalidateQueries` ensures the query is marked as stale and re-fetches the data from Dexie, which guarantees the UI updates correctly.
+
+### Changes Made
+
+**File: `/next/components/pos-command-input.tsx`**
+
+Changed the `clearOrder` function from:
+```typescript
+// For local orders, just clear the line items in Dexie
+const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
+  line_items: [],
+});
+queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
+syncOrder(urlOrderId).catch(console.error);
+```
+
+To:
+```typescript
+// For local orders, clear the line items in Dexie
+await updateLocalOrder(urlOrderId, {
+  line_items: [],
+});
+// Invalidate local order query to refresh UI
+await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+// Queue sync operation (async - don't await)
+syncOrder(urlOrderId).catch(console.error);
+```
+
+### Verification
+- Build passes: `npm run build` completed successfully
+- Code now follows the same pattern as other local order mutations in the codebase
+- The `updateLocalOrder` function in `offline-orders.ts` already handles:
+  - Setting `line_items` to empty array
+  - Recalculating `subtotal` and `total` to "0.00"
+
+### Build Status
+- `npm run build` passes successfully
 
 ---
 

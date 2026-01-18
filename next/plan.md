@@ -86,7 +86,7 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
       "BROWSER TEST: Type '/clear' command",
       "BROWSER TEST: Verify all line items are removed from order"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 8,
