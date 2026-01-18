@@ -8,7 +8,6 @@ import { useCurrentOrder } from '@/stores/orders';
 import { useGetProductById } from '@/stores/products';
 import { isValidFrontendId } from '@/lib/frontend-id';
 import { updateLocalOrder, getLocalOrder } from '@/stores/offline-orders';
-import { syncOrder } from '@/services/sync';
 import OrdersAPI from '@/api/orders';
 import type { LocalOrder } from '@/db';
 import type { LineItemSchema } from '@/api/orders';
@@ -98,10 +97,44 @@ export default function OrderPageClient({ orderId }: OrderPageClientProps) {
       // Update the cache directly
       queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
 
-      // Queue sync operation (async - don't await)
-      syncOrder(urlOrderId).catch(err => {
-        console.error('Failed to queue sync for order:', urlOrderId, err);
-      });
+      // If this order has already been synced to the server (has serverId),
+      // update the server directly. This handles the case where an order is
+      // reopened after completion and new items are added.
+      if (updatedLocalOrder.serverId) {
+        // Build line items for WooCommerce API
+        // WooCommerce requires setting quantity to 0 to delete existing items
+        const patchLineItems: LineItemSchema[] = [];
+
+        // Get existing line items from server (they have IDs)
+        const existingServerItems = baseOrder.line_items.filter(li => li.id);
+        const existingItem = existingServerItems.find(
+          li => li.product_id === productId && li.variation_id === variationId
+        );
+
+        // Mark existing item for deletion if it exists
+        if (existingItem?.id) {
+          patchLineItems.push({ ...existingItem, quantity: 0 });
+        }
+
+        // Add the new/updated item if quantity > 0
+        if (finalQuantity > 0) {
+          patchLineItems.push({
+            name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
+            product_id: product.product_id,
+            variation_id: product.variation_id,
+            quantity: finalQuantity,
+            price: product.price,
+            id: undefined,
+          });
+        }
+
+        // Update server in background (don't block UI)
+        OrdersAPI.updateOrder(updatedLocalOrder.serverId.toString(), {
+          line_items: patchLineItems,
+        }).catch(err => {
+          console.error('Failed to update server order:', updatedLocalOrder.serverId, err);
+        });
+      }
 
       return;
     }

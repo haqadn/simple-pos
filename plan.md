@@ -35,7 +35,7 @@ Fix 10 issues in the Simple POS Next.js application related to command handling,
       "Verify sync.ts updateOrder properly handles adding items to existing server orders",
       "Verify: Complete order (syncs), reopen it, add item via /item command, confirm item appears"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 3,
