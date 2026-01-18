@@ -98,17 +98,17 @@ export default function OrderPageClient({ orderId }: OrderPageClientProps) {
       queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
 
       // If this order has already been synced to the server (has serverId),
-      // update the server directly. This handles the case where an order is
-      // reopened after completion and new items are added.
+      // update the server directly and wait for response to get correct IDs
       if (updatedLocalOrder.serverId) {
         // Build line items for WooCommerce API
         // WooCommerce requires setting quantity to 0 to delete existing items
         const patchLineItems: LineItemSchema[] = [];
 
-        // Get existing line items from server (they have IDs)
-        const existingServerItems = baseOrder.line_items.filter(li => li.id);
-        const existingItem = existingServerItems.find(
-          li => li.product_id === productId && li.variation_id === variationId
+        // Get existing line items from current local data (with correct IDs)
+        const currentLocalOrder = await getLocalOrder(urlOrderId);
+        const currentLineItems = currentLocalOrder?.data.line_items || baseOrder.line_items;
+        const existingItem = currentLineItems.find(
+          li => li.id && li.product_id === productId && li.variation_id === variationId
         );
 
         // Mark existing item for deletion if it exists
@@ -128,12 +128,22 @@ export default function OrderPageClient({ orderId }: OrderPageClientProps) {
           });
         }
 
-        // Update server in background (don't block UI)
-        OrdersAPI.updateOrder(updatedLocalOrder.serverId.toString(), {
-          line_items: patchLineItems,
-        }).catch(err => {
+        try {
+          // Update server and wait for response with correct IDs
+          const serverOrder = await OrdersAPI.updateOrder(updatedLocalOrder.serverId.toString(), {
+            line_items: patchLineItems,
+          });
+
+          // Update local order with server's line_items (which have correct IDs)
+          if (serverOrder) {
+            const finalLocalOrder = await updateLocalOrder(urlOrderId, {
+              line_items: serverOrder.line_items,
+            });
+            queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], finalLocalOrder);
+          }
+        } catch (err) {
           console.error('Failed to update server order:', updatedLocalOrder.serverId, err);
-        });
+        }
       }
 
       return;

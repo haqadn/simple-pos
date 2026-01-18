@@ -186,29 +186,6 @@ WooCommerce requires specific handling for line items:
 
 See `/next/FEATURES.md` for detailed feature documentation.
 
-### Complete
-- API client layer with Zod validation
-- Order queries with optimistic updates
-- Product catalog with variations
-- Command infrastructure (registry, manager, base classes)
-- Item command with multi-input mode
-- Multi-order management (URL-based routing)
-- Service/table selection
-- Customer info and notes
-- Payment tracking via meta_data
-- Offline-first architecture with Dexie.js
-- Frontend ID system for local order identification
-- Configurable payment methods
-- Coupon validation card with real-time feedback
-- Printing system (Bill and KOT with ESC/POS support)
-- Settings management (payment methods, printers)
-
-### In Progress
-- Additional command implementations
-
-### Not Started
-- Reporting
-
 ## Vue.js Reference
 
 The `/front-end/` directory contains the legacy Vue.js implementation. Use it as a reference for:
@@ -245,7 +222,7 @@ The POS operates with an offline-first approach, storing all order data locally 
 
 ### Frontend ID System
 
-Each order is assigned a unique 6-character alphanumeric **Frontend ID** (e.g., `A3X9K2`) for local identification.
+Each order is assigned a unique 6-character alphanumeric **Frontend ID** (e.g., `A3X9K2`) for local identification. This is what we display or print. Server ID is not supposed to be exposed to customers.
 
 **Format**: 6 characters from charset `A-Z, 0-9` (36 possible characters per position)
 

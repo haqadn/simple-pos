@@ -143,11 +143,27 @@ export async function syncOrder(
 /**
  * Prepare order data for sending to WooCommerce
  * Removes local-only fields and formats data appropriately
+ *
+ * For orders with serverId (updates), we only send status and meta_data
+ * since line_items, shipping_lines, and coupons are synced directly when changed.
+ *
+ * For new orders (no serverId), we send the full order data.
  */
 function prepareOrderForSync(order: LocalOrder): Partial<OrderSchema> {
   const { data } = order;
 
-  // Create a clean copy without server-side-only fields
+  // For orders that already exist on the server, only send status and meta_data
+  // Line items, shipping, and coupons are synced directly when changed
+  if (order.serverId) {
+    return {
+      status: data.status,
+      meta_data: data.meta_data,
+      customer_note: data.customer_note,
+      billing: data.billing,
+    };
+  }
+
+  // For new orders, send the full order data
   const orderData: Partial<OrderSchema> = {
     status: data.status,
     customer_id: data.customer_id,
