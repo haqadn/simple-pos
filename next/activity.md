@@ -1,8 +1,76 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 4
+Tasks completed: 5
 Current task: None
+
+---
+
+## [2026-01-18] - Task 5: Implement complete CommandContext in pos-command-input.tsx
+
+### Problem
+The `CommandContext` in `pos-command-input.tsx` was incomplete - only `updateLineItem`, `showMessage`, and `showError` were implemented. This prevented commands like `/clear`, `/pay`, `/done`, `/coupon`, `/note`, `/customer`, `/print`, and `/drawer` from working.
+
+### Changes Made
+
+**File: `/next/components/pos-command-input.tsx`**
+
+1. Added necessary imports for all the functionality:
+   - `useQueryClient` from TanStack Query
+   - `useParams, useRouter` from Next.js
+   - `usePaymentQuery, useOrderNoteQuery, useCustomerInfoQuery` from stores/orders
+   - `isValidFrontendId` for local order detection
+   - `updateLocalOrder, updateLocalOrderStatus` from offline-orders store
+   - `syncOrder` from sync service
+   - `CouponsAPI` for coupon validation
+
+2. Updated `POSCommandInputProps` interface to include new optional props:
+   - `onPrint?: (type: 'bill' | 'kot') => Promise<void>`
+   - `onOpenDrawer?: () => Promise<void>`
+   - Updated `onAddProduct` signature to include `mode: 'set' | 'increment'`
+
+3. Implemented all CommandContext methods:
+   - `getPaymentReceived()` - Reads payment_received from order meta_data
+   - `clearOrder()` - Removes all line items (local + server orders)
+   - `completeOrder()` - Marks order as completed and navigates away
+   - `setPayment(amount)` - Uses paymentMutation from usePaymentQuery
+   - `applyCoupon(code)` - Validates coupon via API and applies to order
+   - `removeCoupon()` - Clears all coupon_lines
+   - `setNote(note)` - Uses noteMutation from useOrderNoteQuery
+   - `setCustomer(customer)` - Parses name into first/last, uses customerInfoMutation
+   - `print(type)` - Delegates to onPrint prop or shows error
+   - `openDrawer()` - Delegates to onOpenDrawer prop
+   - `navigateToNextOrder()` - Routes to /orders
+   - `invalidateProducts()` - Invalidates products query cache
+
+**File: `/next/app/orders/[orderId]/components/order-page-client.tsx`**
+
+1. Updated `handleAddProduct` to support the `mode` parameter:
+   - Mode 'increment' - adds to existing quantity
+   - Mode 'set' - replaces existing quantity
+
+2. Implemented direct Dexie/API updates instead of hook-based mutations:
+   - For local orders: reads from Dexie, updates line items, saves back
+   - For server orders: uses WooCommerce API with proper delete/add pattern
+
+3. Added necessary imports for local order handling
+
+### Implementation Details
+
+The implementation follows the established local-first pattern:
+1. Check `isFrontendIdOrder` to determine order type
+2. For local orders: use `updateLocalOrder()` + query cache update + sync queue
+3. For server orders: use `OrdersAPI.updateOrder()` + query cache update
+
+All context methods are memoized with `useCallback` and the complete context is created with `useMemo` for optimal performance.
+
+### Verification
+- Build passes: `npm run build` completed successfully
+- All TypeScript types are correct
+- Commands are now fully integrated with the order system
+
+### Build Status
+- `npm run build` passes successfully
 
 ---
 
