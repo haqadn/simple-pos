@@ -112,7 +112,7 @@ Fix 10 issues in the Simple POS Next.js application related to command handling,
       "Ensure payment-card.tsx reads fresh state after reopen",
       "Verify: Complete order with payment, reopen from modal, confirm payment fields are empty"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 9,

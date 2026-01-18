@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 7
+Tasks completed: 8
 Current task: None
 
 ---
@@ -183,3 +183,30 @@ The issue was that `ThermalPrint.tsx` was missing `frontendId` and `serverId` fi
 
 ### Commit
 - `fix: pass frontendId and serverId to bill and KOT renderers`
+
+---
+
+## [2026-01-18] - Task 8: Clear payment info when reopening completed order
+
+### Changes Made
+- `/Users/adnan/Projects/simple-pos/next/app/components/TodaysOrdersModal.tsx`:
+  - Added import for `updateLocalOrder` from offline-orders store
+  - Modified `handleReopenOrder()` callback to clear payment metadata when reopening completed orders:
+    - Filters out `payment_received` and `split_payments` from existing meta_data
+    - Adds reset payment values: `payment_received=0` and `split_payments={"cash":0}`
+    - Calls `updateLocalOrder()` to save cleared payment data before updating status
+    - Then calls `updateLocalOrderStatus()` to set status to 'pending'
+  - Payment data is cleared first, ensuring payment-card.tsx reads fresh empty state after reopen
+
+### Verification
+- Build: `npm run build` completed successfully with no errors
+- Lint: `npm run lint` passed with no warnings or errors
+- Logic verified: When reopening a completed order:
+  1. Payment metadata is cleared (both split_payments and payment_received reset to zero)
+  2. Order status changes from 'completed' to 'pending'
+  3. Sync is queued to update server
+  4. Query cache is invalidated to refresh all views
+  5. User is navigated to the reopened order with empty payment fields
+
+### Commit
+- `fix: clear payment info when reopening completed order`

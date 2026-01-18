@@ -26,7 +26,7 @@ import {
 } from '@hugeicons/core-free-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { listTodaysOrders, updateLocalOrderStatus } from '@/stores/offline-orders';
+import { listTodaysOrders, updateLocalOrderStatus, updateLocalOrder } from '@/stores/offline-orders';
 import { syncOrder } from '@/services/sync';
 import type { LocalOrder, SyncStatus } from '@/db';
 import BillPrint from '@/components/print/BillPrint';
@@ -178,9 +178,23 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
 
     setIsReopening(true);
     try {
-      // If order was completed, change status back to pending
+      // If order was completed, change status back to pending and clear payment data
       if (selectedOrder.status === 'completed') {
+        // Clear payment metadata and update status
+        const existingMetaData = selectedOrder.data.meta_data || [];
+        const clearedMetaData = existingMetaData.filter(
+          (m) => m.key !== 'payment_received' && m.key !== 'split_payments'
+        );
+        // Add reset payment values
+        clearedMetaData.push({ key: 'payment_received', value: '0' });
+        clearedMetaData.push({ key: 'split_payments', value: JSON.stringify({ cash: 0 }) });
+
+        // Update order with cleared payments and pending status
+        await updateLocalOrder(selectedOrder.frontendId, {
+          meta_data: clearedMetaData,
+        });
         await updateLocalOrderStatus(selectedOrder.frontendId, 'pending');
+
         // Queue sync to update server
         syncOrder(selectedOrder.frontendId).catch(console.error);
         // Invalidate queries to refresh sidebar
