@@ -1,8 +1,57 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 13
+Tasks completed: 14
 Current task: None
+
+---
+
+## [2026-01-18] - Task 14: Add receipt preview to Today's Orders modal
+
+### Problem
+The TodaysOrdersModal component needed a "Reopen Order" button below the receipt preview. When clicked, this button should navigate to the order and, if the order was completed, change its status back to pending.
+
+### Changes Made
+
+**File: `/next/app/components/TodaysOrdersModal.tsx`**
+
+1. **Added imports**:
+   - `Button` from HeroUI for the reopen button
+   - `ArrowTurnBackwardIcon` from hugeicons for button icon
+   - `useQueryClient` from TanStack Query for cache invalidation
+   - `useRouter` from Next.js for navigation
+   - `updateLocalOrderStatus` from offline-orders store
+   - `syncOrder` from sync service
+
+2. **Added state**:
+   - `isReopening` - Loading state for the reopen button
+   - `router` - Next.js router hook
+   - `queryClient` - TanStack Query client for cache invalidation
+
+3. **Added `handleReopenOrder` callback**:
+   - Checks if selected order is completed
+   - If completed: calls `updateLocalOrderStatus` to change status to 'pending'
+   - Queues sync operation to update server
+   - Invalidates queries (`localOrders`, `ordersWithFrontendIds`, `localOrder`) to refresh sidebar
+   - Closes the modal
+   - Navigates to `/orders/{frontendId}`
+   - Handles loading state and errors
+
+4. **Updated Receipt Preview panel**:
+   - Changed layout to flex column for proper button positioning
+   - Added "Reopen Order" button below the receipt preview
+   - Button shows "Reopen Order" for completed orders, "Go to Order" for other statuses
+   - Button has loading spinner when reopening
+   - Button includes ArrowTurnBackward icon
+
+### Verification
+- `npm run build` passes successfully
+- `npm run lint` passes with no errors
+- Component follows established patterns from other modals in the codebase
+- Button properly handles completed vs non-completed orders
+
+### Commit
+- feat: add receipt preview with Reopen Order button to TodaysOrdersModal
 
 ---
 

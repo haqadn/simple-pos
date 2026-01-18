@@ -160,7 +160,7 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
       "Add receipt preview panel to modal",
       "BROWSER TEST: Select an order and verify receipt preview appears"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 15,

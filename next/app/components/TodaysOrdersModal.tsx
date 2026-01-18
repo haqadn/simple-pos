@@ -14,6 +14,7 @@ import {
   TableCell,
   Chip,
   Spinner,
+  Button,
 } from '@heroui/react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
@@ -21,9 +22,12 @@ import {
   Loading03Icon,
   Alert02Icon,
   ArrowUpRight01Icon,
+  ArrowTurnBackwardIcon,
 } from '@hugeicons/core-free-icons';
-import { useQuery } from '@tanstack/react-query';
-import { listTodaysOrders } from '@/stores/offline-orders';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { listTodaysOrders, updateLocalOrderStatus } from '@/stores/offline-orders';
+import { syncOrder } from '@/services/sync';
 import type { LocalOrder, SyncStatus } from '@/db';
 import BillPrint from '@/components/print/BillPrint';
 import type { PrintJobData } from '@/stores/print';
@@ -41,6 +45,9 @@ interface TodaysOrdersModalProps {
  */
 export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalProps) {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [isReopening, setIsReopening] = useState(false);
+  const router = useRouter();
+  const queryClient = useQueryClient();
 
   // Query for today's orders
   const { data: orders = [], isLoading, refetch } = useQuery({
@@ -158,6 +165,33 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
     }
   }, []);
 
+  // Handle reopen order
+  const handleReopenOrder = useCallback(async () => {
+    if (!selectedOrder) return;
+
+    setIsReopening(true);
+    try {
+      // If order was completed, change status back to pending
+      if (selectedOrder.status === 'completed') {
+        await updateLocalOrderStatus(selectedOrder.frontendId, 'pending');
+        // Queue sync to update server
+        syncOrder(selectedOrder.frontendId).catch(console.error);
+        // Invalidate queries to refresh sidebar
+        await queryClient.invalidateQueries({ queryKey: ['localOrders'] });
+        await queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
+        await queryClient.invalidateQueries({ queryKey: ['localOrder', selectedOrder.frontendId] });
+      }
+
+      // Close modal and navigate to order
+      onOpenChange(false);
+      router.push(`/orders/${selectedOrder.frontendId}`);
+    } catch (error) {
+      console.error('Failed to reopen order:', error);
+    } finally {
+      setIsReopening(false);
+    }
+  }, [selectedOrder, onOpenChange, router, queryClient]);
+
   return (
     <Modal
       isOpen={isOpen}
@@ -250,11 +284,34 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
                   </div>
 
                   {/* Receipt Preview - Right Panel */}
-                  <div className="w-80 border-l border-default-200 pl-4 overflow-auto">
+                  <div className="w-80 border-l border-default-200 pl-4 overflow-auto flex flex-col">
                     {selectedOrder ? (
-                      <div className="bg-white rounded-lg shadow-sm">
-                        <BillPrint data={getPrintJobData(selectedOrder)} />
-                      </div>
+                      <>
+                        <div className="bg-white rounded-lg shadow-sm flex-1 overflow-auto">
+                          <BillPrint data={getPrintJobData(selectedOrder)} />
+                        </div>
+                        <div className="pt-4 mt-auto">
+                          <Button
+                            color="primary"
+                            variant="flat"
+                            className="w-full"
+                            onPress={handleReopenOrder}
+                            isLoading={isReopening}
+                            startContent={
+                              !isReopening && (
+                                <HugeiconsIcon
+                                  icon={ArrowTurnBackwardIcon}
+                                  className="h-4 w-4"
+                                />
+                              )
+                            }
+                          >
+                            {selectedOrder.status === 'completed'
+                              ? 'Reopen Order'
+                              : 'Go to Order'}
+                          </Button>
+                        </div>
+                      </>
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full text-default-400">
                         <p className="text-sm">Select an order to preview</p>
