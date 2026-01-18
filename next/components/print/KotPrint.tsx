@@ -43,18 +43,31 @@ export default function KotPrint({ data }: KotPrintProps) {
           </thead>
           <tbody>
             {kotItems.map(item => {
-              const hasChanged = item.quantity !== item.previousQuantity;
-              const hadPrevious = item.previousQuantity !== undefined && item.previousQuantity !== 0;
+              // Truly new item: not in previous KOT at all
+              const isTrulyNewItem = item.previousQuantity === undefined;
+              // Item was previously removed (quantity was 0) and is being re-added
+              const wasRemoved = item.previousQuantity === 0;
+              // Item existed before with quantity > 0
+              const hadPrevious = item.previousQuantity !== undefined && item.previousQuantity > 0;
+              // Quantity has changed from a previous non-zero value
+              const hasQuantityChanged = hadPrevious && item.quantity !== item.previousQuantity;
+              // Item is being removed
+              const isRemoved = item.quantity === 0 && hadPrevious;
+              // Show as new (with + prefix styling)
+              const isNew = isTrulyNewItem || wasRemoved;
 
               return (
-                <tr key={item.id}>
-                  <td>{item.name}</td>
+                <tr key={item.id} className={isRemoved ? 'removed-item' : ''}>
+                  <td className={isRemoved ? 'strikethrough' : ''}>{item.name}</td>
                   <td className="quantity-cell">
-                    {hasChanged && hadPrevious && (
+                    {hasQuantityChanged && (
                       <span className="old-quantity">{item.previousQuantity}</span>
                     )}
-                    <span className={`quantity ${hasChanged ? 'changed' : ''}`}>
-                      {item.quantity}
+                    {isRemoved && (
+                      <span className="old-quantity">{item.previousQuantity}</span>
+                    )}
+                    <span className={`quantity ${hasQuantityChanged || isNew || isRemoved ? 'changed' : ''} ${isNew ? 'new-item' : ''}`}>
+                      {isNew && '+'}{isRemoved ? 'X' : item.quantity}
                     </span>
                   </td>
                 </tr>
@@ -144,6 +157,19 @@ export default function KotPrint({ data }: KotPrintProps) {
           text-decoration: line-through;
           margin-right: 4px;
           opacity: 0.6;
+        }
+
+        .strikethrough {
+          text-decoration: line-through;
+          opacity: 0.6;
+        }
+
+        .removed-item {
+          opacity: 0.7;
+        }
+
+        .new-item {
+          font-weight: bold;
         }
 
         .customer-note {

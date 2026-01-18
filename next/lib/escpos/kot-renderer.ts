@@ -71,31 +71,39 @@ export function renderKot(data: KotData, options: KotRenderOptions): Uint8Array 
   const kotItems = data.kotItems || [];
 
   kotItems.forEach((item) => {
-    const hasChanged =
-      item.previousQuantity !== undefined &&
-      item.quantity !== item.previousQuantity;
-    const hadPrevious =
-      item.previousQuantity !== undefined && item.previousQuantity !== 0;
-    const isNewItem = item.previousQuantity === undefined || item.previousQuantity === 0;
+    // Truly new item: not in previous KOT at all (previousQuantity is undefined)
+    const isTrulyNewItem = item.previousQuantity === undefined;
+    // Item was previously removed (quantity was 0) and is being re-added
+    const wasRemoved = item.previousQuantity === 0;
+    // Item existed before with quantity > 0
+    const hadPrevious = item.previousQuantity !== undefined && item.previousQuantity > 0;
+    // Quantity has changed from a previous non-zero value
+    const hasQuantityChanged = hadPrevious && item.quantity !== item.previousQuantity;
+    // Item is being removed (was > 0, now is 0)
     const isRemoved = item.quantity === 0 && hadPrevious;
 
     // Build quantity string
     let qtyStr: string;
     let itemName = item.name;
-    const shouldBold = settings.highlightChanges && (isNewItem || isRemoved);
+    // Bold new items and removed items for visibility
+    const shouldBold = settings.highlightChanges && (isTrulyNewItem || wasRemoved || isRemoved);
 
-    if (settings.highlightChanges && hasChanged) {
+    if (settings.highlightChanges) {
       if (isRemoved) {
         // Removed item: show "~oldQty~ X" and strikethrough name
         qtyStr = `~${item.previousQuantity}~ X`;
         itemName = `~~${item.name}~~`;
-      } else if (hadPrevious) {
+      } else if (isTrulyNewItem) {
+        // Truly new item: show with + prefix (full quantity)
+        qtyStr = `+${item.quantity}`;
+      } else if (wasRemoved) {
+        // Re-added item (was removed, now added back): show with + prefix
+        qtyStr = `+${item.quantity}`;
+      } else if (hasQuantityChanged) {
         // Changed quantity: show "~oldQty~ newQty"
         qtyStr = `~${item.previousQuantity}~ ${item.quantity}`;
-      } else if (isNewItem) {
-        // New item: show with + prefix
-        qtyStr = `+${item.quantity}`;
       } else {
+        // No change - just show quantity
         qtyStr = item.quantity.toString();
       }
     } else if (item.quantity === 0) {

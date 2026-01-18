@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 8
+Tasks completed: 9
 Current task: None
 
 ---
@@ -210,3 +210,42 @@ The issue was that `ThermalPrint.tsx` was missing `frontendId` and `serverId` fi
 
 ### Commit
 - `fix: clear payment info when reopening completed order`
+
+---
+
+## [2026-01-18] - Task 9: Fix KOT to include new items added after previous KOT print
+
+### Changes Made
+- `/Users/adnan/Projects/simple-pos/next/lib/escpos/kot-renderer.ts`:
+  - Refactored change detection logic in the `renderKot` function for clearer handling of different item states:
+    - `isTrulyNewItem`: Items not in previous KOT at all (`previousQuantity === undefined`)
+    - `wasRemoved`: Items that were previously removed and being re-added (`previousQuantity === 0`)
+    - `hadPrevious`: Items that existed before with quantity > 0
+    - `hasQuantityChanged`: Items with changed quantity from a previous non-zero value
+    - `isRemoved`: Items being removed (was > 0, now is 0)
+  - Updated the highlighting logic to properly handle truly new items:
+    - Truly new items now show with `+` prefix (e.g., `+2`)
+    - Re-added items (previously removed) also show with `+` prefix
+    - Changed quantities show `~oldQty~ newQty`
+    - Removed items show `~oldQty~ X` with strikethrough name
+  - Fixed the issue where `hasChanged` was `false` for new items because of the `previousQuantity !== undefined` check
+
+- `/Users/adnan/Projects/simple-pos/next/components/print/KotPrint.tsx`:
+  - Updated React preview component to match ESC/POS renderer logic
+  - Added consistent change detection variables matching kot-renderer.ts
+  - New items now show with `+` prefix in the preview
+  - Added CSS classes for new visual states: `.strikethrough`, `.removed-item`, `.new-item`
+  - Removed items now show with strikethrough name and `X` for quantity
+
+### Verification
+- Build: `npm run build` completed successfully with no errors
+- Lint: `npm run lint` passed with no warnings or errors
+- Logic verified: KOT change detection now correctly handles:
+  1. Truly new items (not in last KOT): shown with `+quantity`, bolded
+  2. Re-added items (previously removed): shown with `+quantity`, bolded
+  3. Changed quantities: shown as `~oldQty~ newQty`
+  4. Removed items: shown as `~oldQty~ X` with strikethrough name
+  5. Unchanged items: shown with just their quantity
+
+### Commit
+- `fix: properly track and display new items on KOT after previous print`
