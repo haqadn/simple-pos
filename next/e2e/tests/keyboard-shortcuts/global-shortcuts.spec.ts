@@ -89,11 +89,12 @@ test.describe('Global Keyboard Shortcuts', () => {
       // Press Ctrl+N
       await page.keyboard.press('Control+n');
 
-      // Wait for navigation to new order page
-      await page.waitForURL(/\/orders\/new/, { timeout: 10000 });
+      // Wait for navigation to new order page with frontend ID
+      // Frontend IDs are 6-character alphanumeric strings
+      await page.waitForURL(/\/orders\/[A-Z0-9]{6}/, { timeout: 10000 });
 
-      // Verify we're on the new order page
-      await expect(page).toHaveURL(/\/orders\/new/);
+      // Verify we're on the new order page with a frontend ID
+      await expect(page).toHaveURL(/\/orders\/[A-Z0-9]{6}/);
     });
 
     test('Ctrl+N from existing order creates new order', async ({ page }) => {
@@ -118,11 +119,12 @@ test.describe('Global Keyboard Shortcuts', () => {
       // Press Ctrl+N to create new order
       await page.keyboard.press('Control+n');
 
-      // Wait for navigation to new order page
-      await page.waitForURL(/\/orders\/new/, { timeout: 10000 });
+      // Wait for navigation to new order page with a different frontend ID
+      await page.waitForURL(/\/orders\/[A-Z0-9]{6}/, { timeout: 10000 });
 
-      // Verify we're on new order page (not the previous order)
-      await expect(page).toHaveURL(/\/orders\/new/);
+      // Verify we're on a different order (not the previous order)
+      const newOrderId = await getCurrentOrderId(page);
+      expect(newOrderId).not.toBe(existingOrderId);
     });
 
     test('shortcut does not conflict with browser shortcuts', async ({ page }) => {
@@ -136,9 +138,9 @@ test.describe('Global Keyboard Shortcuts', () => {
       // Press Ctrl+N - should trigger app shortcut, not browser new window
       await page.keyboard.press('Control+n');
 
-      // Verify navigation to new order
-      await page.waitForURL(/\/orders\/new/, { timeout: 10000 });
-      await expect(page).toHaveURL(/\/orders\/new/);
+      // Verify navigation to new order with frontend ID
+      await page.waitForURL(/\/orders\/[A-Z0-9]{6}/, { timeout: 10000 });
+      await expect(page).toHaveURL(/\/orders\/[A-Z0-9]{6}/);
     });
   });
 
@@ -304,12 +306,12 @@ test.describe('Global Keyboard Shortcuts', () => {
 
       // Check if we navigated (shortcut was triggered)
       const url = page.url();
-      const navigatedToNew = url.includes('/orders/new');
+      const navigatedToNewOrder = url.match(/\/orders\/[A-Z0-9]{6}/);
 
       // Either behavior is acceptable depending on implementation
       // The test documents the behavior
-      if (navigatedToNew) {
-        await expect(page).toHaveURL(/\/orders\/new/);
+      if (navigatedToNewOrder) {
+        await expect(page).toHaveURL(/\/orders\/[A-Z0-9]{6}/);
       } else {
         // If not navigated, the shortcut was suppressed
         await expect(commandInput).toBeFocused();

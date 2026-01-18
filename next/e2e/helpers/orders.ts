@@ -36,7 +36,8 @@ export interface OrderSummary {
 
 /**
  * Order URL pattern - matches both numeric server IDs and 6-char alphanumeric frontend IDs
- * Examples: /orders/123, /orders/HVM2KM, /orders/new
+ * Examples: /orders/123, /orders/HVM2KM
+ * Note: /orders/new is the legacy route but New Order button now navigates to /orders/{frontendId}
  */
 export const ORDER_ID_PATTERN = /\/orders\/(\d+|[A-Z0-9]{6}|new)/;
 export const ORDER_URL_PATTERN = /\/orders\/(\d+|[A-Z0-9]{6}|new)/;

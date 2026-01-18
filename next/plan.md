@@ -129,7 +129,7 @@ Fix critical bugs in the Simple POS Next.js application affecting order manageme
       "BROWSER TEST: Verify navigation to new order page with frontend ID in URL",
       "BROWSER TEST: Verify new order appears in sidebar"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 12,

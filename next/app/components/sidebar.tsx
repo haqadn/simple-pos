@@ -4,6 +4,7 @@ import { useEffect, useCallback } from "react";
 import { Button, Kbd } from "@heroui/react";
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCombinedOrdersStore, type OrderWithFrontendId } from "@/stores/orders";
 import { useDraftOrderStore } from "@/stores/draft-order";
 import OfflineIndicator from "./OfflineIndicator";
@@ -15,6 +16,7 @@ export default function Sidebar() {
     const setCurrentFrontendId = useDraftOrderStore((state) => state.setCurrentFrontendId);
     const pathname = usePathname();
     const router = useRouter();
+    const queryClient = useQueryClient();
 
     // Helper to get the best URL identifier for an order (frontend ID preferred)
     const getOrderUrl = useCallback((order: OrderWithFrontendId): string => {
@@ -68,9 +70,13 @@ export default function Sidebar() {
         // Store the frontend ID in Zustand for quick access
         setCurrentFrontendId(localOrder.frontendId);
 
+        // Invalidate queries to make the new order appear in the sidebar
+        await queryClient.invalidateQueries({ queryKey: ['localOrders'] });
+        await queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
+
         // Navigate to the frontend ID URL
         router.push(`/orders/${localOrder.frontendId}`);
-    }, [resetDraft, setCurrentFrontendId, router]);
+    }, [resetDraft, setCurrentFrontendId, router, queryClient]);
 
     if (isLoading) {
         return <div>Loading...</div>;

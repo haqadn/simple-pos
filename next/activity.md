@@ -1,8 +1,73 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 10
+Tasks completed: 11
 Current task: None
+
+---
+
+## [2026-01-18] - Task 11: Fix New Order button navigation issues
+
+### Problem
+When clicking the "+ New Order" button or pressing Ctrl+N:
+1. A new local order was created in Dexie with a frontend ID
+2. Navigation occurred to the correct URL (`/orders/{frontendId}`)
+3. BUT the sidebar didn't update to show the new order because the queries weren't invalidated
+
+### Root Cause Analysis
+The sidebar's `newOrder` function in `sidebar.tsx` was calling `createLocalOrder()` and navigating to the new URL, but it wasn't invalidating the TanStack Query cache (`localOrders` and `ordersWithFrontendIds`). This meant the sidebar wouldn't show the new order until the queries auto-refreshed (5-10 seconds).
+
+Similarly, the Ctrl+N shortcut handler in `useGlobalShortcuts.ts` was just navigating to `/orders/new` (legacy behavior) instead of creating a local order with a frontend ID.
+
+### Changes Made
+
+**File: `/next/app/components/sidebar.tsx`**
+1. Added import for `useQueryClient` from TanStack Query
+2. Added `queryClient` hook call in the component
+3. Updated `newOrder` callback to invalidate queries after creating the order:
+   - Invalidates `['localOrders']` - local orders list
+   - Invalidates `['ordersWithFrontendIds']` - combined orders used by sidebar
+4. Added `queryClient` to the dependency array
+
+**File: `/next/hooks/useGlobalShortcuts.ts`**
+1. Added import for `createLocalOrder` from offline-orders store
+2. Added `setCurrentFrontendId` from draft order store
+3. Updated `handleNewOrder` to:
+   - Create a new local order in Dexie with `createLocalOrder()`
+   - Store the frontend ID in Zustand with `setCurrentFrontendId()`
+   - Invalidate queries (`localOrders`, `ordersWithFrontendIds`)
+   - Navigate to the frontend ID URL instead of `/orders/new`
+4. Made the function async to await the order creation
+
+**File: `/next/e2e/tests/order-management/create-order.spec.ts`**
+1. Updated test "can navigate to orders page and create new draft order":
+   - Now expects URL pattern `/orders/[A-Z0-9]{6}` (frontend ID)
+   - Now expects title to match `Order #[A-Z0-9]{6}`
+2. Updated test "URL contains order ID after order is saved":
+   - Updated comment to reflect new behavior
+   - Now expects URL pattern `/orders/[A-Z0-9]{6}`
+
+**File: `/next/e2e/tests/keyboard-shortcuts/global-shortcuts.spec.ts`**
+1. Updated test "Ctrl+N creates new order":
+   - Now expects URL pattern `/orders/[A-Z0-9]{6}`
+2. Updated test "Ctrl+N from existing order creates new order":
+   - Now expects URL pattern `/orders/[A-Z0-9]{6}`
+   - Verifies new order ID is different from existing
+3. Updated test "shortcut does not conflict with browser shortcuts":
+   - Now expects URL pattern `/orders/[A-Z0-9]{6}`
+4. Updated test "Ctrl+N does not trigger when typing text in input":
+   - Updated regex to match frontend ID pattern
+
+**File: `/next/e2e/helpers/orders.ts`**
+1. Updated comment for `ORDER_URL_PATTERN` to clarify that New Order button now navigates to frontend ID URLs
+
+### Verification
+- `npm run build` passes successfully
+- Code follows established patterns from other local order mutations in the codebase
+- Both button click and Ctrl+N shortcut now have consistent behavior
+
+### Build Status
+- `npm run build` passes successfully
 
 ---
 

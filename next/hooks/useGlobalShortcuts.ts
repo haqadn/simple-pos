@@ -10,6 +10,7 @@ import { useSettingsStore } from '@/stores/settings';
 import OrdersAPI, { OrderSchema } from '@/api/orders';
 import { useQueryClient } from '@tanstack/react-query';
 import { getMatchingShortcut } from '@/lib/shortcuts';
+import { createLocalOrder } from '@/stores/offline-orders';
 
 interface ShortcutHandlers {
     onPrintKot?: () => void;
@@ -72,11 +73,25 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
         };
     }, [products, skipKotCategories]);
 
-    const handleNewOrder = useCallback(() => {
-        // Reset draft and navigate to new order page (order only saved to DB when modified)
+    const setCurrentFrontendId = useDraftOrderStore((state) => state.setCurrentFrontendId);
+
+    const handleNewOrder = useCallback(async () => {
+        // Reset draft state
         resetDraft();
-        router.push('/orders/new');
-    }, [resetDraft, router]);
+
+        // Create a new local order in Dexie with a frontend ID
+        const localOrder = await createLocalOrder();
+
+        // Store the frontend ID in Zustand for quick access
+        setCurrentFrontendId(localOrder.frontendId);
+
+        // Invalidate queries to make the new order appear in the sidebar
+        await queryClient.invalidateQueries({ queryKey: ['localOrders'] });
+        await queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
+
+        // Navigate to the frontend ID URL
+        router.push(`/orders/${localOrder.frontendId}`);
+    }, [resetDraft, setCurrentFrontendId, router, queryClient]);
 
     // Build print data from order (accepts optional order override for fresh data)
     const buildPrintData = useCallback((type: 'bill' | 'kot', orderOverride?: OrderSchema | null): PrintJobData | null => {

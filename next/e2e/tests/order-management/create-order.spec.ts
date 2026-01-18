@@ -29,16 +29,17 @@ test.describe('Order Creation', () => {
       await expect(newOrderButton).toBeVisible();
       await newOrderButton.click();
 
-      // Wait for navigation to new order page
-      await page.waitForURL(/\/orders\/new/);
+      // Wait for navigation to new order page with frontend ID
+      // Frontend IDs are 6-character alphanumeric strings
+      await page.waitForURL(/\/orders\/[A-Z0-9]{6}/);
       await page.waitForLoadState('networkidle');
 
-      // Verify we're on the new order page
-      await expect(page).toHaveURL(/\/orders\/new/);
+      // Verify we're on the new order page with a frontend ID
+      await expect(page).toHaveURL(/\/orders\/[A-Z0-9]{6}/);
 
-      // Verify order title shows "New Order"
+      // Verify order title shows the frontend ID
       const orderTitle = page.locator('h2');
-      await expect(orderTitle).toContainText('New Order');
+      await expect(orderTitle).toContainText(/Order #[A-Z0-9]{6}/);
     });
 
     test('draft order becomes real order when modified with line item', async ({ page, posPage }) => {
@@ -93,11 +94,10 @@ test.describe('Order Creation', () => {
       // Create a new order via the button
       await createNewOrder(page);
 
-      // At this point we're on /orders/new
-      // The order only gets saved when we modify it
-      // For now, just verify we can navigate to the new order page
+      // After clicking New Order, we're now on /orders/{frontendId}
+      // The order is created locally in Dexie and has a frontend ID immediately
       const url = page.url();
-      expect(url).toMatch(/\/orders\/(new|[A-Z0-9]+)/);
+      expect(url).toMatch(/\/orders\/[A-Z0-9]{6}/);
     });
   });
 
