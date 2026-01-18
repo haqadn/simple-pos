@@ -4,9 +4,10 @@ import { PrintJobData } from '@/stores/print';
 
 interface BillPrintProps {
   data: PrintJobData;
+  isPreview?: boolean;
 }
 
-export default function BillPrint({ data }: BillPrintProps) {
+export default function BillPrint({ data, isPreview = false }: BillPrintProps) {
   const {
     items = [],
     customer,
@@ -66,19 +67,21 @@ export default function BillPrint({ data }: BillPrintProps) {
 
   return (
     <div className="bill-print">
-      {/* Header with Logo */}
-      <header className="brand">
-        <div className="logo">
-          {/* Logo placeholder - replace with your logo */}
-          <svg viewBox="0 0 100 40" className="w-1/2 mx-auto">
-            <text x="50" y="30" textAnchor="middle" className="text-xl font-bold">LOGO</text>
-          </svg>
-        </div>
-        <p className="text-xs mb-2">
-          <strong>Phone:</strong> 01765553555 <br />
-          Girls School Road, Chhatak, Sunamganj
-        </p>
-      </header>
+      {/* Header with Logo - hidden in preview mode */}
+      {!isPreview && (
+        <header className="brand">
+          <div className="logo">
+            {/* Logo placeholder - replace with your logo */}
+            <svg viewBox="0 0 100 40" className="w-1/2 mx-auto">
+              <text x="50" y="30" textAnchor="middle" className="text-xl font-bold">LOGO</text>
+            </svg>
+          </div>
+          <p className="text-xs mb-2">
+            <strong>Phone:</strong> 01765553555 <br />
+            Girls School Road, Chhatak, Sunamganj
+          </p>
+        </header>
+      )}
 
       {/* Order Info */}
       {filteredItems.length > 0 && (
@@ -175,14 +178,16 @@ export default function BillPrint({ data }: BillPrintProps) {
         </main>
       )}
 
-      {/* Footer */}
-      <footer className="mt-4">
-        <p className="text-xs">
-          Online menu: <strong>www.mycozy.cafe/menu</strong>
-          <br />
-          Call us for home delivery!
-        </p>
-      </footer>
+      {/* Footer - hidden in preview mode */}
+      {!isPreview && (
+        <footer className="mt-4">
+          <p className="text-xs">
+            Online menu: <strong>www.mycozy.cafe/menu</strong>
+            <br />
+            Call us for home delivery!
+          </p>
+        </footer>
+      )}
 
       <style jsx>{`
         .bill-print {

@@ -288,7 +288,7 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
                     {selectedOrder ? (
                       <>
                         <div className="bg-white rounded-lg shadow-sm flex-1 overflow-auto">
-                          <BillPrint data={getPrintJobData(selectedOrder)} />
+                          <BillPrint data={getPrintJobData(selectedOrder)} isPreview />
                         </div>
                         <div className="pt-4 mt-auto">
                           <Button

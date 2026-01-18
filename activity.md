@@ -1,7 +1,7 @@
 # Activity Log
 
 Last updated: 2026-01-18
-Tasks completed: 4
+Tasks completed: 5
 Current task: None
 
 ---
@@ -104,3 +104,27 @@ Current task: None
 
 ### Commit
 - `fix: print frontend ID instead of server ID on invoice and KOT`
+
+---
+
+## [2026-01-18] - Task 5: Remove header and footer from receipt preview in orders modal
+
+### Changes Made
+- `/Users/adnan/Projects/simple-pos/next/components/print/BillPrint.tsx`:
+  - Added `isPreview` optional prop to `BillPrintProps` interface (default: `false`)
+  - Updated function signature to destructure and default `isPreview` to `false`
+  - Wrapped header section (`.brand` with logo and contact info) in conditional `{!isPreview && ...}`
+  - Wrapped footer section (online menu and delivery message) in conditional `{!isPreview && ...}`
+
+- `/Users/adnan/Projects/simple-pos/next/app/components/TodaysOrdersModal.tsx`:
+  - Added `isPreview` prop to `BillPrint` component call on line 291
+  - Preview now shows only order info, line items, and totals without branded header/footer
+
+### Verification
+- Build: `npm run build` completed successfully with no errors
+- Lint: `npm run lint` passed with no warnings or errors
+- The BillPrint component now conditionally renders header and footer based on `isPreview` prop
+- TodaysOrdersModal passes `isPreview` to BillPrint to hide branded content in preview
+
+### Commit
+- `fix: remove header and footer from receipt preview in orders modal`

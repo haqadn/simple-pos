@@ -74,7 +74,7 @@ Fix 10 issues in the Simple POS Next.js application related to command handling,
       "In TodaysOrdersModal, pass isPreview={true} to BillPrint",
       "Verify: Open Today's Orders modal, click order, confirm preview shows only items/totals without header/footer"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 6,
