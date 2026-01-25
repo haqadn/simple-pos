@@ -465,17 +465,34 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 
 			if (existingIdx >= 0) {
 				if (quantity > 0) {
-					existingLineItems[existingIdx] = { ...existingLineItems[existingIdx], quantity };
+					// Recalculate subtotal and total when quantity changes
+					const unitPrice = parseFloat(existingLineItems[existingIdx].price?.toString() || '0');
+					const newSubtotal = unitPrice * quantity;
+					const newTotal = newSubtotal; // Assuming no item-level discounts
+
+					existingLineItems[existingIdx] = {
+						...existingLineItems[existingIdx],
+						quantity,
+						subtotal: newSubtotal.toFixed(2),
+						total: newTotal.toFixed(2),
+					};
 				} else {
 					existingLineItems.splice(existingIdx, 1);
 				}
 			} else if (quantity > 0) {
+				// Calculate subtotal and total for new line items
+				const unitPrice = parseFloat(product.price?.toString() || '0');
+				const newSubtotal = unitPrice * quantity;
+				const newTotal = newSubtotal; // Assuming no item-level discounts
+
 				existingLineItems.push({
 					name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
 					product_id: product.product_id,
 					variation_id: product.variation_id,
 					quantity,
 					price: product.price,
+					subtotal: newSubtotal.toFixed(2),
+					total: newTotal.toFixed(2),
 				});
 			}
 
@@ -483,9 +500,26 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 			// (cachedLocalOrder is already defined above)
 			const hadServerId = !!cachedLocalOrder?.serverId;
 
+			// Calculate order subtotal and total
+			const orderSubtotal = existingLineItems.reduce((sum, item) => {
+				return sum + parseFloat(item.subtotal || '0');
+			}, 0);
+
+			// Get current discount (from coupons or other discounts)
+			const discountTotal = parseFloat(cachedLocalOrder?.data.discount_total || '0');
+
+			// Get shipping cost
+			const shippingTotal = cachedLocalOrder?.data.shipping_lines.reduce((sum, line) => {
+				return sum + parseFloat(line.total || '0');
+			}, 0) || 0;
+
+			const orderTotal = orderSubtotal + shippingTotal - discountTotal;
+
 			// Update local order immediately (optimistic update)
 			const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
 				line_items: existingLineItems,
+				subtotal: orderSubtotal.toFixed(2),
+				total: orderTotal.toFixed(2),
 			});
 			queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
 
