@@ -8,6 +8,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { GlobalShortcutsProvider } from '@/components/global-shortcuts-provider'
 import { ThermalPrint } from '@/components/print'
 import { SetupGuard } from './components/setup-guard'
+import { SyncManager } from './components/sync-manager'
 
 
 export function Providers({children}: { children: React.ReactNode }) {
@@ -23,6 +24,7 @@ export function Providers({children}: { children: React.ReactNode }) {
             {children}
           </GlobalShortcutsProvider>
           <ThermalPrint />
+          <SyncManager />
         </SetupGuard>
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>

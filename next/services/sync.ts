@@ -311,12 +311,12 @@ export async function processSyncQueue(): Promise<SyncResult[]> {
     results.push(result);
   }
 
-  // Also sync any orders with 'local' status that aren't in the queue
+  // Also sync any orders with 'local' or 'error' status that aren't in the queue
   const localOrders = await listOrdersNeedingSync();
   const queuedIds = new Set(queuedOrders.map((q) => q.frontendId));
 
   for (const order of localOrders) {
-    if (!queuedIds.has(order.frontendId) && order.syncStatus === "local") {
+    if (!queuedIds.has(order.frontendId)) {
       const result = await syncOrder(order.frontendId);
       results.push(result);
     }
