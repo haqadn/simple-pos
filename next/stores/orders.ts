@@ -160,8 +160,9 @@ export const useCombinedOrdersStore = () => {
 	const ordersWithFrontendIds = useQuery<OrderWithFrontendId[]>({
 		queryKey: ['ordersWithFrontendIds'],
 		queryFn: async () => {
-			const serverOrders = ordersQuery.data || [];
-			const localOrders = localOrdersQuery.data || [];
+			// Read directly from cache to get optimistic updates
+			const serverOrders = queryClient.getQueryData<OrderSchema[]>(['orders']) || [];
+			const localOrders = queryClient.getQueryData<LocalOrder[]>(['localOrders']) || [];
 
 			// Create a map of server IDs to local orders for quick lookup
 			const serverIdToLocalOrder = new Map<number, LocalOrder>();
