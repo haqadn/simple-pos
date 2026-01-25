@@ -1139,11 +1139,11 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 				});
 				queryClient.setQueryData(serviceKey, params.service);
 
-				// Also update combined orders cache for instant sidebar update
-				queryClient.setQueryData(['ordersWithFrontendIds'], (oldOrders: OrderWithFrontendId[] | undefined) => {
+				// Also optimistically update the localOrders query so combined orders rebuilds correctly
+				queryClient.setQueryData(['localOrders'], (oldOrders: LocalOrder[] | undefined) => {
 					if (!oldOrders) return oldOrders;
 					return oldOrders.map(o =>
-						o.frontendId === urlOrderId ? { ...o, shipping_lines: [newShippingLine] } : o
+						o.frontendId === urlOrderId ? { ...o, data: newOrderQueryData } : o
 					);
 				});
 				return;
@@ -1173,10 +1173,11 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			}
 		},
 		onSuccess: (data: OrderSchema) => {
-			// For frontend ID orders, invalidate local order and combined orders (for sidebar update)
+			// For frontend ID orders, invalidate local orders queries (for sidebar update)
 			if (isFrontendIdOrder && urlOrderId) {
 				queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
-				queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
+				// Invalidate the source query so combined orders rebuilds with fresh data
+				queryClient.invalidateQueries({ queryKey: ['localOrders'] });
 				return;
 			}
 
