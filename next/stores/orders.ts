@@ -1139,19 +1139,17 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 				});
 				queryClient.setQueryData(serviceKey, params.service);
 
-				// Optimistically update both source and derived queries for instant sidebar update
+				// Optimistically update the source query
 				queryClient.setQueryData(['localOrders'], (oldOrders: LocalOrder[] | undefined) => {
 					if (!oldOrders) return oldOrders;
 					return oldOrders.map(o =>
 						o.frontendId === urlOrderId ? { ...o, data: newOrderQueryData } : o
 					);
 				});
-				queryClient.setQueryData(['ordersWithFrontendIds'], (oldOrders: OrderWithFrontendId[] | undefined) => {
-					if (!oldOrders) return oldOrders;
-					return oldOrders.map(o =>
-						o.frontendId === urlOrderId ? { ...o, shipping_lines: [newShippingLine] } : o
-					);
-				});
+
+				// Invalidate the derived query to force immediate rebuild from updated source
+				// This triggers a synchronous refetch since the source data is already in cache
+				queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
 				return;
 			}
 
