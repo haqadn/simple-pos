@@ -90,7 +90,12 @@ export const useOrdersStore = () => {
 	const ordersQuery = useQuery<OrderSchema[]>({
 		queryKey: generateOrderQueryKey('list'),
 		queryFn: async () => {
-			const serverOrders = await OrdersAPI.listOrders({ 'per_page': '100', 'status': 'pending,processing,on-hold' });
+			const serverOrders = await OrdersAPI.listOrders({
+				'per_page': '100',
+				'status': 'pending,processing,on-hold',
+				'orderby': 'date',  // Sort by creation date, not modification date
+				'order': 'asc'      // Oldest first (stable order)
+			});
 
 			// Import server orders into local Dexie database
 			// This runs in the background and doesn't block the response

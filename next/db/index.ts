@@ -85,6 +85,14 @@ class SimplePOSDatabase extends Dexie {
       // Sync queue: auto-increment id, indexed by frontendId and nextRetryAt for efficient queries
       syncQueue: "++id, frontendId, nextRetryAt",
     });
+
+    // Schema version 2: Change index from updatedAt to createdAt for stable order sorting
+    this.version(2).stores({
+      // Orders table: indexed by frontendId (primary), serverId, status, syncStatus, createdAt
+      orders: "frontendId, serverId, status, syncStatus, createdAt",
+      // Sync queue: unchanged
+      syncQueue: "++id, frontendId, nextRetryAt",
+    });
   }
 }
 

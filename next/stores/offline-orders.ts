@@ -290,17 +290,18 @@ export async function getLocalOrderByServerId(
  * List all local orders, optionally filtered by status or sync status
  *
  * @param options - Filter options
- * @returns Array of LocalOrders sorted by updatedAt descending (newest first)
+ * @returns Array of LocalOrders sorted by createdAt ascending (oldest first, stable order)
  */
 export async function listLocalOrders(options?: {
   status?: OrderStatus | OrderStatus[];
   syncStatus?: SyncStatus | SyncStatus[];
   limit?: number;
 }): Promise<LocalOrder[]> {
-  let collection = db.orders.orderBy("updatedAt");
+  let collection = db.orders.orderBy("createdAt");
 
   // Apply filters if provided
-  let orders = await collection.reverse().toArray();
+  // Sort by createdAt ascending (oldest first) for stable order
+  let orders = await collection.toArray();
 
   if (options?.status) {
     const statuses = Array.isArray(options.status) ? options.status : [options.status];
