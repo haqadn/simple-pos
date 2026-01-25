@@ -892,40 +892,21 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 					line.id && line.method_id && line.method_id !== ''
 				);
 
-				// Build shipping lines array: mark old for deletion (becomes zombie), add new
-				const patchShippingLines: ShippingLineSchema[] = [];
-
-				// Mark existing shipping line for deletion (becomes zombie on server)
-				// Set method_title to empty and total to 0 - we filter these out locally
+				// Reuse existing ID for in-place update
 				if (existingShippingLine?.id) {
-					patchShippingLines.push({
-						id: existingShippingLine.id,
-						method_id: existingShippingLine.method_id,
-						instance_id: existingShippingLine.instance_id,
-						method_title: '',
-						total: '0',
-						total_tax: '0.00',
-						taxes: [],
-					});
+					shippingLine.id = existingShippingLine.id;
 				}
 
-				// Add the new shipping line
-				patchShippingLines.push(shippingLine);
-
 				try {
-					// Update server and wait for response with correct IDs
+					// Update server with the shipping line (in-place update if ID exists)
 					const serverOrder = await OrdersAPI.updateOrder(currentOrder.serverId.toString(), {
-						shipping_lines: patchShippingLines,
+						shipping_lines: [shippingLine],
 					});
 
 					if (serverOrder) {
 						// Update local with server's shipping_lines
-						// Filter out zombie shipping lines (empty method_title) so they don't show in POS
-						const filteredShippingLines = serverOrder.shipping_lines.filter(
-							sl => sl.method_id && sl.method_id !== '' && sl.method_title && sl.method_title !== ''
-						);
 						const finalLocalOrder = await updateLocalOrder(urlOrderId, {
-							shipping_lines: filteredShippingLines,
+							shipping_lines: serverOrder.shipping_lines,
 						});
 						queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], finalLocalOrder);
 						return finalLocalOrder.data;
