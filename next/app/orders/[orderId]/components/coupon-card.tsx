@@ -124,22 +124,23 @@ export default function CouponCard() {
                 // Update the local order query cache optimistically
                 queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
 
-                // Ensure server order exists and get serverId
-                const serverId = await ensureServerOrder(urlOrderId);
-
-                // If this was a new order creation, ensureServerOrder already sent the coupons
-                if (!hadServerId) {
-                    const refreshedOrder = await getLocalOrder(urlOrderId);
-                    if (refreshedOrder) {
-                        queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], refreshedOrder);
-                    }
-                    // Clear the input after successful application
-                    clear();
-                    return;
-                }
-
-                // For existing orders, sync the change to server
+                // Attempt server sync (wrapped in try/catch for offline support)
                 try {
+                    // Ensure server order exists and get serverId
+                    const serverId = await ensureServerOrder(urlOrderId);
+
+                    // If this was a new order creation, ensureServerOrder already sent the coupons
+                    if (!hadServerId) {
+                        const refreshedOrder = await getLocalOrder(urlOrderId);
+                        if (refreshedOrder) {
+                            queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], refreshedOrder);
+                        }
+                        // Clear the input after successful application
+                        clear();
+                        return;
+                    }
+
+                    // For existing orders, sync the change to server
                     // For coupons, WooCommerce accepts just the code field
                     const couponCodes = updatedCouponLines.map(c => ({ code: c.code }));
                     const serverOrder = await OrdersAPI.updateOrder(serverId.toString(), {
