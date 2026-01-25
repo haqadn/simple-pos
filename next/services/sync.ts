@@ -11,6 +11,7 @@
 import { db, calculateNextRetryTime, type SyncQueueEntry } from "../db";
 import {
   getLocalOrder,
+  updateLocalOrder,
   updateLocalOrderSyncStatus,
   listOrdersNeedingSync,
 } from "../stores/offline-orders";
@@ -85,13 +86,13 @@ export async function syncOrder(
 
         if (currentServerOrder) {
           // Prepare deletion entries for all current server items
-          const deleteItems = currentServerOrder.line_items.map(item => ({
-            id: item.id,
-            name: item.name,
-            product_id: item.product_id,
-            variation_id: item.variation_id,
-            quantity: 0,
-          }));
+          // IMPORTANT: For deletion, only send id and quantity: 0, nothing else
+          const deleteItems = currentServerOrder.line_items
+            .filter(item => item.id) // Only items with IDs can be deleted
+            .map(item => ({
+              id: item.id,
+              quantity: 0,
+            }));
 
           // Prepare local items as new items (without IDs)
           const addItems = order.data.line_items.map(item => ({
@@ -102,13 +103,18 @@ export async function syncOrder(
             price: item.price,
           }));
 
-          // Update with deletion pattern: delete all, then add current
+          // Prepare coupon lines (WooCommerce accepts just codes for coupons)
+          const couponLines = order.data.coupon_lines.map(coupon => ({
+            code: coupon.code,
+          }));
+
+          // Update with deletion pattern: delete all line items, then add current state
           serverOrder = await OrdersAPI.updateOrder(
             order.serverId.toString(),
             {
               line_items: [...deleteItems, ...addItems],
               shipping_lines: order.data.shipping_lines,
-              coupon_lines: order.data.coupon_lines,
+              coupon_lines: couponLines,
               status: order.data.status,
               customer_note: order.data.customer_note,
               billing: order.data.billing,
@@ -140,6 +146,18 @@ export async function syncOrder(
     if (!serverOrder) {
       throw new Error("Server returned null response");
     }
+
+    // Update local order with server data (to get correct IDs)
+    // Filter out zombie items (quantity 0) that WooCommerce might not have deleted
+    const filteredLineItems = serverOrder.line_items.filter(li => li.quantity > 0);
+    await updateLocalOrder(frontendId, {
+      line_items: filteredLineItems,
+      shipping_lines: serverOrder.shipping_lines,
+      coupon_lines: serverOrder.coupon_lines,
+      discount_total: serverOrder.discount_total,
+      total: serverOrder.total,
+      subtotal: serverOrder.subtotal,
+    });
 
     // Mark order as synced
     await updateLocalOrderSyncStatus(frontendId, "synced", {
