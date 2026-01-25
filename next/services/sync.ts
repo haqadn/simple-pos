@@ -75,19 +75,65 @@ export async function syncOrder(
   });
 
   try {
-    // Prepare the order data for WooCommerce
-    const orderData = prepareOrderForSync(order);
-
     let serverOrder: OrderSchema | null;
 
     if (order.serverId) {
-      // Update existing order
-      serverOrder = await OrdersAPI.updateOrder(
-        order.serverId.toString(),
-        orderData
-      );
+      // For existing orders with pending changes, we need to handle line item deletions
+      if (order.syncStatus !== "synced") {
+        // Fetch current server state to get item IDs for deletion
+        const currentServerOrder = await OrdersAPI.getOrder(order.serverId.toString());
+
+        if (currentServerOrder) {
+          // Prepare deletion entries for all current server items
+          const deleteItems = currentServerOrder.line_items.map(item => ({
+            id: item.id,
+            name: item.name,
+            product_id: item.product_id,
+            variation_id: item.variation_id,
+            quantity: 0,
+          }));
+
+          // Prepare local items as new items (without IDs)
+          const addItems = order.data.line_items.map(item => ({
+            name: item.name,
+            product_id: item.product_id,
+            variation_id: item.variation_id,
+            quantity: item.quantity,
+            price: item.price,
+          }));
+
+          // Update with deletion pattern: delete all, then add current
+          serverOrder = await OrdersAPI.updateOrder(
+            order.serverId.toString(),
+            {
+              line_items: [...deleteItems, ...addItems],
+              shipping_lines: order.data.shipping_lines,
+              coupon_lines: order.data.coupon_lines,
+              status: order.data.status,
+              customer_note: order.data.customer_note,
+              billing: order.data.billing,
+              meta_data: order.data.meta_data,
+            }
+          );
+        } else {
+          // If we can't fetch current state, just send what we have
+          const orderData = prepareOrderForSync(order);
+          serverOrder = await OrdersAPI.updateOrder(
+            order.serverId.toString(),
+            orderData
+          );
+        }
+      } else {
+        // Order is already synced, just update simple fields
+        const orderData = prepareOrderForSync(order);
+        serverOrder = await OrdersAPI.updateOrder(
+          order.serverId.toString(),
+          orderData
+        );
+      }
     } else {
       // Create new order
+      const orderData = prepareOrderForSync(order);
       serverOrder = await OrdersAPI.saveOrder(orderData);
     }
 
@@ -133,17 +179,21 @@ export async function syncOrder(
  * Prepare order data for sending to WooCommerce
  * Removes local-only fields and formats data appropriately
  *
- * For orders with serverId (updates), we only send status and meta_data
+ * For orders with serverId that are already synced, we only send status and meta_data
  * since line_items, shipping_lines, and coupons are synced directly when changed.
+ *
+ * For orders with pending changes (error/local status), we send the full order data
+ * to ensure all offline changes are synced.
  *
  * For new orders (no serverId), we send the full order data.
  */
 function prepareOrderForSync(order: LocalOrder): Partial<OrderSchema> {
   const { data } = order;
 
-  // For orders that already exist on the server, only send status and meta_data
-  // Line items, shipping, and coupons are synced directly when changed
-  if (order.serverId) {
+  // For orders that already exist on the server AND are already synced,
+  // only send status and meta_data since changes are synced directly when made
+  // BUT if syncStatus is "error" or "local", send full data because there are pending changes
+  if (order.serverId && order.syncStatus === "synced") {
     return {
       status: data.status,
       meta_data: data.meta_data,
@@ -152,7 +202,7 @@ function prepareOrderForSync(order: LocalOrder): Partial<OrderSchema> {
     };
   }
 
-  // For new orders, send the full order data
+  // For new orders OR orders with pending changes, send the full order data
   const orderData: Partial<OrderSchema> = {
     status: data.status,
     customer_id: data.customer_id,
