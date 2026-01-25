@@ -1138,6 +1138,14 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 					return { ...oldData, data: newOrderQueryData };
 				});
 				queryClient.setQueryData(serviceKey, params.service);
+
+				// Also update combined orders cache for instant sidebar update
+				queryClient.setQueryData(['ordersWithFrontendIds'], (oldOrders: OrderWithFrontendId[] | undefined) => {
+					if (!oldOrders) return oldOrders;
+					return oldOrders.map(o =>
+						o.frontendId === urlOrderId ? { ...o, shipping_lines: [newShippingLine] } : o
+					);
+				});
 				return;
 			}
 
@@ -1165,9 +1173,10 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			}
 		},
 		onSuccess: (data: OrderSchema) => {
-			// For frontend ID orders, just invalidate the local order query
+			// For frontend ID orders, invalidate local order and combined orders (for sidebar update)
 			if (isFrontendIdOrder && urlOrderId) {
 				queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+				queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
 				return;
 			}
 
