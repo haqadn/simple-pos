@@ -1139,11 +1139,17 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 				});
 				queryClient.setQueryData(serviceKey, params.service);
 
-				// Also optimistically update the localOrders query so combined orders rebuilds correctly
+				// Optimistically update both source and derived queries for instant sidebar update
 				queryClient.setQueryData(['localOrders'], (oldOrders: LocalOrder[] | undefined) => {
 					if (!oldOrders) return oldOrders;
 					return oldOrders.map(o =>
 						o.frontendId === urlOrderId ? { ...o, data: newOrderQueryData } : o
+					);
+				});
+				queryClient.setQueryData(['ordersWithFrontendIds'], (oldOrders: OrderWithFrontendId[] | undefined) => {
+					if (!oldOrders) return oldOrders;
+					return oldOrders.map(o =>
+						o.frontendId === urlOrderId ? { ...o, shipping_lines: [newShippingLine] } : o
 					);
 				});
 				return;
