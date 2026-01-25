@@ -11,8 +11,7 @@ import { CouponLineSchema } from "@/api/orders";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CheckmarkCircle02Icon, Cancel01Icon, Alert02Icon } from "@hugeicons/core-free-icons";
 import { isValidFrontendId } from "@/lib/frontend-id";
-import { updateLocalOrder } from "@/stores/offline-orders";
-import { syncOrder } from "@/services/sync";
+import { updateLocalOrder, ensureServerOrder, updateLocalOrderSyncStatus, getLocalOrder } from "@/stores/offline-orders";
 import type { LocalOrder } from "@/db";
 
 // Status indicator component
@@ -110,9 +109,13 @@ export default function CouponCard() {
                 return sum + parseFloat(c.discount || '0');
             }, 0);
 
-            // Handle frontend ID orders - save to Dexie only (local-first)
+            // Handle frontend ID orders - save to local and sync to server
             if (isFrontendIdOrder && urlOrderId) {
-                // Save to Dexie
+                // Check if order already has serverId
+                const currentOrder = await getLocalOrder(urlOrderId);
+                const hadServerId = !!currentOrder?.serverId;
+
+                // Update local order immediately (optimistic update)
                 const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
                     coupon_lines: updatedCouponLines,
                     discount_total: totalDiscount.toFixed(2),
@@ -121,10 +124,49 @@ export default function CouponCard() {
                 // Update the local order query cache optimistically
                 queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
 
-                // Queue sync operation (async - don't await)
-                syncOrder(urlOrderId).catch(err => {
-                    console.error('Failed to queue sync for order:', urlOrderId, err);
-                });
+                // Ensure server order exists and get serverId
+                const serverId = await ensureServerOrder(urlOrderId);
+
+                // If this was a new order creation, ensureServerOrder already sent the coupons
+                if (!hadServerId) {
+                    const refreshedOrder = await getLocalOrder(urlOrderId);
+                    if (refreshedOrder) {
+                        queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], refreshedOrder);
+                    }
+                    // Clear the input after successful application
+                    clear();
+                    return;
+                }
+
+                // For existing orders, sync the change to server
+                try {
+                    // For coupons, WooCommerce accepts just the code field
+                    const couponCodes = updatedCouponLines.map(c => ({ code: c.code }));
+                    const serverOrder = await OrdersAPI.updateOrder(serverId.toString(), {
+                        coupon_lines: couponCodes as CouponLineSchema[]
+                    });
+
+                    if (serverOrder) {
+                        // Update local with server's coupon_lines and discount_total
+                        const finalLocalOrder = await updateLocalOrder(urlOrderId, {
+                            coupon_lines: serverOrder.coupon_lines,
+                            discount_total: serverOrder.discount_total,
+                        });
+                        queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], finalLocalOrder);
+
+                        // Mark as synced
+                        await updateLocalOrderSyncStatus(urlOrderId, 'synced', { serverId });
+                    }
+                } catch (err) {
+                    const errorMessage = err instanceof Error ? err.message : 'Unknown error during sync';
+                    console.error('Failed to sync coupon:', errorMessage);
+
+                    // Mark for retry on failure
+                    await updateLocalOrderSyncStatus(urlOrderId, 'error', {
+                        syncError: errorMessage,
+                        lastSyncAttempt: new Date(),
+                    });
+                }
 
                 // Clear the input after successful application
                 clear();

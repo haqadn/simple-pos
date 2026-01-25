@@ -13,8 +13,7 @@ import { useSettingsStore } from "@/stores/settings";
 import { createShouldSkipForKot } from "@/lib/kot";
 import { isValidFrontendId } from "@/lib/frontend-id";
 import { buildPrintData, buildPrintMetaUpdates } from "@/lib/print-data";
-import { getLocalOrder, updateLocalOrder, updateLocalOrderStatus, updateLocalOrderSyncStatus, deleteLocalOrder } from "@/stores/offline-orders";
-import { syncOrder } from "@/services/sync";
+import { getLocalOrder, updateLocalOrder, updateLocalOrderStatus, updateLocalOrderSyncStatus, deleteLocalOrder, ensureServerOrder } from "@/stores/offline-orders";
 import type { LocalOrder } from "@/db";
 
 export default function Buttons() {
@@ -205,20 +204,34 @@ export default function Buttons() {
 
         setIsCompleting(true);
         try {
-            // For frontend ID orders, complete locally then sync
+            // For frontend ID orders, complete locally and sync to server
             if (isFrontendIdOrder && urlOrderId) {
+                // Update local order status immediately
                 await updateLocalOrderStatus(urlOrderId, 'completed');
-
-                // Check if this is a synced order (has serverId) - reset syncStatus to ensure completion is synced
-                const localOrder = await getLocalOrder(urlOrderId);
-                if (localOrder?.serverId) {
-                    // Reset syncStatus to 'local' so the completed status gets synced
-                    await updateLocalOrderSyncStatus(urlOrderId, 'local');
-                }
 
                 queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
                 queryClient.invalidateQueries({ queryKey: ['localOrders'] });
                 queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
+
+                // Ensure server order exists and sync the completion status
+                try {
+                    const serverId = await ensureServerOrder(urlOrderId);
+
+                    // Update server with completed status
+                    await OrdersAPI.updateOrder(serverId.toString(), { status: 'completed' });
+
+                    // Mark as synced
+                    await updateLocalOrderSyncStatus(urlOrderId, 'synced', { serverId });
+                } catch (err) {
+                    const errorMessage = err instanceof Error ? err.message : 'Unknown error during sync';
+                    console.error('Failed to sync order completion:', errorMessage);
+
+                    // Mark for retry on failure
+                    await updateLocalOrderSyncStatus(urlOrderId, 'error', {
+                        syncError: errorMessage,
+                        lastSyncAttempt: new Date(),
+                    });
+                }
 
                 // Check if there's cash payment (from split_payments meta)
                 const splitPaymentsMeta = orderQuery.data.meta_data?.find(m => m.key === 'split_payments');
@@ -242,9 +255,6 @@ export default function Buttons() {
                 if (cashPayment > 0 || change > 0) {
                     await printStore.push('drawer', null);
                 }
-
-                // Sync to server in background (non-blocking)
-                syncOrder(urlOrderId).catch(err => console.error('Sync failed:', err));
             } else if (orderQuery.data.id > 0 && orderQuery.data.id !== DRAFT_ORDER_ID) {
                 // For server orders, update via API
                 await OrdersAPI.updateOrder(orderQuery.data.id.toString(), { status: 'completed' });

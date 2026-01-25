@@ -14,6 +14,7 @@ import {
   createLocalOrder as createLocalOrderRecord,
 } from "../db";
 import type { OrderSchema, LineItemSchema, ShippingLineSchema, CouponLineSchema, BillingSchema, MetaDataSchema } from "../api/orders";
+import OrdersAPI from "../api/orders";
 import { generateUniqueFrontendId } from "../lib/frontend-id";
 import { calculateOrderTotal, calculateSubtotal } from "../lib/order-utils";
 
@@ -123,6 +124,51 @@ export async function updateLocalOrder(
   await db.orders.put(updatedOrder);
 
   return updatedOrder;
+}
+
+/**
+ * Ensure that a local order has a corresponding server order
+ *
+ * If the order doesn't have a serverId, creates a new order on the server
+ * with status "pending" and updates the local order with the serverId.
+ *
+ * @param frontendId - The frontend ID of the order
+ * @returns The serverId (either existing or newly created)
+ * @throws OrderNotFoundError if order does not exist locally
+ */
+export async function ensureServerOrder(frontendId: string): Promise<number> {
+  const localOrder = await getLocalOrder(frontendId);
+
+  if (!localOrder) {
+    throw new OrderNotFoundError(frontendId);
+  }
+
+  // If serverId already exists, return it
+  if (localOrder.serverId) {
+    return localOrder.serverId;
+  }
+
+  // Create server order with current data
+  const serverOrder = await OrdersAPI.saveOrder({
+    status: 'pending',
+    line_items: localOrder.data.line_items,
+    shipping_lines: localOrder.data.shipping_lines,
+    coupon_lines: localOrder.data.coupon_lines,
+    customer_note: localOrder.data.customer_note,
+    billing: localOrder.data.billing,
+    meta_data: localOrder.data.meta_data,
+  });
+
+  if (!serverOrder) {
+    throw new Error('Failed to create server order: Server returned null');
+  }
+
+  // Update local order with serverId
+  await updateLocalOrderSyncStatus(frontendId, 'synced', {
+    serverId: serverOrder.id,
+  });
+
+  return serverOrder.id;
 }
 
 /**

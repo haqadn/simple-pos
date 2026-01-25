@@ -69,17 +69,6 @@ export async function syncOrder(
     };
   }
 
-  // Only sync orders that are completed or processing
-  // Draft and pending orders should remain local-only until marked complete
-  const syncableStatuses = ["completed", "processing"];
-  if (!options?.force && !syncableStatuses.includes(order.status)) {
-    return {
-      success: true,
-      frontendId,
-      error: `Order status "${order.status}" is not ready for sync (must be completed or processing)`,
-    };
-  }
-
   // Mark order as syncing
   await updateLocalOrderSyncStatus(frontendId, "syncing", {
     lastSyncAttempt: new Date(),

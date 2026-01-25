@@ -13,7 +13,7 @@ import { useDraftOrderState, useDraftOrderActions } from "@/hooks/useDraftOrderS
 import { isSkipError } from "./utils/mutation-helpers";
 import { useEffect, useCallback } from "react";
 import { isValidFrontendId } from "@/lib/frontend-id";
-import { getLocalOrder, getLocalOrderByServerId, updateLocalOrder, importServerOrder, listLocalOrders } from "./offline-orders";
+import { getLocalOrder, getLocalOrderByServerId, updateLocalOrder, importServerOrder, listLocalOrders, ensureServerOrder, updateLocalOrderSyncStatus } from "./offline-orders";
 import type { LocalOrder } from "@/db";
 import { calculateOrderTotal, calculateSubtotal } from "@/lib/order-utils";
 
@@ -479,70 +479,98 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 				});
 			}
 
-			// For orders with serverId, sync to server first and use server response
-			// This ensures we always have correct IDs and prevents race conditions
-			const latestLocalOrder = queryClient.getQueryData<LocalOrder>(['localOrder', urlOrderId]);
-			const currentOrder = latestLocalOrder || await getLocalOrder(urlOrderId);
+			// Check if order already has serverId before updating
+			// (cachedLocalOrder is already defined above)
+			const hadServerId = !!cachedLocalOrder?.serverId;
 
-			if (currentOrder?.serverId) {
-				const patchLineItems: LineItemSchema[] = [];
-
-				// Find existing item with ID from current local data
-				const existingItem = currentOrder.data.line_items.find(
-					li => li.id && li.product_id === product.product_id && li.variation_id === product.variation_id
-				);
-
-				// Mark existing item for deletion if it exists
-				// WooCommerce requires ONLY id and quantity: 0 to delete - other fields may prevent deletion
-				if (existingItem?.id) {
-					patchLineItems.push({
-						id: existingItem.id,
-						name: existingItem.name,
-						product_id: existingItem.product_id,
-						variation_id: existingItem.variation_id,
-						quantity: 0,
-					});
-				}
-
-				// Add the new/updated item if quantity > 0
-				if (quantity > 0) {
-					patchLineItems.push({
-						name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
-						product_id: product.product_id,
-						variation_id: product.variation_id,
-						quantity,
-						price: product.price,
-						id: undefined,
-					});
-				}
-
-				try {
-					// Update server and wait for response with correct IDs
-					const serverOrder = await OrdersAPI.updateOrder(currentOrder.serverId.toString(), {
-						line_items: patchLineItems,
-					});
-
-					if (serverOrder) {
-						// Update local with server's line_items (which have correct IDs)
-						// Filter out any zombie items with quantity 0 that WooCommerce didn't delete
-						const filteredLineItems = serverOrder.line_items.filter(li => li.quantity > 0);
-						const finalLocalOrder = await updateLocalOrder(urlOrderId, {
-							line_items: filteredLineItems,
-						});
-						queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], finalLocalOrder);
-						return finalLocalOrder.data;
-					}
-				} catch (err) {
-					console.error('Failed to update server order line items:', err);
-				}
-			}
-
-			// For orders without serverId, just save locally
+			// Update local order immediately (optimistic update)
 			const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
 				line_items: existingLineItems,
 			});
 			queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
 
+			// Ensure server order exists and get serverId
+			const serverId = await ensureServerOrder(urlOrderId);
+
+			// If this was a new order creation (didn't have serverId before),
+			// ensureServerOrder already sent all the line items, so we're done
+			if (!hadServerId) {
+				// Refresh local order to get the server IDs
+				const refreshedOrder = await getLocalOrder(urlOrderId);
+				if (refreshedOrder) {
+					queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], refreshedOrder);
+					return refreshedOrder.data;
+				}
+				return updatedLocalOrder.data;
+			}
+
+			// For existing orders, sync the change to server
+			// Prepare line items for server sync
+			const patchLineItems: LineItemSchema[] = [];
+
+			// Get the latest local order to find items with IDs
+			const latestLocalOrder = await getLocalOrder(urlOrderId);
+			const existingItem = latestLocalOrder?.data.line_items.find(
+				li => li.id && li.product_id === product.product_id && li.variation_id === product.variation_id
+			);
+
+			// Mark existing item for deletion if it exists
+			// WooCommerce requires ONLY id and quantity: 0 to delete - other fields may prevent deletion
+			if (existingItem?.id) {
+				patchLineItems.push({
+					id: existingItem.id,
+					name: existingItem.name,
+					product_id: existingItem.product_id,
+					variation_id: existingItem.variation_id,
+					quantity: 0,
+				});
+			}
+
+			// Add the new/updated item if quantity > 0
+			if (quantity > 0) {
+				patchLineItems.push({
+					name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
+					product_id: product.product_id,
+					variation_id: product.variation_id,
+					quantity,
+					price: product.price,
+					id: undefined,
+				});
+			}
+
+			// Attempt server sync
+			try {
+				// Update server and wait for response with correct IDs
+				const serverOrder = await OrdersAPI.updateOrder(serverId.toString(), {
+					line_items: patchLineItems,
+				});
+
+				if (serverOrder) {
+					// Update local with server's line_items (which have correct IDs)
+					// Filter out any zombie items with quantity 0 that WooCommerce didn't delete
+					const filteredLineItems = serverOrder.line_items.filter(li => li.quantity > 0);
+					const finalLocalOrder = await updateLocalOrder(urlOrderId, {
+						line_items: filteredLineItems,
+					});
+					queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], finalLocalOrder);
+
+					// Mark as synced
+					await updateLocalOrderSyncStatus(urlOrderId, 'synced', { serverId });
+
+					return finalLocalOrder.data;
+				}
+			} catch (err) {
+				const errorMessage = err instanceof Error ? err.message : 'Unknown error during sync';
+				console.error('Failed to update server order line items:', errorMessage);
+
+				// Mark for retry on failure
+				await updateLocalOrderSyncStatus(urlOrderId, 'error', {
+					syncError: errorMessage,
+					lastSyncAttempt: new Date(),
+				});
+			}
+
+			// Return the local order data (whether sync succeeded or failed)
 			return updatedLocalOrder.data;
 		}
 
@@ -879,49 +907,73 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			taxes: []
 		};
 
-		// Handle frontend ID orders - save to Dexie only (local-first)
+		// Handle frontend ID orders - save to local and sync to server
 		if (isFrontendIdOrder && urlOrderId) {
-			// Get current local order for correct IDs
+			// Get current local order and check if it has serverId
 			const cachedLocalOrder = queryClient.getQueryData<LocalOrder>(['localOrder', urlOrderId]);
 			const currentOrder = cachedLocalOrder || await getLocalOrder(urlOrderId);
+			const hadServerId = !!currentOrder?.serverId;
 
-			// For orders with serverId, sync to server first and use server response
-			if (currentOrder?.serverId) {
-				// Get existing shipping line ID if present
-				const existingShippingLine = currentOrder.data.shipping_lines?.find(line =>
-					line.id && line.method_id && line.method_id !== ''
-				);
+			// Get existing shipping line ID if present for in-place update
+			const existingShippingLine = currentOrder?.data.shipping_lines?.find(line =>
+				line.id && line.method_id && line.method_id !== ''
+			);
 
-				// Reuse existing ID for in-place update
-				if (existingShippingLine?.id) {
-					shippingLine.id = existingShippingLine.id;
-				}
-
-				try {
-					// Update server with the shipping line (in-place update if ID exists)
-					const serverOrder = await OrdersAPI.updateOrder(currentOrder.serverId.toString(), {
-						shipping_lines: [shippingLine],
-					});
-
-					if (serverOrder) {
-						// Update local with server's shipping_lines
-						const finalLocalOrder = await updateLocalOrder(urlOrderId, {
-							shipping_lines: serverOrder.shipping_lines,
-						});
-						queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], finalLocalOrder);
-						return finalLocalOrder.data;
-					}
-				} catch (err) {
-					console.error('Failed to update server order shipping:', err);
-				}
+			// Reuse existing ID for in-place update
+			if (existingShippingLine?.id) {
+				shippingLine.id = existingShippingLine.id;
 			}
 
-			// For orders without serverId, just save locally
+			// Update local order immediately (optimistic update)
 			const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
 				shipping_lines: [shippingLine],
 			});
-			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+			queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
 
+			// Ensure server order exists and get serverId
+			const serverId = await ensureServerOrder(urlOrderId);
+
+			// If this was a new order creation, ensureServerOrder already sent the shipping line
+			if (!hadServerId) {
+				const refreshedOrder = await getLocalOrder(urlOrderId);
+				if (refreshedOrder) {
+					queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], refreshedOrder);
+					return refreshedOrder.data;
+				}
+				return updatedLocalOrder.data;
+			}
+
+			// For existing orders, sync the change to server
+			try {
+				// Update server with the shipping line (in-place update if ID exists)
+				const serverOrder = await OrdersAPI.updateOrder(serverId.toString(), {
+					shipping_lines: [shippingLine],
+				});
+
+				if (serverOrder) {
+					// Update local with server's shipping_lines
+					const finalLocalOrder = await updateLocalOrder(urlOrderId, {
+						shipping_lines: serverOrder.shipping_lines,
+					});
+					queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], finalLocalOrder);
+
+					// Mark as synced
+					await updateLocalOrderSyncStatus(urlOrderId, 'synced', { serverId });
+
+					return finalLocalOrder.data;
+				}
+			} catch (err) {
+				const errorMessage = err instanceof Error ? err.message : 'Unknown error during sync';
+				console.error('Failed to update server order shipping:', errorMessage);
+
+				// Mark for retry on failure
+				await updateLocalOrderSyncStatus(urlOrderId, 'error', {
+					syncError: errorMessage,
+					lastSyncAttempt: new Date(),
+				});
+			}
+
+			// Return the local order data (whether sync succeeded or failed)
 			return updatedLocalOrder.data;
 		}
 
@@ -1124,19 +1176,35 @@ export const useOrderNoteQuery = (orderQuery: QueryObserverResult<OrderSchema | 
 			throw new Error('Order and note are required to update order note');
 		}
 
-		// Handle frontend ID orders - save to Dexie only (local-first)
+		// Handle frontend ID orders - save to local and sync to server
 		if (isFrontendIdOrder && urlOrderId) {
+			// Update local order immediately (optimistic update)
 			const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
 				customer_note: note,
 			});
-			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+			queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
 
-			// If this order has a serverId, sync note directly to server
-			if (updatedLocalOrder.serverId) {
-				OrdersAPI.updateOrder(updatedLocalOrder.serverId.toString(), {
+			// Ensure server order exists and get serverId
+			const serverId = await ensureServerOrder(urlOrderId);
+
+			// Attempt server sync
+			try {
+				const serverOrder = await OrdersAPI.updateOrder(serverId.toString(), {
 					customer_note: note,
-				}).catch(err => {
-					console.error('Failed to sync order note:', err);
+				});
+
+				if (serverOrder) {
+					// Mark as synced
+					await updateLocalOrderSyncStatus(urlOrderId, 'synced', { serverId });
+				}
+			} catch (err) {
+				const errorMessage = err instanceof Error ? err.message : 'Unknown error during sync';
+				console.error('Failed to sync order note:', errorMessage);
+
+				// Mark for retry on failure
+				await updateLocalOrderSyncStatus(urlOrderId, 'error', {
+					syncError: errorMessage,
+					lastSyncAttempt: new Date(),
 				});
 			}
 
@@ -1257,19 +1325,35 @@ export const useCustomerInfoQuery = (orderQuery: QueryObserverResult<OrderSchema
 		// Merge with existing billing data to ensure all required fields are present
 		const mergedBilling = { ...inputOrder.billing, ...billing };
 
-		// Handle frontend ID orders - save to Dexie only (local-first)
+		// Handle frontend ID orders - save to local and sync to server
 		if (isFrontendIdOrder && urlOrderId) {
+			// Update local order immediately (optimistic update)
 			const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
 				billing: mergedBilling,
 			});
-			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+			queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
 
-			// If this order has a serverId, sync billing directly to server
-			if (updatedLocalOrder.serverId) {
-				OrdersAPI.updateOrder(updatedLocalOrder.serverId.toString(), {
+			// Ensure server order exists and get serverId
+			const serverId = await ensureServerOrder(urlOrderId);
+
+			// Attempt server sync
+			try {
+				const serverOrder = await OrdersAPI.updateOrder(serverId.toString(), {
 					billing: mergedBilling,
-				}).catch(err => {
-					console.error('Failed to sync customer info:', err);
+				});
+
+				if (serverOrder) {
+					// Mark as synced
+					await updateLocalOrderSyncStatus(urlOrderId, 'synced', { serverId });
+				}
+			} catch (err) {
+				const errorMessage = err instanceof Error ? err.message : 'Unknown error during sync';
+				console.error('Failed to sync customer info:', errorMessage);
+
+				// Mark for retry on failure
+				await updateLocalOrderSyncStatus(urlOrderId, 'error', {
+					syncError: errorMessage,
+					lastSyncAttempt: new Date(),
 				});
 			}
 
@@ -1404,19 +1488,35 @@ export const usePaymentQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			];
 		}
 
-		// Handle frontend ID orders - save to Dexie only (local-first)
+		// Handle frontend ID orders - save to local and sync to server
 		if (isFrontendIdOrder && urlOrderId) {
+			// Update local order immediately (optimistic update)
 			const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
 				meta_data: updatedMetaData,
 			});
-			await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
+			queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
 
-			// If this order has a serverId, sync payment directly to server
-			if (updatedLocalOrder.serverId) {
-				OrdersAPI.updateOrder(updatedLocalOrder.serverId.toString(), {
+			// Ensure server order exists and get serverId
+			const serverId = await ensureServerOrder(urlOrderId);
+
+			// Attempt server sync
+			try {
+				const serverOrder = await OrdersAPI.updateOrder(serverId.toString(), {
 					meta_data: updatedMetaData,
-				}).catch(err => {
-					console.error('Failed to sync payment:', err);
+				});
+
+				if (serverOrder) {
+					// Mark as synced
+					await updateLocalOrderSyncStatus(urlOrderId, 'synced', { serverId });
+				}
+			} catch (err) {
+				const errorMessage = err instanceof Error ? err.message : 'Unknown error during sync';
+				console.error('Failed to sync payment:', errorMessage);
+
+				// Mark for retry on failure
+				await updateLocalOrderSyncStatus(urlOrderId, 'error', {
+					syncError: errorMessage,
+					lastSyncAttempt: new Date(),
 				});
 			}
 
