@@ -332,6 +332,14 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 				li => li.product_id === product.product_id && li.variation_id === product.variation_id
 			);
 
+			// Capture the server-side line item ID from the ORIGINAL order (inputOrder),
+			// not from the cache which onMutate may have already modified optimistically.
+			// We need this later to send a deletion marker to WooCommerce.
+			const originalItem = inputOrder.line_items.find(
+				li => li.product_id === product.product_id && li.variation_id === product.variation_id
+			);
+			const existingServerItemId = originalItem?.id;
+
 			if (existingIdx >= 0) {
 				if (quantity > 0) {
 					// Recalculate subtotal and total when quantity changes
@@ -413,20 +421,14 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 				// Prepare line items for server sync
 				const patchLineItems: LineItemSchema[] = [];
 
-				// Get the latest local order to find items with IDs
-				const latestLocalOrder = await getLocalOrder(urlOrderId);
-				const existingItem = latestLocalOrder?.data.line_items.find(
-					li => li.id && li.product_id === product.product_id && li.variation_id === product.variation_id
-				);
-
-				// Mark existing item for deletion if it exists
-				// WooCommerce requires ONLY id and quantity: 0 to delete - other fields may prevent deletion
-				if (existingItem?.id) {
+				// Use the server-side ID captured BEFORE the item was removed from Dexie
+				// (getLocalOrder would fail here because the item is already gone)
+				if (existingServerItemId) {
 					patchLineItems.push({
-						id: existingItem.id,
-						name: existingItem.name,
-						product_id: existingItem.product_id,
-						variation_id: existingItem.variation_id,
+						id: existingServerItemId,
+						name: product.name,
+						product_id: product.product_id,
+						variation_id: product.variation_id,
 						quantity: 0,
 					});
 				}
