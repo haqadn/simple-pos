@@ -13,7 +13,7 @@ import { useDraftOrderState, useDraftOrderActions } from "@/hooks/useDraftOrderS
 import { isSkipError } from "./utils/mutation-helpers";
 import { useEffect, useCallback } from "react";
 import { isValidFrontendId } from "@/lib/frontend-id";
-import { getLocalOrder, getLocalOrderByServerId, updateLocalOrder, importServerOrder, listLocalOrders, ensureServerOrder, updateLocalOrderSyncStatus } from "./offline-orders";
+import { getLocalOrder, getLocalOrderByServerId, updateLocalOrder, listLocalOrders, ensureServerOrder, updateLocalOrderSyncStatus, upsertServerOrders } from "./offline-orders";
 import type { LocalOrder } from "@/db";
 import { calculateOrderTotal, calculateSubtotal } from "@/lib/order-utils";
 
@@ -53,77 +53,6 @@ const findOrderLineItems = (order?: OrderSchema, product?: ProductSchema): LineI
 }
 
 /**
- * Import server orders into the local Dexie database.
- * This function checks each server order to see if it already exists in the local DB
- * (either by server ID or by frontend ID from meta_data), and imports it if not.
- * Returns the combined list of orders with frontend IDs attached.
- */
-async function importServerOrdersToLocal(serverOrders: OrderSchema[]): Promise<void> {
-	for (const serverOrder of serverOrders) {
-		// Check if order already exists locally by server ID
-		const existingByServerId = await getLocalOrderByServerId(serverOrder.id);
-		if (existingByServerId) {
-			continue; // Already imported
-		}
-
-		// Check if order has a frontend ID in meta_data (was created locally and synced)
-		const frontendIdMeta = serverOrder.meta_data?.find(m => m.key === 'pos_frontend_id');
-		const existingFrontendId = frontendIdMeta?.value as string | undefined;
-
-		if (existingFrontendId) {
-			// Check if we already have this frontend ID locally
-			const existingByFrontendId = await getLocalOrder(existingFrontendId);
-			if (existingByFrontendId) {
-				continue; // Already exists
-			}
-		}
-
-		// Import the server order into local DB
-		// importServerOrder will generate a new frontend ID if existingFrontendId is undefined
-		await importServerOrder(serverOrder, existingFrontendId);
-	}
-}
-
-export const useOrdersStore = () => {
-	const queryClient = useQueryClient();
-
-	const ordersQuery = useQuery<OrderSchema[]>({
-		queryKey: generateOrderQueryKey('list'),
-		queryFn: async () => {
-			const serverOrders = await OrdersAPI.listOrders({
-				'per_page': '100',
-				'status': 'pending,processing,on-hold',
-				'orderby': 'date',  // Sort by creation date, not modification date
-				'order': 'asc'      // Oldest first (stable order)
-			});
-
-			// Import server orders into local Dexie database
-			// This runs in the background and doesn't block the response
-			importServerOrdersToLocal(serverOrders).catch(err => {
-				console.error('Failed to import server orders to local DB:', err);
-			});
-
-			return serverOrders;
-		},
-		refetchInterval: 60 * 1000,
-		staleTime: 60 * 1000,
-	});
-
-	const createOrder = async () => {
-		try {
-			const order = await OrdersAPI.saveOrder({ status: 'pending' });
-			await queryClient.invalidateQueries({ queryKey: generateOrderQueryKey('list') });
-			return order;
-		} catch (error) {
-			console.error('Failed to create order:', error);
-			throw error;
-		}
-	};
-
-	return { ordersQuery, createOrder };
-}
-
-/**
  * Extended order type that includes the frontend ID for local orders
  */
 export interface OrderWithFrontendId extends OrderSchema {
@@ -131,135 +60,70 @@ export interface OrderWithFrontendId extends OrderSchema {
 }
 
 /**
- * Hook to get all local orders from Dexie
- * This is used by the sidebar to display orders with frontend IDs
+ * Single source of truth for the orders list.
+ * Reads from Dexie (local database) which contains both locally-created
+ * orders and server orders imported by the background sync.
  */
-export const useLocalOrdersQuery = () => {
-	return useQuery<LocalOrder[]>({
-		queryKey: ['localOrders'],
+export const useOrdersQuery = () => {
+	const query = useQuery<OrderWithFrontendId[]>({
+		queryKey: ['orders'],
 		queryFn: async () => {
-			return await listLocalOrders({
+			const localOrders = await listLocalOrders({
 				status: ['pending', 'processing', 'on-hold', 'draft'],
 			});
+			return localOrders.map(lo => ({
+				...lo.data,
+				frontendId: lo.frontendId,
+			}));
 		},
-		staleTime: 5000, // 5 seconds - local data updates quickly
-		refetchInterval: 10000, // 10 seconds
-	});
-};
-
-/**
- * Hook that combines server orders with local orders and provides frontend IDs
- * Returns orders with their frontend IDs attached for proper routing
- */
-export const useCombinedOrdersStore = () => {
-	const { ordersQuery } = useOrdersStore();
-	const localOrdersQuery = useLocalOrdersQuery();
-	const queryClient = useQueryClient();
-
-	// Combine server orders with local order data to get frontend IDs
-	const ordersWithFrontendIds = useQuery<OrderWithFrontendId[]>({
-		queryKey: ['ordersWithFrontendIds'],
-		queryFn: async () => {
-			// Read directly from cache to get optimistic updates
-			const serverOrders = queryClient.getQueryData<OrderSchema[]>(['orders']) || [];
-			const localOrders = queryClient.getQueryData<LocalOrder[]>(['localOrders']) || [];
-
-			// Create a map of server IDs to local orders for quick lookup
-			const serverIdToLocalOrder = new Map<number, LocalOrder>();
-			const frontendIdToLocalOrder = new Map<string, LocalOrder>();
-
-			for (const localOrder of localOrders) {
-				if (localOrder.serverId) {
-					serverIdToLocalOrder.set(localOrder.serverId, localOrder);
-				}
-				frontendIdToLocalOrder.set(localOrder.frontendId, localOrder);
-			}
-
-			// Build the combined list
-			const combinedOrders: OrderWithFrontendId[] = [];
-			const processedServerIds = new Set<number>();
-
-			// First, add all server orders with their frontend IDs
-			for (const serverOrder of serverOrders) {
-				processedServerIds.add(serverOrder.id);
-
-				// Try to find the local order by server ID
-				let localOrder = serverIdToLocalOrder.get(serverOrder.id);
-
-				// If not found by server ID, try by frontend ID from meta_data
-				if (!localOrder) {
-					const frontendIdMeta = serverOrder.meta_data?.find(m => m.key === 'pos_frontend_id');
-					const frontendId = frontendIdMeta?.value as string | undefined;
-					if (frontendId) {
-						localOrder = frontendIdToLocalOrder.get(frontendId);
-					}
-				}
-
-				// Get frontendId: prefer local order's frontendId, fallback to server's meta_data
-				// This handles the case where local order status is completed but server is still processing
-				let frontendId = localOrder?.frontendId;
-				if (!frontendId) {
-					const frontendIdMeta = serverOrder.meta_data?.find(m => m.key === 'pos_frontend_id');
-					frontendId = frontendIdMeta?.value as string | undefined;
-				}
-
-				combinedOrders.push({
-					...serverOrder,
-					frontendId,
-				});
-			}
-
-			// Add local-only orders (not yet synced or with errors)
-			for (const localOrder of localOrders) {
-				if (localOrder.serverId && processedServerIds.has(localOrder.serverId)) {
-					continue; // Already added with server data
-				}
-
-				// Only include orders that should be displayed in the list
-				if (!['pending', 'processing', 'on-hold', 'draft'].includes(localOrder.status)) {
-					continue;
-				}
-
-				combinedOrders.push({
-					...localOrder.data,
-					frontendId: localOrder.frontendId,
-				});
-			}
-
-			// Sort orders by createdAt ascending (oldest first, newest at bottom)
-			// This ensures new orders appear at the bottom of the sidebar
-			combinedOrders.sort((a, b) => {
-				const dateA = a.date_created ? new Date(a.date_created).getTime() : 0;
-				const dateB = b.date_created ? new Date(b.date_created).getTime() : 0;
-				return dateA - dateB;
-			});
-
-			return combinedOrders;
-		},
-		enabled: ordersQuery.isSuccess && localOrdersQuery.isSuccess,
 		staleTime: 5000,
 	});
 
-	// Invalidate combined query when either source changes
-	useEffect(() => {
-		if (ordersQuery.dataUpdatedAt || localOrdersQuery.dataUpdatedAt) {
-			queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
-		}
-	}, [ordersQuery.dataUpdatedAt, localOrdersQuery.dataUpdatedAt, queryClient]);
-
 	return {
-		ordersQuery: ordersWithFrontendIds,
-		serverOrdersQuery: ordersQuery,
-		localOrdersQuery,
-		// Include all loading states - source queries AND the combined query
-		isLoading: ordersQuery.isLoading || localOrdersQuery.isLoading || ordersWithFrontendIds.isLoading || !ordersWithFrontendIds.data,
+		ordersQuery: query,
+		isLoading: query.isLoading,
 	};
 };
 
-export const useOrderQuery = ( orderId: number ) => {
-	const { ordersQuery } = useOrdersStore();
+/**
+ * Background server sync.
+ * Fetches orders from WooCommerce periodically and upserts them into Dexie.
+ * This is not a query — it's a side effect that keeps Dexie in sync with the server.
+ * Mount once at app root.
+ */
+export const useServerSync = () => {
+	const queryClient = useQueryClient();
 
-	const cachedOrder = ordersQuery.data?.find(order => order.id === orderId);
+	useEffect(() => {
+		let active = true;
+
+		const sync = async () => {
+			try {
+				const serverOrders = await OrdersAPI.listOrders({
+					'per_page': '100',
+					'status': 'pending,processing,on-hold',
+					'orderby': 'date',
+					'order': 'asc',
+				});
+				if (!active) return;
+				await upsertServerOrders(serverOrders);
+				queryClient.invalidateQueries({ queryKey: ['orders'] });
+			} catch {
+				// Offline or error — no-op, Dexie has local data
+			}
+		};
+
+		sync();
+		const interval = setInterval(sync, 60_000);
+		return () => {
+			active = false;
+			clearInterval(interval);
+		};
+	}, [queryClient]);
+};
+
+export const useOrderQuery = ( orderId: number ) => {
+	const cachedOrder = undefined; // No longer reading from a server orders cache
 
 	const queryKey = generateOrderQueryKey('detail', cachedOrder);
 
@@ -440,7 +304,6 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 		setSavedOrderId,
 		acquireSaveLock,
 		releaseSaveLock,
-		currentFrontendId,
 	} = useDraftOrderState();
 	const { updateDraftLineItems } = useDraftOrderActions();
 
@@ -900,15 +763,16 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			
 			let slug: string;
 			let title: string;
-			
+
 			if (activeShippingLine.method_id === 'pickup_location') {
-				// For tables, extract table name from method_title (e.g., "Table (Table One)" -> "Table One")
+				// For tables, extract table name from method_title
+				// Support both old format "Table (Table One)" and new format "Table One"
 				const titleMatch = activeShippingLine.method_title.match(/\(([^)]+)\)/);
 				const extractedTableName = titleMatch ? titleMatch[1] : activeShippingLine.method_title;
-				
+
 				// Find the table that matches this name to get the correct slug
 				const matchingTable = tables?.find(table => table.title === extractedTableName);
-				
+
 				if (matchingTable) {
 					slug = matchingTable.slug; // Use the table's slug for proper matching
 					title = matchingTable.title; // Use the table's title
@@ -941,7 +805,7 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 		const shippingLine: ShippingLineSchema = {
 			method_id: service.type === 'table' ? 'pickup_location' : 'flat_rate',
 			instance_id: service.type === 'table' ? '0' : service.slug,
-			method_title: service.type === 'table' ? `Table (${service.title})` : service.title,
+			method_title: service.title,
 			total: service.fee.toString(),
 			total_tax: '0.00',
 			taxes: []
@@ -1125,7 +989,7 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 				id: existingShippingLine?.id, // Use existing ID if present
 				method_id: params.service.type === 'table' ? 'pickup_location' : 'flat_rate',
 				instance_id: params.service.type === 'table' ? '0' : params.service.slug,
-				method_title: params.service.type === 'table' ? `Table (${params.service.title})` : params.service.title,
+				method_title: params.service.title,
 				total: params.service.fee.toString(),
 				total_tax: '0.00',
 				taxes: []
@@ -1140,17 +1004,14 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 				});
 				queryClient.setQueryData(serviceKey, params.service);
 
-				// Optimistically update the source query
-				queryClient.setQueryData(['localOrders'], (oldOrders: LocalOrder[] | undefined) => {
+				// Optimistically update the sidebar orders list
+				queryClient.setQueryData(['orders'], (oldOrders: OrderWithFrontendId[] | undefined) => {
 					if (!oldOrders) return oldOrders;
 					return oldOrders.map(o =>
-						o.frontendId === urlOrderId ? { ...o, data: newOrderQueryData } : o
+						o.frontendId === urlOrderId ? { ...o, shipping_lines: [newShippingLine] } : o
 					);
 				});
 
-				// Invalidate the derived query to force immediate rebuild from updated source
-				// This triggers a synchronous refetch since the source data is already in cache
-				queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
 				return;
 			}
 
@@ -1178,11 +1039,10 @@ export const useServiceQuery = (orderQuery: QueryObserverResult<OrderSchema | nu
 			}
 		},
 		onSuccess: (data: OrderSchema) => {
-			// For frontend ID orders, invalidate local orders queries (for sidebar update)
+			// For frontend ID orders, invalidate queries for fresh data
 			if (isFrontendIdOrder && urlOrderId) {
 				queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
-				// Invalidate the source query so combined orders rebuilds with fresh data
-				queryClient.invalidateQueries({ queryKey: ['localOrders'] });
+				queryClient.invalidateQueries({ queryKey: ['orders'] });
 				return;
 			}
 

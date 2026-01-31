@@ -216,8 +216,7 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
         // Queue sync to update server with reopened status
         syncOrder(selectedOrder.frontendId).catch(console.error);
         // Invalidate queries to refresh sidebar
-        await queryClient.invalidateQueries({ queryKey: ['localOrders'] });
-        await queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
+        await queryClient.invalidateQueries({ queryKey: ['orders'] });
         await queryClient.invalidateQueries({ queryKey: ['localOrder', selectedOrder.frontendId] });
       }
 

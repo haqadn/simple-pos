@@ -106,8 +106,7 @@ export function POSCommandInput({ onMessage, onAddProduct, onPrint, onOpenDrawer
 
       // Invalidate queries to update UI
       await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
-      await queryClient.invalidateQueries({ queryKey: ['localOrders'] });
-      await queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
+      await queryClient.invalidateQueries({ queryKey: ['orders'] });
 
       // Sync to server
       syncOrder(urlOrderId).catch(console.error);

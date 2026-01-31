@@ -9,7 +9,12 @@ import { GlobalShortcutsProvider } from '@/components/global-shortcuts-provider'
 import { ThermalPrint } from '@/components/print'
 import { SetupGuard } from './components/setup-guard'
 import { SyncManager } from './components/sync-manager'
+import { useServerSync } from '@/stores/orders'
 
+function ServerSync() {
+  useServerSync();
+  return null;
+}
 
 export function Providers({children}: { children: React.ReactNode }) {
   const queryClient = new QueryClient()
@@ -25,6 +30,7 @@ export function Providers({children}: { children: React.ReactNode }) {
           </GlobalShortcutsProvider>
           <ThermalPrint />
           <SyncManager />
+          <ServerSync />
         </SetupGuard>
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>

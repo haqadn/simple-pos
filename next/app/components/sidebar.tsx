@@ -5,14 +5,14 @@ import { Button, Kbd } from "@heroui/react";
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCombinedOrdersStore, type OrderWithFrontendId } from "@/stores/orders";
+import { useOrdersQuery, type OrderWithFrontendId } from "@/stores/orders";
 import { useDraftOrderStore } from "@/stores/draft-order";
 import OfflineIndicator from "./OfflineIndicator";
 import { TodaysOrdersModal } from "./TodaysOrdersModal";
 import { createLocalOrder } from "@/stores/offline-orders";
 
 export default function Sidebar() {
-    const { ordersQuery: { data: orders }, isLoading } = useCombinedOrdersStore();
+    const { ordersQuery: { data: orders }, isLoading } = useOrdersQuery();
     const resetDraft = useDraftOrderStore((state) => state.resetDraft);
     const setCurrentFrontendId = useDraftOrderStore((state) => state.setCurrentFrontendId);
     const pathname = usePathname();
@@ -74,9 +74,8 @@ export default function Sidebar() {
         // Store the frontend ID in Zustand for quick access
         setCurrentFrontendId(localOrder.frontendId);
 
-        // Invalidate queries to make the new order appear in the sidebar
-        await queryClient.invalidateQueries({ queryKey: ['localOrders'] });
-        await queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
+        // Invalidate orders query to make the new order appear in the sidebar
+        await queryClient.invalidateQueries({ queryKey: ['orders'] });
 
         // Navigate to the frontend ID URL
         router.push(`/orders/${localOrder.frontendId}`);

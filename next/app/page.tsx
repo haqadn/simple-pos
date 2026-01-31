@@ -2,11 +2,11 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCombinedOrdersStore } from '@/stores/orders';
+import { useOrdersQuery } from '@/stores/orders';
 
 export default function Page() {
   const router = useRouter();
-  const { ordersQuery, isLoading } = useCombinedOrdersStore();
+  const { ordersQuery, isLoading } = useOrdersQuery();
   const hasRedirectedRef = useRef(false);
 
   useEffect(() => {

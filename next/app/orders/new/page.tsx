@@ -29,8 +29,7 @@ export default function NewOrderPage() {
             setCurrentFrontendId(localOrder.frontendId);
 
             // Invalidate queries to make the new order appear in the sidebar
-            await queryClient.invalidateQueries({ queryKey: ['localOrders'] });
-            await queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
+            await queryClient.invalidateQueries({ queryKey: ['orders'] });
 
             // Redirect to the frontend ID URL
             router.replace(`/orders/${localOrder.frontendId}`);

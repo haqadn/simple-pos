@@ -2,7 +2,7 @@
 
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
 import { useCallback } from 'react';
-import { useCurrentOrder, useOrdersStore, useServiceQuery } from '@/stores/orders';
+import { useCurrentOrder, useOrdersQuery, useServiceQuery } from '@/stores/orders';
 import { useTablesQuery, useDeliveryZonesQuery } from '@/stores/service';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
@@ -17,7 +17,7 @@ export function GlobalShortcutsProvider({ children }: { children: React.ReactNod
     const queryClient = useQueryClient();
     const router = useRouter();
     const params = useParams();
-    const { ordersQuery } = useOrdersStore();
+    const { ordersQuery } = useOrdersQuery();
     const { data: tables } = useTablesQuery();
     const { data: deliveryZones } = useDeliveryZonesQuery();
     const [, serviceMutation] = useServiceQuery(orderQuery);
@@ -64,8 +64,7 @@ export function GlobalShortcutsProvider({ children }: { children: React.ReactNod
             if (isFrontendIdOrder && urlOrderId) {
                 await updateLocalOrderStatus(urlOrderId, 'completed');
                 queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
-                queryClient.invalidateQueries({ queryKey: ['localOrders'] });
-                queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
+                queryClient.invalidateQueries({ queryKey: ['orders'] });
 
                 // Sync to server in background (non-blocking)
                 syncOrder(urlOrderId).catch(err => console.error('Sync failed:', err));

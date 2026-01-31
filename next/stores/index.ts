@@ -1,6 +1,7 @@
 // Barrel export for stores
 export {
-  useOrdersStore,
+  useOrdersQuery,
+  useServerSync,
   useOrderQuery,
   useCurrentOrder,
   useIsDraftOrder,

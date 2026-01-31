@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { ButtonGroup, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Kbd } from "@heroui/react";
-import { useCurrentOrder, useCombinedOrdersStore } from "@/stores/orders";
+import { useCurrentOrder, useOrdersQuery } from "@/stores/orders";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useParams } from "next/navigation";
 import OrdersAPI, { OrderSchema } from "@/api/orders";
@@ -24,7 +24,7 @@ export default function Buttons() {
     const printStore = usePrintStore();
     const { data: products } = useProductsQuery();
     const skipKotCategories = useSettingsStore(state => state.skipKotCategories);
-    const { ordersQuery: combinedOrdersQuery } = useCombinedOrdersStore();
+    const { ordersQuery: combinedOrdersQuery } = useOrdersQuery();
     const [isPrintingKot, setIsPrintingKot] = useState(false);
     const [isPrintingBill, setIsPrintingBill] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
@@ -162,8 +162,7 @@ export default function Buttons() {
                     await deleteLocalOrder(urlOrderId);
                 }
                 queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
-                queryClient.invalidateQueries({ queryKey: ['localOrders'] });
-                queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
+                queryClient.invalidateQueries({ queryKey: ['orders'] });
                 queryClient.invalidateQueries({ queryKey: ['todaysOrders'] });
             } else if (orderQuery.data.id > 0 && orderQuery.data.id !== DRAFT_ORDER_ID) {
                 // For server orders, cancel via API
@@ -210,8 +209,7 @@ export default function Buttons() {
                 await updateLocalOrderStatus(urlOrderId, 'completed');
 
                 queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
-                queryClient.invalidateQueries({ queryKey: ['localOrders'] });
-                queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
+                queryClient.invalidateQueries({ queryKey: ['orders'] });
 
                 // Ensure server order exists and sync the completion status
                 try {

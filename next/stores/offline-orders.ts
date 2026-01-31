@@ -436,6 +436,65 @@ export async function importServerOrder(
 }
 
 /**
+ * Upsert server orders into the local database.
+ *
+ * - New orders (no match by serverId) → imported
+ * - Existing orders with syncStatus 'synced' → updated with fresh server data
+ * - Existing orders with syncStatus 'local', 'error', or 'syncing' → skipped (local wins)
+ *
+ * This replaces importServerOrdersToLocal and is used by the background server sync.
+ */
+export async function upsertServerOrders(serverOrders: OrderSchema[]): Promise<void> {
+  for (const serverOrder of serverOrders) {
+    // Check if order already exists locally by server ID
+    const existing = await getLocalOrderByServerId(serverOrder.id);
+
+    if (!existing) {
+      // New order — check for frontend ID in meta_data (created locally, synced elsewhere)
+      const frontendIdMeta = serverOrder.meta_data?.find(m => m.key === 'pos_frontend_id');
+      const existingFrontendId = frontendIdMeta?.value as string | undefined;
+
+      if (existingFrontendId) {
+        const existingByFrontendId = await getLocalOrder(existingFrontendId);
+        if (existingByFrontendId) {
+          continue; // Already exists by frontend ID
+        }
+      }
+
+      // Import as new order
+      await importServerOrder(serverOrder, existingFrontendId);
+      continue;
+    }
+
+    // Order exists locally — only update if fully synced (no pending local changes)
+    if (existing.syncStatus !== 'synced') {
+      continue; // Local changes take priority
+    }
+
+    // Filter out zombie items
+    const filteredLineItems = serverOrder.line_items.filter(li => li.quantity > 0);
+    const filteredShippingLines = serverOrder.shipping_lines.filter(
+      sl => sl.method_id && sl.method_id !== '' && sl.method_title && sl.method_title !== ''
+    );
+
+    // Preserve local meta_data (especially pos_frontend_id)
+    const preservedMetaData = existing.data.meta_data ?? [];
+
+    await db.orders.put({
+      ...existing,
+      status: serverOrder.status as OrderStatus,
+      data: {
+        ...serverOrder,
+        line_items: filteredLineItems,
+        shipping_lines: filteredShippingLines,
+        meta_data: preservedMetaData,
+      },
+      updatedAt: new Date(),
+    });
+  }
+}
+
+/**
  * Get count of orders by sync status
  *
  * @returns Object with counts for each sync status

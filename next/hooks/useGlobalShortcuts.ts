@@ -99,8 +99,7 @@ export function useGlobalShortcuts(handlers?: ShortcutHandlers) {
         setCurrentFrontendId(localOrder.frontendId);
 
         // Invalidate queries to make the new order appear in the sidebar
-        await queryClient.invalidateQueries({ queryKey: ['localOrders'] });
-        await queryClient.invalidateQueries({ queryKey: ['ordersWithFrontendIds'] });
+        await queryClient.invalidateQueries({ queryKey: ['orders'] });
 
         // Navigate to the frontend ID URL
         router.push(`/orders/${localOrder.frontendId}`);

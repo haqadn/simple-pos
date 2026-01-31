@@ -5,7 +5,7 @@ import { Input } from '@heroui/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
 import { useCommandManager } from '@/hooks/useCommandManager';
-import { useCurrentOrder, useOrdersStore } from '@/stores/orders';
+import { useCurrentOrder, useOrdersQuery } from '@/stores/orders';
 import { useProductsQuery, useGetProductById } from '@/stores/products';
 import { usePrintStore } from '@/stores/print';
 import { buildPrintData, buildPrintMetaUpdates } from '@/lib/print-data';
@@ -37,7 +37,7 @@ export default function CommandBar() {
   // Hooks for data
   const orderQuery = useCurrentOrder();
   const { data: products = [] } = useProductsQuery();
-  const { ordersQuery } = useOrdersStore();
+  const { ordersQuery } = useOrdersQuery();
   const getProductById = useGetProductById();
   const skipKotCategories = useSettingsStore(state => state.skipKotCategories);
   const { data: currencySettings } = useCurrencySettings();
