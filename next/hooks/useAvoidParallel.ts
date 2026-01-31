@@ -3,7 +3,7 @@ import { useCallback, useRef } from 'react';
 /**
  * Avoid parallel calls to a function and instead chain them with one active and one pending at most.
  * It is used to avoid race conditions between mutations.
- * 
+ *
  * @param callback - The function to call. The first argument should be the same type as the return value as that is passed on to the pending call.
  * @returns A function that can be called to call the function.
  */
@@ -30,22 +30,27 @@ export const useAvoidParallel = <Args extends unknown[], T>(callback: (input: T,
             }
 
             // No call in progress, execute immediately
+            const execute = async (execArgs: Args): Promise<T> => {
+                currentPromise.current = callback(state.current as T, ...execArgs);
+                try {
+                    const result = await currentPromise.current;
+                    state.current = result;
+                    return result;
+                } finally {
+                    currentPromise.current = null;
+                }
+            };
+
             try {
-                currentPromise.current = callback(state.current, ...args);
-                const result = await currentPromise.current;
-                state.current = result;
-                return result;
+                return await execute(args);
             } finally {
-                currentPromise.current = null;
-                // If there's a queued call, execute it
-                if (queuedCall.current) {
+                // Drain the queue — keep currentPromise set during each
+                // queued execution so new arrivals get queued, not run in parallel.
+                while (queuedCall.current) {
                     const { args: queuedArgs, resolve, reject } = queuedCall.current;
                     queuedCall.current = null;
-                    
                     try {
-                        const result = await callback(state.current, ...queuedArgs);
-                        state.current = result;
-                        resolve(result);
+                        resolve(await execute(queuedArgs));
                     } catch (error) {
                         reject(error);
                     }
