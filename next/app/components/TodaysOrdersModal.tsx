@@ -256,7 +256,7 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
       <ModalContent>
         {() => (
           <>
-            <ModalHeader className="flex items-center justify-between">
+            <ModalHeader className="flex items-center justify-between pr-10">
               <span>Today&apos;s Orders</span>
               {orders.length > 0 && (
                 <Button
