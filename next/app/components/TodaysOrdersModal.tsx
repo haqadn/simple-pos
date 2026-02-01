@@ -28,6 +28,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { listTodaysOrders, updateLocalOrderStatus, updateLocalOrder, updateLocalOrderSyncStatus } from '@/stores/offline-orders';
+import { useSettingsStore } from '@/stores/settings';
 import { syncOrder } from '@/services/sync';
 import type { LocalOrder } from '@/db';
 import BillPrint from '@/components/print/BillPrint';
@@ -49,6 +50,7 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
   const [isReopening, setIsReopening] = useState(false);
   const router = useRouter();
   const queryClient = useQueryClient();
+  const baseUrl = useSettingsStore((s) => s.api.baseUrl);
 
   // Query for today's orders
   const { data: rawOrders = [], isLoading, refetch } = useQuery({
@@ -283,9 +285,15 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
                               </TableCell>
                               <TableCell>
                                 {order.serverId ? (
-                                  <span className="text-default-500">
+                                  <a
+                                    href={`${baseUrl}/wp-admin/post.php?post=${order.serverId}&action=edit`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-default-500 hover:text-primary hover:underline"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
                                     #{order.serverId}
-                                  </span>
+                                  </a>
                                 ) : (
                                   <span className="text-default-400">--</span>
                                 )}
