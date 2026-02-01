@@ -7,10 +7,10 @@ import { POSCommandInput } from '@/components/pos-command-input';
 import { useCurrentOrder } from '@/stores/orders';
 import { useGetProductById } from '@/stores/products';
 import { isValidFrontendId } from '@/lib/frontend-id';
-import { updateLocalOrder, getLocalOrder } from '@/stores/offline-orders';
 import OrdersAPI from '@/api/orders';
 import type { LocalOrder } from '@/db';
 import type { LineItemSchema } from '@/api/orders';
+import { updateLineItem } from '@/lib/line-item-ops';
 import Buttons from "./buttons";
 import CustomerInfo from "./customer-info";
 import LineItems from "./line-items";
@@ -49,103 +49,17 @@ export default function OrderPageClient({ orderId }: OrderPageClientProps) {
       throw new Error('No active order');
     }
 
-    // Handle frontend ID orders - save to Dexie only (local-first)
+    // Handle frontend ID orders - use shared line item operation
     if (isFrontendIdOrder && urlOrderId) {
-      // Get the current local order from Dexie to get the latest state
-      // IMPORTANT: We must get the latest data BEFORE calculating finalQuantity
-      // to avoid race conditions when multiple commands are executed rapidly
-      const cachedLocalOrder = await getLocalOrder(urlOrderId);
-      const baseOrder = cachedLocalOrder?.data || orderQuery.data;
+      const result = await updateLineItem(urlOrderId, {
+        product_id: productId,
+        variation_id: variationId,
+        name: product.name,
+        variation_name: product.variation_name,
+        price: product.price,
+      }, quantity, mode);
 
-      // Calculate the final quantity based on mode using the LATEST data
-      let finalQuantity = quantity;
-      if (mode === 'increment') {
-        const existingLineItem = baseOrder.line_items.find(
-          li => li.product_id === productId && li.variation_id === variationId
-        );
-        const currentQty = existingLineItem?.quantity || 0;
-        finalQuantity = currentQty + quantity;
-      }
-
-      // Build the new line items array from the latest state
-      const existingLineItems = [...baseOrder.line_items];
-      const existingIdx = existingLineItems.findIndex(
-        li => li.product_id === productId && li.variation_id === variationId
-      );
-
-      if (existingIdx >= 0) {
-        if (finalQuantity > 0) {
-          existingLineItems[existingIdx] = { ...existingLineItems[existingIdx], quantity: finalQuantity };
-        } else {
-          existingLineItems.splice(existingIdx, 1);
-        }
-      } else if (finalQuantity > 0) {
-        existingLineItems.push({
-          name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
-          product_id: product.product_id,
-          variation_id: product.variation_id,
-          quantity: finalQuantity,
-          price: product.price,
-        });
-      }
-
-      // Save to Dexie
-      const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
-        line_items: existingLineItems,
-      });
-
-      // Update the cache directly
-      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
-
-      // If this order has already been synced to the server (has serverId),
-      // update the server directly and wait for response to get correct IDs
-      if (updatedLocalOrder.serverId) {
-        // Build line items for WooCommerce API
-        // WooCommerce requires setting quantity to 0 to delete existing items
-        const patchLineItems: LineItemSchema[] = [];
-
-        // Get existing line items from current local data (with correct IDs)
-        const currentLocalOrder = await getLocalOrder(urlOrderId);
-        const currentLineItems = currentLocalOrder?.data.line_items || baseOrder.line_items;
-        const existingItem = currentLineItems.find(
-          li => li.id && li.product_id === productId && li.variation_id === variationId
-        );
-
-        // Mark existing item for deletion if it exists
-        if (existingItem?.id) {
-          patchLineItems.push({ ...existingItem, quantity: 0 });
-        }
-
-        // Add the new/updated item if quantity > 0
-        if (finalQuantity > 0) {
-          patchLineItems.push({
-            name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
-            product_id: product.product_id,
-            variation_id: product.variation_id,
-            quantity: finalQuantity,
-            price: product.price,
-            id: undefined,
-          });
-        }
-
-        try {
-          // Update server and wait for response with correct IDs
-          const serverOrder = await OrdersAPI.updateOrder(updatedLocalOrder.serverId.toString(), {
-            line_items: patchLineItems,
-          });
-
-          // Update local order with server's line_items (which have correct IDs)
-          if (serverOrder) {
-            const finalLocalOrder = await updateLocalOrder(urlOrderId, {
-              line_items: serverOrder.line_items,
-            });
-            queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], finalLocalOrder);
-          }
-        } catch (err) {
-          console.error('Failed to update server order:', updatedLocalOrder.serverId, err);
-        }
-      }
-
+      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], result.localOrder);
       return;
     }
 

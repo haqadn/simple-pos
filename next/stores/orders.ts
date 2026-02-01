@@ -16,6 +16,7 @@ import { isValidFrontendId } from "@/lib/frontend-id";
 import { getLocalOrder, getLocalOrderByServerId, updateLocalOrder, listLocalOrders, ensureServerOrder, updateLocalOrderSyncStatus, upsertServerOrders } from "./offline-orders";
 import type { LocalOrder } from "@/db";
 import { calculateOrderTotal, calculateSubtotal } from "@/lib/order-utils";
+import { updateLineItem as updateLineItemOp } from "@/lib/line-item-ops";
 
 function generateOrderQueryKey(context: string, order?: OrderSchema, product?: ProductSchema) {
 	switch (context) {
@@ -346,168 +347,22 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 			throw new Error('Order, product, quantity are required to update line item quantity');
 		}
 
-		// Handle frontend ID orders - save to Dexie only (local-first)
+		// Handle frontend ID orders - use shared line item operation
 		if (isFrontendIdOrder && urlOrderId) {
-			// Get the current local order from cache to get the latest state
-			// This is important to avoid race conditions when multiple mutations overlap
-			const cachedLocalOrder = queryClient.getQueryData<LocalOrder>(['localOrder', urlOrderId]);
-			const baseOrder = cachedLocalOrder?.data || inputOrder;
+			const result = await updateLineItemOp(urlOrderId, {
+				product_id: product.product_id,
+				variation_id: product.variation_id,
+				name: product.name,
+				variation_name: product.variation_name,
+				price: product.price,
+			}, quantity, 'set');
 
-			// Build the new line items array from the latest cached state
-			const existingLineItems = [...baseOrder.line_items];
-			const existingIdx = existingLineItems.findIndex(
-				li => li.product_id === product.product_id && li.variation_id === product.variation_id
-			);
-
-			// Capture the server-side line item ID from the ORIGINAL order (inputOrder),
-			// not from the cache which onMutate may have already modified optimistically.
-			// We need this later to send a deletion marker to WooCommerce.
-			const originalItem = inputOrder.line_items.find(
-				li => li.product_id === product.product_id && li.variation_id === product.variation_id
-			);
-			const existingServerItemId = originalItem?.id;
-
-			if (existingIdx >= 0) {
-				if (quantity > 0) {
-					// Recalculate subtotal and total when quantity changes
-					const unitPrice = parseFloat(existingLineItems[existingIdx].price?.toString() || '0');
-					const newSubtotal = unitPrice * quantity;
-					const newTotal = newSubtotal; // Assuming no item-level discounts
-
-					existingLineItems[existingIdx] = {
-						...existingLineItems[existingIdx],
-						quantity,
-						subtotal: newSubtotal.toFixed(2),
-						total: newTotal.toFixed(2),
-					};
-				} else {
-					existingLineItems.splice(existingIdx, 1);
-				}
-			} else if (quantity > 0) {
-				// Calculate subtotal and total for new line items
-				const unitPrice = parseFloat(product.price?.toString() || '0');
-				const newSubtotal = unitPrice * quantity;
-				const newTotal = newSubtotal; // Assuming no item-level discounts
-
-				existingLineItems.push({
-					name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
-					product_id: product.product_id,
-					variation_id: product.variation_id,
-					quantity,
-					price: product.price,
-					subtotal: newSubtotal.toFixed(2),
-					total: newTotal.toFixed(2),
-				});
+			// Merge server IDs into cache without clobbering other optimistic updates
+			if (result.serverLineItems) {
+				mergeServerIdsIntoCache(queryClient, urlOrderId, result.serverLineItems);
 			}
 
-			// Check if order already has serverId before updating
-			// (cachedLocalOrder is already defined above)
-			const hadServerId = !!cachedLocalOrder?.serverId;
-
-			// Calculate order subtotal and total
-			const orderSubtotal = existingLineItems.reduce((sum, item) => {
-				return sum + parseFloat(item.subtotal || '0');
-			}, 0);
-
-			// Get current discount (from coupons or other discounts)
-			const discountTotal = parseFloat(cachedLocalOrder?.data.discount_total || '0');
-
-			// Get shipping cost
-			const shippingTotal = cachedLocalOrder?.data.shipping_lines.reduce((sum, line) => {
-				return sum + parseFloat(line.total || '0');
-			}, 0) || 0;
-
-			const orderTotal = orderSubtotal + shippingTotal - discountTotal;
-
-			// Persist to Dexie (don't update React Query cache here — onMutate already
-			// set the correct optimistic state, and overwriting it would clobber
-			// optimistic updates from other concurrent mutations)
-			const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
-				line_items: existingLineItems,
-				subtotal: orderSubtotal.toFixed(2),
-				total: orderTotal.toFixed(2),
-			});
-
-			// Attempt server sync (wrapped in try/catch for offline support)
-			try {
-				// Ensure server order exists and get serverId
-				const serverId = await ensureServerOrder(urlOrderId);
-
-				// If this was a new order creation (didn't have serverId before),
-				// ensureServerOrder already sent all the line items, so we're done
-				if (!hadServerId) {
-					// Refresh local order to get the server IDs
-					const refreshedOrder = await getLocalOrder(urlOrderId);
-					if (refreshedOrder) {
-						// Merge server IDs into current cache without clobbering other optimistic updates
-						mergeServerIdsIntoCache(queryClient, urlOrderId, refreshedOrder.data.line_items);
-						return refreshedOrder.data;
-					}
-					return updatedLocalOrder.data;
-				}
-
-				// For existing orders, sync the change to server
-				// Prepare line items for server sync
-				// WooCommerce requires delete+add pattern to correctly recalculate totals
-				const patchLineItems: LineItemSchema[] = [];
-
-				// Delete existing line item if it has a server ID
-				if (existingServerItemId) {
-					patchLineItems.push({
-						id: existingServerItemId,
-						name: product.name,
-						product_id: product.product_id,
-						variation_id: product.variation_id,
-						quantity: 0,
-					});
-				}
-
-				// Add the new/updated item if quantity > 0
-				if (quantity > 0) {
-					patchLineItems.push({
-						name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
-						product_id: product.product_id,
-						variation_id: product.variation_id,
-						quantity,
-						price: product.price,
-					});
-				}
-
-				// Update server and wait for response with correct IDs
-				const serverOrder = await OrdersAPI.updateOrder(serverId.toString(), {
-					line_items: patchLineItems,
-				});
-
-				if (serverOrder) {
-					// Update local with server's line_items (which have correct IDs)
-					// Filter out any zombie items with quantity 0 that WooCommerce didn't delete
-					const filteredLineItems = serverOrder.line_items.filter(li => li.quantity > 0);
-					const finalLocalOrder = await updateLocalOrder(urlOrderId, {
-						line_items: filteredLineItems,
-					});
-
-					// Merge server IDs into current cache without clobbering other optimistic updates
-					// (other mutations may have removed items that the server still has)
-					mergeServerIdsIntoCache(queryClient, urlOrderId, filteredLineItems);
-
-					// Mark as synced
-					await updateLocalOrderSyncStatus(urlOrderId, 'synced', { serverId });
-
-					return finalLocalOrder.data;
-				}
-			} catch (err) {
-				const errorMessage = err instanceof Error ? err.message : 'Unknown error during sync';
-				console.error('Failed to sync order line items:', errorMessage);
-
-				// Mark for retry on failure
-				await updateLocalOrderSyncStatus(urlOrderId, 'error', {
-					syncError: errorMessage,
-					lastSyncAttempt: new Date(),
-				});
-			}
-
-			// Return the local order data (whether sync succeeded or failed)
-			return updatedLocalOrder.data;
+			return result.localOrder.data;
 		}
 
 		// Handle legacy draft order - save to database first

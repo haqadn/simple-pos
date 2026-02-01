@@ -39,11 +39,10 @@ const LineItemRow = ({ lineItem }: { lineItem: LineItemSchema }) => {
     const product = getProductById(lineItem.product_id, lineItem.variation_id);
     const orderQuery = useCurrentOrder();
 
-    const [query, mutation, isMutating] = useLineItemQuery(orderQuery, product);
+    const [, mutation, isMutating] = useLineItemQuery(orderQuery, product);
 
     // Hide if quantity becomes 0 (filtered at source, but double-check for real-time updates)
-    const quantity = query.data?.quantity ?? lineItem.quantity;
-    if (quantity <= 0 && !isMutating) {
+    if (lineItem.quantity <= 0 && !isMutating) {
         return null;
     }
 
@@ -59,7 +58,7 @@ const LineItemRow = ({ lineItem }: { lineItem: LineItemSchema }) => {
                         labelPlacement="outside-left"
                         min={0}
                         color={isMutating ? 'warning' : 'default'}
-                        value={query.data?.quantity} 
+                        value={lineItem.quantity}
                         aria-label="Quantity of line item"
                         onValueChange={(quantity) => {
                             if (!product) {
@@ -71,7 +70,7 @@ const LineItemRow = ({ lineItem }: { lineItem: LineItemSchema }) => {
                                 quantity = 0;
                             }
 
-                            if ( quantity !== query.data?.quantity ) {
+                            if ( quantity !== lineItem.quantity ) {
                                 mutation.mutate({ quantity });
                             }
                         }}

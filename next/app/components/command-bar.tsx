@@ -20,6 +20,7 @@ import { createShouldSkipForKot } from '@/lib/kot';
 import { HelpTextBar, CommandSuggestions, applySuggestion } from './command-bar/index';
 import { isValidFrontendId } from '@/lib/frontend-id';
 import { updateLocalOrderStatus, getLocalOrder, updateLocalOrder } from '@/stores/offline-orders';
+import { updateLineItem } from '@/lib/line-item-ops';
 import { syncOrder } from '@/services/sync';
 import type { LocalOrder } from '@/db';
 import { useCurrencySettings } from '@/stores/currency';
@@ -90,51 +91,17 @@ export default function CommandBar() {
       const urlOrderId = params?.orderId as string | undefined;
       const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
 
-      // For frontend ID orders - handle locally via Dexie
+      // For frontend ID orders - use shared line item operation
       if (isFrontendIdOrder && urlOrderId) {
-        // Get the current local order from cache
-        const cachedLocalOrder = queryClient.getQueryData<LocalOrder>(['localOrder', urlOrderId]);
-        const baseOrder = cachedLocalOrder?.data || orderQuery.data;
+        const result = await updateLineItem(urlOrderId, {
+          product_id: productId,
+          variation_id: variationId,
+          name: product.name,
+          variation_name: product.variation_name,
+          price: product.price,
+        }, quantity, mode);
 
-        // Find existing line items for this product
-        const existingLineItems = [...baseOrder.line_items];
-        const existingIdx = existingLineItems.findIndex(
-          li => li.product_id === productId && li.variation_id === variationId
-        );
-
-        // Calculate current quantity
-        const currentQuantity = existingIdx >= 0 ? existingLineItems[existingIdx].quantity : 0;
-        const newQuantity = mode === 'set' ? quantity : currentQuantity + quantity;
-
-        // Update line items array
-        if (existingIdx >= 0) {
-          if (newQuantity > 0) {
-            existingLineItems[existingIdx] = {
-              ...existingLineItems[existingIdx],
-              quantity: newQuantity,
-              price: product.price,
-            };
-          } else {
-            existingLineItems.splice(existingIdx, 1);
-          }
-        } else if (newQuantity > 0) {
-          existingLineItems.push({
-            name: product.name + (product.variation_name ? ` - ${product.variation_name}` : ''),
-            product_id: productId,
-            variation_id: variationId,
-            quantity: newQuantity,
-            price: product.price,
-          });
-        }
-
-        // Save to Dexie (local only - no server call)
-        const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
-          line_items: existingLineItems,
-        });
-
-        // Update the cache directly
-        queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
-
+        queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], result.localOrder);
         return;
       }
 
