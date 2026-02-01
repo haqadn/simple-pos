@@ -120,7 +120,6 @@ export class CommandRegistry {
       await itemCommand.execute(args);
       return {
         success: true,
-        message: `Added: ${args[0]}`,
         newState: currentState
       };
     } catch (error) {
@@ -176,7 +175,6 @@ export class CommandRegistry {
       await command.execute(args);
       return {
         success: true,
-        message: `Command ${keyword} executed successfully`,
         newState: { mode: 'normal' }
       };
     } catch (error) {

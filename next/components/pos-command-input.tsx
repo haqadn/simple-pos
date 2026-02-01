@@ -165,7 +165,12 @@ export function POSCommandInput({ onMessage, onAddProduct, onPrint, onOpenDrawer
     const couponCode = code.trim().toLowerCase();
 
     // First validate the coupon
-    const coupon = await CouponsAPI.getCouponByCode(couponCode);
+    let coupon;
+    try {
+      coupon = await CouponsAPI.getCouponByCode(couponCode);
+    } catch {
+      throw new Error(`Failed to validate coupon "${code}"`);
+    }
     if (!coupon) {
       throw new Error(`Coupon "${code}" not found`);
     }

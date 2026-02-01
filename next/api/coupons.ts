@@ -10,11 +10,11 @@ export const CouponDiscountTypeSchema = z.enum([
 
 export type CouponDiscountType = z.infer<typeof CouponDiscountTypeSchema>;
 
-// Meta data schema for coupons
+// Meta data schema for coupons (WooCommerce can return any type in value)
 const CouponMetaDataSchema = z.object({
   id: z.number().optional(),
   key: z.string(),
-  value: z.union([z.string(), z.number(), z.boolean()]),
+  value: z.union([z.string(), z.number(), z.boolean(), z.array(z.record(z.string(), z.unknown()))]),
 });
 
 // Full coupon schema based on WooCommerce REST API v3

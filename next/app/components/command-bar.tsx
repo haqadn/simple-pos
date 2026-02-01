@@ -11,7 +11,8 @@ import { usePrintStore } from '@/stores/print';
 import { buildPrintData, buildPrintMetaUpdates } from '@/lib/print-data';
 import { CommandContext, CustomerData, CurrencyConfig } from '@/commands/command-manager';
 import { CommandSuggestion } from '@/commands/command';
-import OrdersAPI, { OrderSchema } from '@/api/orders';
+import OrdersAPI, { OrderSchema, CouponLineSchema } from '@/api/orders';
+import CouponsAPI, { validateCoupon } from '@/api/coupons';
 import { DRAFT_ORDER_ID, useDraftOrderStore } from '@/stores/draft-order';
 import { useDraftOrderState } from '@/hooks/useDraftOrderState';
 import { useSettingsStore } from '@/stores/settings';
@@ -25,10 +26,17 @@ import { syncOrder } from '@/services/sync';
 import type { LocalOrder } from '@/db';
 import { useCurrencySettings } from '@/stores/currency';
 
+interface CommandMessage {
+  id: number;
+  text: string;
+  type: 'success' | 'error';
+}
+
 export default function CommandBar() {
   const [input, setInput] = useState('');
   const [suggestions, setSuggestions] = useState<CommandSuggestion[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState(-1);
+  const [messages, setMessages] = useState<CommandMessage[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -42,6 +50,16 @@ export default function CommandBar() {
   const getProductById = useGetProductById();
   const skipKotCategories = useSettingsStore(state => state.skipKotCategories);
   const { data: currencySettings } = useCurrencySettings();
+
+  // Command feedback messages
+  const showCommandMessage = useCallback((text: string | unknown, type: 'success' | 'error') => {
+    const id = Date.now();
+    const message = typeof text === 'string' ? text : (text instanceof Error ? text.message : String(text));
+    setMessages(prev => [...prev, { id, text: message, type }]);
+    setTimeout(() => {
+      setMessages(prev => prev.filter(m => m.id !== id));
+    }, 3000);
+  }, []);
 
   // Draft order support
   const updateDraftLineItems = useDraftOrderStore((state) => state.updateDraftLineItems);
@@ -418,26 +436,61 @@ export default function CommandBar() {
   const handleApplyCoupon = useCallback(async (code: string) => {
     if (!orderQuery.data) throw new Error('No active order');
 
+    // Validate coupon against the server first
+    let coupon;
+    try {
+      coupon = await CouponsAPI.getCouponByCode(code);
+    } catch {
+      throw new Error(`Failed to validate coupon "${code}"`);
+    }
+    if (!coupon) {
+      throw new Error(`Coupon "${code}" not found`);
+    }
+
+    const validation = validateCoupon(coupon);
+    if (!validation.isValid) {
+      throw new Error(validation.error || 'Coupon is not valid');
+    }
+
     // Check if we're on a frontend ID URL (local-first order)
     const urlOrderId = params?.orderId as string | undefined;
     const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
 
-    // For frontend ID orders - handle locally via Dexie
-    // Note: Coupon validation should still be done against the server before applying
+    // For frontend ID orders - calculate discount and save locally
     if (isFrontendIdOrder && urlOrderId) {
+      const subtotal = parseFloat(orderQuery.data.subtotal || orderQuery.data.total || '0');
+      let discountAmount = 0;
+
+      if (coupon.discount_type === 'percent') {
+        discountAmount = (subtotal * parseFloat(coupon.amount)) / 100;
+      } else {
+        // fixed_cart or fixed_product
+        discountAmount = parseFloat(coupon.amount);
+      }
+
+      const newCouponLine: CouponLineSchema = {
+        code,
+        discount: discountAmount.toFixed(2),
+        discount_tax: '0.00',
+      };
+
+      const existingCoupons = (orderQuery.data.coupon_lines || []).filter(c => c.code !== code);
+      const updatedCouponLines = [...existingCoupons, newCouponLine];
+      const totalDiscount = updatedCouponLines.reduce((sum, c) => sum + parseFloat(c.discount || '0'), 0);
+
       const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
-        coupon_lines: [{ code, discount: '0.00', discount_tax: '0.00' }],
+        coupon_lines: updatedCouponLines,
+        discount_total: totalDiscount.toFixed(2),
       });
       queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
       return;
     }
 
-    // Legacy flow for server orders
+    // Server orders - WooCommerce calculates the discount
     const orderId = orderQuery.data.id;
-
-    // WooCommerce expects coupon_lines array
+    const existingCodes = (orderQuery.data.coupon_lines || []).map(c => ({ code: c.code }));
     const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), {
-      coupon_lines: [{ code }]
+      coupon_lines: [...existingCodes, { code }]
     } as Partial<OrderSchema>);
 
     const orderQueryKey = ['orders', orderId, 'detail'];
@@ -637,10 +690,10 @@ export default function CommandBar() {
       setNote: handleSetNote,
       setCustomer: handleSetCustomer,
       getCurrency,
-      showMessage: (msg) => console.log('[Command]', msg),
-      showError: (err) => console.error('[Command Error]', err)
+      showMessage: (msg) => showCommandMessage(msg, 'success'),
+      showError: (err) => showCommandMessage(err, 'error')
     };
-  }, [orderQuery.data, products, handleAddProduct, handleClearOrder, handleCompleteOrder, handleSetPayment, getPaymentReceived, handleApplyCoupon, handleRemoveCoupon, handlePrint, handleOpenDrawer, handleSetNote, handleSetCustomer, getCurrency, queryClient]);
+  }, [orderQuery.data, products, handleAddProduct, handleClearOrder, handleCompleteOrder, handleSetPayment, getPaymentReceived, handleApplyCoupon, handleRemoveCoupon, handlePrint, handleOpenDrawer, handleSetNote, handleSetCustomer, getCurrency, queryClient, showCommandMessage]);
 
   // Set up command context when ready
   useEffect(() => {
@@ -715,7 +768,7 @@ export default function CommandBar() {
       }
     } catch (error) {
       console.error('Command execution error:', error);
-      // No user notification - silent failure
+      showCommandMessage(`Command failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
     }
   };
 
@@ -865,6 +918,24 @@ export default function CommandBar() {
       
       {/* Help text */}
       <HelpTextBar multiMode={multiMode} activeCommand={activeCommand} />
+
+      {/* Snackbar messages (floating, no layout shift) */}
+      {messages.length > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none">
+          {messages.map(msg => (
+            <div
+              key={msg.id}
+              className={`pointer-events-auto text-sm px-4 py-2 rounded-lg shadow-lg max-w-md truncate ${
+                msg.type === 'error'
+                  ? 'text-white bg-red-600'
+                  : 'text-white bg-zinc-800'
+              }`}
+            >
+              {msg.text}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

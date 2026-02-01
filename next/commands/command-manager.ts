@@ -134,10 +134,8 @@ export class CommandManager {
         this.state = result.newState;
       }
 
-      // Show feedback
-      if (result.success && result.message) {
-        this.context.showMessage(result.message);
-      } else if (!result.success && result.error) {
+      // Show error feedback (commands handle their own success messages)
+      if (!result.success && result.error) {
         this.context.showError(result.error);
       }
 
