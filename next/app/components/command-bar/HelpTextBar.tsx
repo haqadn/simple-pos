@@ -31,7 +31,7 @@ export function HelpTextBar({ multiMode, activeCommand }: HelpTextBarProps) {
           `Multi-input mode: Type ${activeCommand} parameters, or "/" to exit`
         ) : (
           <>
-            <span>SKU [qty] | /pay /done /clear | &uarr;&darr; history |</span>
+            <span>SKU [qty] | /pay /done | &uarr;&darr; history |</span>
             <Kbd className="text-[10px]">Esc</Kbd>
           </>
         )}

@@ -1,7 +1,6 @@
 import { CommandRegistry, CommandExecutionResult } from './command-registry';
 import { CommandState, CommandSuggestion } from './command';
 import { ItemCommand } from './item';
-import { ClearCommand } from './clear';
 import { PayCommand } from './pay';
 import { DoneCommand } from './done';
 import { CouponCommand } from './coupon';
@@ -225,7 +224,6 @@ export class CommandManager {
    */
   private registerDefaultCommands(): void {
     this.registry.registerCommand(new ItemCommand());
-    this.registry.registerCommand(new ClearCommand());
     this.registry.registerCommand(new PayCommand());
     this.registry.registerCommand(new DoneCommand());
     this.registry.registerCommand(new CouponCommand());

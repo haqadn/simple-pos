@@ -24,7 +24,6 @@ export type { CommandContext, CustomerData } from './command-manager';
 
 // Individual commands
 export { ItemCommand } from './item';
-export { ClearCommand } from './clear';
 export { PayCommand } from './pay';
 export { DoneCommand } from './done';
 export { CouponCommand } from './coupon';
