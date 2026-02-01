@@ -170,16 +170,16 @@ export function useCommandManager() {
   }, []);
 
   /**
-   * Set callback for async suggestion updates (e.g., customer search)
+   * Set callback for async suggestion updates (e.g., customer search, order search)
    */
   const setSuggestionsCallback = useCallback((callback: () => void) => {
     if (!managerRef.current) return;
-    // Find customer command and set callback
-    const registry = (managerRef.current as unknown as { registry: { getCommand: (k: string) => unknown } }).registry;
-    const customerCommand = registry?.getCommand('customer');
-    if (customerCommand && typeof customerCommand === 'object' && customerCommand !== null && 'setSuggestionsCallback' in customerCommand) {
-      (customerCommand as { setSuggestionsCallback: (cb: () => void) => void }).setSuggestionsCallback(callback);
-    }
+    const registry = (managerRef.current as unknown as { registry: { getAllCommands: () => unknown[] } }).registry;
+    registry?.getAllCommands().forEach(command => {
+      if (command && typeof command === 'object' && 'setSuggestionsCallback' in command) {
+        (command as { setSuggestionsCallback: (cb: () => void) => void }).setSuggestionsCallback(callback);
+      }
+    });
   }, []);
 
   return {

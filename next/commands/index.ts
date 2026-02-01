@@ -33,3 +33,4 @@ export { NoteCommand } from './note';
 export { CustomerCommand } from './customer';
 export { DrawerCommand } from './drawer';
 export { StockCommand } from './stock';
+export { OpenCommand } from './open';

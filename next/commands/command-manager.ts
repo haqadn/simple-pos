@@ -10,6 +10,7 @@ import { NoteCommand } from './note';
 import { CustomerCommand, CustomerData } from './customer';
 import { DrawerCommand } from './drawer';
 import { StockCommand } from './stock';
+import { OpenCommand } from './open';
 export type { CustomerData };
 
 import { OrderSchema } from '@/api/orders';
@@ -61,6 +62,7 @@ export interface CommandContext {
 
   // Navigation
   navigateToNextOrder?: () => void;
+  navigateToOrder?: (identifier: string) => void;
 
   // Currency formatting
   getCurrency?: () => CurrencyConfig;
@@ -222,6 +224,7 @@ export class CommandManager {
     this.registry.registerCommand(new CustomerCommand());
     this.registry.registerCommand(new DrawerCommand());
     this.registry.registerCommand(new StockCommand());
+    this.registry.registerCommand(new OpenCommand());
   }
 
   /**

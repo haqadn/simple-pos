@@ -76,6 +76,20 @@ export type BillingSchema = z.infer<typeof BillingSchema>;
 export type MetaDataSchema = z.infer<typeof MetaDataSchema>;
 export type ShippingMethodType = z.infer<typeof ShippingMethodEnum>;
 
+export const OrderSearchResultSchema = z.object({
+  id: z.number(),
+  pos_frontend_id: z.string().nullable(),
+  total: z.string().nullable(),
+  date_created: z.string(),
+  status: z.string(),
+});
+
+export type OrderSearchResult = z.infer<typeof OrderSearchResultSchema>;
+
+const OrderSearchResponseSchema = z.object({
+  orders: z.array(OrderSearchResultSchema),
+});
+
 export default class OrdersAPI extends API {
   static async saveOrder(order: Partial<OrderSchema>) {
     try {
@@ -113,6 +127,20 @@ export default class OrdersAPI extends API {
       return OrderSchema.array().parse(response.data);
     } catch (error) {
       console.error(error);
+      return [];
+    }
+  }
+
+  static async searchOrders(query: string): Promise<OrderSearchResult[]> {
+    if (!query || query.length < 1) return [];
+
+    try {
+      const response = await this.client.get("/simple-pos/orders", {
+        params: { search: query },
+      });
+      const parsed = OrderSearchResponseSchema.parse(response.data);
+      return parsed.orders;
+    } catch {
       return [];
     }
   }

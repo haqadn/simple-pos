@@ -10,12 +10,14 @@
 
 use SimplePOS\Endpoints\PickupLocations;
 use SimplePOS\Endpoints\Customers;
+use SimplePOS\Endpoints\Orders;
 
 require plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 
 // Instantiate and initialize the custom endpoints
 (new Customers())->init();
 (new PickupLocations())->init();
+(new Orders())->init();
 
 add_action( 'init', function() {
 	if ( defined( 'WP_CLI' ) && WP_CLI ) {

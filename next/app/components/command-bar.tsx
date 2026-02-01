@@ -658,6 +658,11 @@ export default function CommandBar() {
     queryClient.setQueryData(customerInfoKey, updatedOrder.billing);
   }, [orderQuery, queryClient, params]);
 
+  // Navigate to an order by identifier (frontend ID or server ID)
+  const handleNavigateToOrder = useCallback((identifier: string) => {
+    router.push(`/orders/${identifier}`);
+  }, [router]);
+
   // Get currency configuration for commands
   const getCurrency = useCallback((): CurrencyConfig => {
     return {
@@ -689,11 +694,12 @@ export default function CommandBar() {
       },
       setNote: handleSetNote,
       setCustomer: handleSetCustomer,
+      navigateToOrder: handleNavigateToOrder,
       getCurrency,
       showMessage: (msg) => showCommandMessage(msg, 'success'),
       showError: (err) => showCommandMessage(err, 'error')
     };
-  }, [orderQuery.data, products, handleAddProduct, handleClearOrder, handleCompleteOrder, handleSetPayment, getPaymentReceived, handleApplyCoupon, handleRemoveCoupon, handlePrint, handleOpenDrawer, handleSetNote, handleSetCustomer, getCurrency, queryClient, showCommandMessage]);
+  }, [orderQuery.data, products, handleAddProduct, handleClearOrder, handleCompleteOrder, handleSetPayment, getPaymentReceived, handleApplyCoupon, handleRemoveCoupon, handlePrint, handleOpenDrawer, handleSetNote, handleSetCustomer, handleNavigateToOrder, getCurrency, queryClient, showCommandMessage]);
 
   // Set up command context when ready
   useEffect(() => {
