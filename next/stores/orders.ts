@@ -42,6 +42,33 @@ function generateOrderQueryKey(context: string, order?: OrderSchema, product?: P
 	}
 }
 
+/**
+ * Merge server-assigned line item IDs into the current React Query cache
+ * without overwriting the entire cache. This preserves optimistic updates
+ * from other concurrent mutations (e.g., items removed by onMutate that
+ * the server hasn't processed yet).
+ */
+function mergeServerIdsIntoCache(
+	queryClient: ReturnType<typeof useQueryClient>,
+	urlOrderId: string,
+	serverLineItems: LineItemSchema[],
+) {
+	queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], (current) => {
+		if (!current) return current;
+		const mergedLineItems = current.data.line_items.map(cacheItem => {
+			const serverItem = serverLineItems.find(si =>
+				si.product_id === cacheItem.product_id && si.variation_id === cacheItem.variation_id
+			);
+			// Update with server data (has correct IDs, prices, totals) but keep cache item if no match
+			return serverItem ? { ...cacheItem, id: serverItem.id, subtotal: serverItem.subtotal, total: serverItem.total } : cacheItem;
+		});
+		return {
+			...current,
+			data: { ...current.data, line_items: mergedLineItems },
+		};
+	});
+}
+
 const findOrderLineItems = (order?: OrderSchema, product?: ProductSchema): LineItemSchema[] => {
 	if ( !product || !order ) {
 		return [];
@@ -392,13 +419,14 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 
 			const orderTotal = orderSubtotal + shippingTotal - discountTotal;
 
-			// Update local order immediately (optimistic update)
+			// Persist to Dexie (don't update React Query cache here — onMutate already
+			// set the correct optimistic state, and overwriting it would clobber
+			// optimistic updates from other concurrent mutations)
 			const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
 				line_items: existingLineItems,
 				subtotal: orderSubtotal.toFixed(2),
 				total: orderTotal.toFixed(2),
 			});
-			queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
 
 			// Attempt server sync (wrapped in try/catch for offline support)
 			try {
@@ -411,7 +439,8 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 					// Refresh local order to get the server IDs
 					const refreshedOrder = await getLocalOrder(urlOrderId);
 					if (refreshedOrder) {
-						queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], refreshedOrder);
+						// Merge server IDs into current cache without clobbering other optimistic updates
+						mergeServerIdsIntoCache(queryClient, urlOrderId, refreshedOrder.data.line_items);
 						return refreshedOrder.data;
 					}
 					return updatedLocalOrder.data;
@@ -419,10 +448,10 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 
 				// For existing orders, sync the change to server
 				// Prepare line items for server sync
+				// WooCommerce requires delete+add pattern to correctly recalculate totals
 				const patchLineItems: LineItemSchema[] = [];
 
-				// Use the server-side ID captured BEFORE the item was removed from Dexie
-				// (getLocalOrder would fail here because the item is already gone)
+				// Delete existing line item if it has a server ID
 				if (existingServerItemId) {
 					patchLineItems.push({
 						id: existingServerItemId,
@@ -441,7 +470,6 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 						variation_id: product.variation_id,
 						quantity,
 						price: product.price,
-						id: undefined,
 					});
 				}
 
@@ -457,7 +485,10 @@ export const useLineItemQuery = (orderQuery: QueryObserverResult<OrderSchema | n
 					const finalLocalOrder = await updateLocalOrder(urlOrderId, {
 						line_items: filteredLineItems,
 					});
-					queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], finalLocalOrder);
+
+					// Merge server IDs into current cache without clobbering other optimistic updates
+					// (other mutations may have removed items that the server still has)
+					mergeServerIdsIntoCache(queryClient, urlOrderId, filteredLineItems);
 
 					// Mark as synced
 					await updateLocalOrderSyncStatus(urlOrderId, 'synced', { serverId });
