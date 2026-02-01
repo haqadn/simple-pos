@@ -56,12 +56,15 @@ export default function KotPrint({ data }: KotPrintProps) {
                 <tr key={item.id} className={`${isRemoved ? 'removed-item' : ''} ${shouldBold ? 'bold-row' : ''}`}>
                   <td className={isRemoved ? 'strikethrough' : ''}>{item.name}</td>
                   <td className="quantity-cell">
-                    {(hasQuantityChanged || isRemoved) && (
-                      <span className="old-quantity">{item.previousQuantity}</span>
+                    {(hasQuantityChanged || isRemoved) ? (
+                      <>
+                        <span className="old-quantity">{item.previousQuantity}</span>
+                        <span className="arrow">&gt;</span>
+                        <span className="new-quantity">{isRemoved ? 'X' : item.quantity}</span>
+                      </>
+                    ) : (
+                      <span className="quantity">{item.quantity}</span>
                     )}
-                    <span className={`quantity ${hasQuantityChanged || isRemoved ? 'changed' : ''}`}>
-                      {isRemoved ? 'X' : item.quantity}
-                    </span>
                   </td>
                 </tr>
               );
@@ -139,17 +142,19 @@ export default function KotPrint({ data }: KotPrintProps) {
           margin-left: 4px;
         }
 
-        .quantity.changed {
-          border: 2px solid black;
-          border-radius: 50%;
-          min-width: 1.5em;
-          text-align: center;
+        .old-quantity {
+          margin-right: 2px;
+          opacity: 0.6;
         }
 
-        .old-quantity {
-          text-decoration: line-through;
-          margin-right: 4px;
+        .arrow {
+          margin: 0 2px;
           opacity: 0.6;
+        }
+
+        .new-quantity {
+          font-weight: 900;
+          margin-left: 2px;
         }
 
         .strikethrough {

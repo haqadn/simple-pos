@@ -25,7 +25,7 @@ function formatServiceDisplay(cartName: string, serviceType?: 'table' | 'deliver
  * Features:
  * - Large table/cart name or order number as heading
  * - Item list with quantities (left-aligned)
- * - Change detection: strikethrough old qty, bold new qty
+ * - Change detection: oldQty -> bold newQty
  */
 export function renderKot(data: KotData, options: KotRenderOptions): Uint8Array {
   const { settings, paperWidth } = options;
@@ -77,41 +77,43 @@ export function renderKot(data: KotData, options: KotRenderOptions): Uint8Array 
     // Item is being removed (was > 0, now is 0)
     const isRemoved = item.quantity === 0 && hadPrevious;
 
-    // Build quantity string
-    let qtyStr: string;
-    let itemName = item.name;
-
-    // Bold rules:
+    // Bold rules for simple items (new/unchanged):
     // - Newly added items (first KOT or re-added after removal) should be bold
-    // - Items with changed quantity should be bold
-    // - Removed items should be bold
-    const shouldBold = settings.highlightChanges && (isTrulyNewItem || wasRemoved || hasQuantityChanged || isRemoved);
+    const shouldBoldRow = settings.highlightChanges && (isTrulyNewItem || wasRemoved);
 
-    if (settings.highlightChanges) {
-      if (isRemoved) {
-        // Removed item: show "~oldQty~ X" and strikethrough name
-        qtyStr = `~${item.previousQuantity}~ X`;
-        itemName = `~~${item.name}~~`;
-      } else if (hasQuantityChanged) {
-        // Changed quantity: show "~oldQty~ newQty"
-        qtyStr = `~${item.previousQuantity}~ ${item.quantity}`;
-      } else {
-        // New items or no change - just show quantity (no + prefix)
-        qtyStr = item.quantity.toString();
-      }
-    } else if (item.quantity === 0) {
+    if (settings.highlightChanges && (hasQuantityChanged || isRemoved)) {
+      // Changed/removed: "name     oldQty > bold(newQty)"
+      // Item name is bold, old qty is plain, new qty is bold
+      const itemName = isRemoved ? `~~${item.name}~~` : item.name;
+      const oldQty = `${item.previousQuantity} -> `;
+      const newQty = isRemoved ? 'X' : item.quantity.toString();
+      const rightLen = oldQty.length + newQty.length;
+      const maxLeft = charWidth - rightLen - 1;
+      const truncatedName = itemName.length > maxLeft
+        ? itemName.substring(0, Math.max(0, maxLeft - 3)) + '...'
+        : itemName;
+      const spaces = Math.max(1, charWidth - truncatedName.length - rightLen);
+
+      builder.alignLeft();
+      builder.bold(true);
+      builder.text(truncatedName);
+      builder.bold(false);
+      builder.text(' '.repeat(spaces) + oldQty);
+      builder.bold(true);
+      builder.text(newQty);
+      builder.bold(false);
+      builder.newline();
+    } else if (item.quantity === 0 && !settings.highlightChanges) {
       // Skip items with 0 quantity if not highlighting changes
       return;
     } else {
-      qtyStr = item.quantity.toString();
+      // New items or no change - just show quantity
+      const qtyStr = item.quantity.toString();
+      builder.alignLeft();
+      if (shouldBoldRow) builder.bold(true);
+      builder.columns(item.name, qtyStr, charWidth);
+      if (shouldBoldRow) builder.bold(false);
     }
-
-    // Print item row using columns (left-aligned name, right-aligned qty)
-    // Bold new/removed/changed items for visibility
-    builder.alignLeft();
-    if (shouldBold) builder.bold(true);
-    builder.columns(itemName, qtyStr, charWidth);
-    if (shouldBold) builder.bold(false);
   });
 
   builder.separator('-', charWidth);

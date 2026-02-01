@@ -211,9 +211,9 @@ export function buildPrintMetaUpdates(options: BuildPrintMetaUpdatesOptions): Me
       // Reprint: keep existing baseline (preserve markers)
       newBaselineJson = existingBaselineJson || '{}';
     } else if (lastPrintedJson !== undefined) {
-      // New print with changes: advance baseline to what was last printed
-      // Kitchen already knows about lastPrinted state, show only new changes
-      newBaselineJson = lastPrintedJson;
+      // New print with changes: advance baseline to current state
+      // Kitchen receives this KOT, so baseline should reflect what they now know
+      newBaselineJson = currentItemsJson;
     } else {
       // First print: set baseline to current state
       // Future changes will be shown relative to this initial state
