@@ -207,18 +207,8 @@ export async function updateLocalOrderSyncStatus(
       ...(options?.lastSyncAttempt !== undefined && { lastSyncAttempt: options.lastSyncAttempt }),
     };
 
-    // If synced successfully, update the server ID in the order data meta_data
+    // If synced successfully, update the order ID in data
     if (syncStatus === "synced" && options?.serverId !== undefined) {
-      const existingServerIdMeta = updatedOrder.data.meta_data?.find(
-        (m) => m.key === "pos_server_id"
-      );
-      if (!existingServerIdMeta) {
-        updatedOrder.data.meta_data = [
-          ...(updatedOrder.data.meta_data ?? []),
-          { key: "pos_server_id", value: options.serverId },
-        ];
-      }
-      // Also update the order ID in data
       updatedOrder.data.id = options.serverId;
     }
 
