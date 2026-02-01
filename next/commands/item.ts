@@ -13,7 +13,7 @@ export class ItemCommand extends BaseMultiInputCommand {
   getMetadata(): CommandMetadata {
     return {
       keyword: 'item',
-      aliases: ['i'],
+      aliases: [],
       description: 'Set or increment line item quantity by SKU',
       usage: [
         '/item <sku> [quantity]',

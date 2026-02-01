@@ -36,7 +36,7 @@ export class CustomerCommand extends BaseCommand {
   getMetadata(): CommandMetadata {
     return {
       keyword: 'customer',
-      aliases: ['cust', 'cu'],
+      aliases: ['cus'],
       description: 'Set customer info (name, phone, address)',
       usage: [
         '/customer <name>, <phone>',

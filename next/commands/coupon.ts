@@ -8,7 +8,7 @@ export class CouponCommand extends BaseCommand {
   getMetadata(): CommandMetadata {
     return {
       keyword: 'coupon',
-      aliases: ['c', 'discount'],
+      aliases: ['discount'],
       description: 'Apply or remove discount coupon',
       usage: [
         '/coupon <code>',

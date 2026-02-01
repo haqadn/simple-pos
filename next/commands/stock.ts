@@ -14,7 +14,7 @@ export class StockCommand extends BaseMultiInputCommand {
   getMetadata(): CommandMetadata {
     return {
       keyword: 'stock',
-      aliases: ['manage-stock', 'inventory'],
+      aliases: [],
       description: 'Update product inventory',
       usage: [
         '/stock SKU +10   - Add 10 to stock',

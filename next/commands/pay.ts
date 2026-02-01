@@ -16,7 +16,7 @@ export class PayCommand extends BaseMultiInputCommand {
   getMetadata(): CommandMetadata {
     return {
       keyword: 'pay',
-      aliases: ['p'],
+      aliases: [],
       description: 'Record payment amount received',
       usage: [
         '/pay <amount>',

@@ -11,7 +11,7 @@ export class DoneCommand extends BaseCommand {
   getMetadata(): CommandMetadata {
     return {
       keyword: 'done',
-      aliases: ['dn', 'd'],
+      aliases: ['dn'],
       description: 'Complete order and navigate to next',
       usage: ['/done', '/done <amount>'],
       parameters: [
