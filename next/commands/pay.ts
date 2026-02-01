@@ -11,6 +11,8 @@ interface PayCommandData {
  * Pay command - record payment amount received from customer
  */
 export class PayCommand extends BaseMultiInputCommand {
+  private _multiModeTotal = 0;
+
   getMetadata(): CommandMetadata {
     return {
       keyword: 'pay',
@@ -47,6 +49,7 @@ export class PayCommand extends BaseMultiInputCommand {
     }
 
     await context.setPayment(amount);
+    this._multiModeTotal += amount;
 
     const orderTotal = parseFloat(order.total);
     const change = amount - orderTotal;
@@ -60,21 +63,21 @@ export class PayCommand extends BaseMultiInputCommand {
   }
 
   async enterMultiMode(): Promise<{ prompt: string; data?: unknown }> {
+    this._multiModeTotal = 0;
     return {
       prompt: 'pay>',
       data: { totalPaid: 0 } as PayCommandData
     };
   }
 
-  async exitMultiMode(currentData?: unknown): Promise<void> {
-    const data = currentData as PayCommandData;
+  async exitMultiMode(): Promise<void> {
     const context = this._context as CommandContext | undefined;
-    if (data?.totalPaid && data.totalPaid > 0 && context) {
+    if (this._multiModeTotal > 0 && context) {
       const orderTotal = parseFloat(context.currentOrder?.total || '0');
-      const change = data.totalPaid - orderTotal;
+      const change = this._multiModeTotal - orderTotal;
       if (change >= 0) {
         const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
-        context.showMessage(`Total paid: ${formatCurrencyWithSymbol(data.totalPaid, currency.symbol, currency.position)} | Change: ${formatCurrencyWithSymbol(change, currency.symbol, currency.position)}`);
+        context.showMessage(`Total paid: ${formatCurrencyWithSymbol(this._multiModeTotal, currency.symbol, currency.position)} | Change: ${formatCurrencyWithSymbol(change, currency.symbol, currency.position)}`);
       }
     }
   }

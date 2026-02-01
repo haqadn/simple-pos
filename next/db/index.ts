@@ -163,4 +163,7 @@ export function calculateNextRetryTime(retryCount: number): Date {
   return new Date(Date.now() + interval);
 }
 
+/** Maximum number of sync retries before giving up on an order */
+export const MAX_SYNC_RETRIES = 10;
+
 export default db;

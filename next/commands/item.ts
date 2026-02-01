@@ -8,6 +8,8 @@ interface ItemCommandData {
 }
 
 export class ItemCommand extends BaseMultiInputCommand {
+  private _multiModeCount = 0;
+
   getMetadata(): CommandMetadata {
     return {
       keyword: 'item',
@@ -58,17 +60,17 @@ export class ItemCommand extends BaseMultiInputCommand {
   }
 
   async enterMultiMode(): Promise<{ prompt: string; data?: unknown }> {
+    this._multiModeCount = 0;
     return {
       prompt: 'item>',
       data: { itemsModified: 0 } as ItemCommandData
     };
   }
 
-  async exitMultiMode(currentData?: unknown): Promise<void> {
-    const data = currentData as ItemCommandData;
+  async exitMultiMode(): Promise<void> {
     const context = this._context as CommandContext | undefined;
-    if (data?.itemsModified && data.itemsModified > 0 && context) {
-      context.showMessage(`Modified ${data.itemsModified} items`);
+    if (this._multiModeCount > 0 && context) {
+      context.showMessage(`Modified ${this._multiModeCount} items`);
     }
   }
 
@@ -117,7 +119,7 @@ export class ItemCommand extends BaseMultiInputCommand {
   private async addProductToOrder(context: CommandContext, sku: string, quantity: number, mode: 'set' | 'increment'): Promise<void> {
     // Find product by SKU
     const product = context.products.find((p: ProductSchema) =>
-      p.sku === sku
+      p.sku?.toUpperCase() === sku.toUpperCase()
     );
 
     if (!product) {
@@ -132,6 +134,7 @@ export class ItemCommand extends BaseMultiInputCommand {
         quantity,
         mode
       );
+      this._multiModeCount++;
 
       const action = mode === 'set' ? 'Set' : 'Added';
       context.showMessage(`${action} ${product.name} to ${quantity}`);

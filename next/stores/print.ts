@@ -69,6 +69,7 @@ interface PrintState {
 interface PrintActions {
   push: (type: PrintType, data: PrintJobData | null) => Promise<void>;
   pop: () => void;
+  clear: () => void;
   setProcessing: (isProcessing: boolean) => void;
   updateConfig: (config: Partial<PrintConfig>) => void;
   updateBillConfig: (bill: Partial<BillCustomization>) => void;
@@ -146,6 +147,15 @@ export const usePrintStore = create<PrintState & PrintActions>((set, get) => ({
       currentJob: rest[0] || null,
       isProcessing: false,
     });
+  },
+
+  clear: () => {
+    const { queue } = get();
+    // Reject all pending promises so they can be garbage collected
+    for (const job of queue) {
+      job.reject(new Error('Print queue cleared'));
+    }
+    set({ queue: [], currentJob: null, isProcessing: false });
   },
 
   setProcessing: (isProcessing) => {

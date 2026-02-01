@@ -48,7 +48,7 @@ export class DoneCommand extends BaseCommand {
     }
 
     // Check if payment is sufficient
-    if (paymentReceived < orderTotal) {
+    if (orderTotal - paymentReceived > 0.005) {
       const remaining = orderTotal - paymentReceived;
       const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
       throw new Error(`Insufficient payment. Due: ${formatCurrencyWithSymbol(remaining, currency.symbol, currency.position)}`);

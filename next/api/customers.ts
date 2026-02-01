@@ -2,8 +2,10 @@ import { z } from "zod";
 import { API } from "./api";
 
 export const CustomerSchema = z.object({
+  id: z.number(),
   name: z.string(),
   phone: z.string(),
+  email: z.string().optional(),
 });
 
 export type CustomerSchema = z.infer<typeof CustomerSchema>;

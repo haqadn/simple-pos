@@ -64,7 +64,7 @@ export interface CouponValidationResult {
  */
 export function generateCouponSummary(coupon: CouponSchema): string {
   const parts: string[] = [];
-  const amount = parseFloat(coupon.amount);
+  const amount = parseFloat(coupon.amount) || 0;
 
   // Main discount description
   switch (coupon.discount_type) {
@@ -89,13 +89,13 @@ export function generateCouponSummary(coupon: CouponSchema): string {
   }
 
   // Add minimum requirement
-  const minAmount = parseFloat(coupon.minimum_amount);
+  const minAmount = parseFloat(coupon.minimum_amount) || 0;
   if (minAmount > 0) {
     parts[parts.length - 1] += ` (min order: ${minAmount.toFixed(0)})`;
   }
 
   // Add maximum cap
-  const maxAmount = parseFloat(coupon.maximum_amount);
+  const maxAmount = parseFloat(coupon.maximum_amount) || 0;
   if (maxAmount > 0) {
     parts.push(`max discount: ${maxAmount.toFixed(0)}`);
   }

@@ -72,8 +72,17 @@ function makeClient(): API_Client {
 }
 
 export class API {
-  // Create client on-demand to pick up latest settings
+  private static _cachedClient: API_Client | null = null;
+  private static _cachedConfigKey: string = '';
+
+  // Create client on-demand, cache until config changes
   static get client(): API_Client {
-    return makeClient();
+    const config = getConfig();
+    const configKey = `${config.baseUrl}|${config.consumerKey}|${config.consumerSecret}`;
+    if (!this._cachedClient || configKey !== this._cachedConfigKey) {
+      this._cachedClient = makeClient();
+      this._cachedConfigKey = configKey;
+    }
+    return this._cachedClient;
   }
 }

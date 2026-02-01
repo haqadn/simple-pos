@@ -8,6 +8,11 @@
 
 import type { OrderSchema, LineItemSchema, ShippingLineSchema, CouponLineSchema } from "../api/orders";
 
+/** Round to 2 decimal places to avoid floating point drift */
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
 /**
  * Calculate the total for an order based on line items, discounts, and shipping
  *
@@ -21,7 +26,7 @@ export function calculateOrderTotal(order: Partial<OrderSchema>): string {
   // Calculate subtotal from line items
   const subtotal = (order.line_items ?? []).reduce((sum, item) => {
     const price = parseFloat(String(item.price ?? "0"));
-    return sum + price * item.quantity;
+    return round2(sum + round2(price * item.quantity));
   }, 0);
 
   // Get discount total (from coupon application)
@@ -29,11 +34,11 @@ export function calculateOrderTotal(order: Partial<OrderSchema>): string {
 
   // Calculate shipping total from shipping lines
   const shipping = (order.shipping_lines ?? []).reduce((sum, line) => {
-    return sum + parseFloat(line.total ?? "0");
+    return round2(sum + parseFloat(line.total ?? "0"));
   }, 0);
 
   // Calculate final total
-  const total = subtotal - discount + shipping;
+  const total = round2(subtotal - discount + shipping);
 
   return total.toFixed(2);
 }
@@ -47,7 +52,7 @@ export function calculateOrderTotal(order: Partial<OrderSchema>): string {
 export function calculateSubtotal(lineItems: LineItemSchema[]): string {
   const subtotal = lineItems.reduce((sum, item) => {
     const price = parseFloat(String(item.price ?? "0"));
-    return sum + price * item.quantity;
+    return round2(sum + round2(price * item.quantity));
   }, 0);
 
   return subtotal.toFixed(2);
@@ -61,7 +66,7 @@ export function calculateSubtotal(lineItems: LineItemSchema[]): string {
  */
 export function calculateDiscountTotal(couponLines: CouponLineSchema[]): string {
   const discount = couponLines.reduce((sum, coupon) => {
-    return sum + parseFloat(coupon.discount ?? "0");
+    return round2(sum + parseFloat(coupon.discount ?? "0"));
   }, 0);
 
   return discount.toFixed(2);
@@ -75,7 +80,7 @@ export function calculateDiscountTotal(couponLines: CouponLineSchema[]): string 
  */
 export function calculateShippingTotal(shippingLines: ShippingLineSchema[]): string {
   const shipping = shippingLines.reduce((sum, line) => {
-    return sum + parseFloat(line.total ?? "0");
+    return round2(sum + parseFloat(line.total ?? "0"));
   }, 0);
 
   return shipping.toFixed(2);

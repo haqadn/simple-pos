@@ -135,6 +135,18 @@ export function buildPrintData(options: BuildPrintDataOptions): PrintJobData {
   return printData;
 }
 
+/** Stringify with sorted keys for stable comparison regardless of key order */
+function stableStringify(obj: unknown): string {
+  if (obj === null || obj === undefined || typeof obj !== 'object') {
+    return JSON.stringify(obj);
+  }
+  if (Array.isArray(obj)) {
+    return '[' + obj.map(stableStringify).join(',') + ']';
+  }
+  const sorted = Object.keys(obj as Record<string, unknown>).sort();
+  return '{' + sorted.map(k => JSON.stringify(k) + ':' + stableStringify((obj as Record<string, unknown>)[k])).join(',') + '}';
+}
+
 type MetaDataEntry = { id?: number; key: string; value: string };
 
 interface BuildPrintMetaUpdatesOptions {
@@ -191,7 +203,7 @@ export function buildPrintMetaUpdates(options: BuildPrintMetaUpdatesOptions): Me
     const existingBaselineJson = existingBaselineMeta?.value as string | undefined;
 
     // Check if this is a reprint (current items match what was last printed)
-    const isReprint = lastPrintedJson !== undefined && lastPrintedJson === currentItemsJson;
+    const isReprint = lastPrintedJson !== undefined && stableStringify(JSON.parse(lastPrintedJson)) === stableStringify(JSON.parse(currentItemsJson));
 
     // Determine new baseline value
     let newBaselineJson: string;

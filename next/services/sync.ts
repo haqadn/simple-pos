@@ -8,7 +8,7 @@
  * - Background sync interval (every 30s when online)
  */
 
-import { db, calculateNextRetryTime, type SyncQueueEntry } from "../db";
+import { db, calculateNextRetryTime, MAX_SYNC_RETRIES, type SyncQueueEntry } from "../db";
 import {
   getLocalOrder,
   updateLocalOrder,
@@ -119,7 +119,7 @@ export async function syncOrder(
               customer_note: order.data.customer_note,
               billing: order.data.billing,
               meta_data: order.data.meta_data,
-            }
+            } as Partial<OrderSchema>
           );
         } else {
           // If we can't fetch current state, just send what we have
@@ -262,6 +262,12 @@ async function addToSyncQueue(
   if (existing) {
     // Update existing entry with incremented retry count
     const retryCount = existing.retryCount + 1;
+    if (retryCount >= MAX_SYNC_RETRIES) {
+      // Give up — remove from queue, leave order as 'error'
+      await db.syncQueue.delete(existing.id!);
+      console.warn(`Order ${frontendId} exceeded max retries (${MAX_SYNC_RETRIES}), removed from queue`);
+      return;
+    }
     await db.syncQueue.update(existing.id!, {
       retryCount,
       nextRetryAt: calculateNextRetryTime(retryCount),
@@ -300,7 +306,21 @@ async function getQueuedOrdersReadyForRetry(): Promise<SyncQueueEntry[]> {
  *
  * @returns Array of sync results
  */
+let syncQueueLock: Promise<SyncResult[]> | null = null;
+
 export async function processSyncQueue(): Promise<SyncResult[]> {
+  if (syncQueueLock) {
+    return syncQueueLock;
+  }
+  syncQueueLock = processSyncQueueInternal();
+  try {
+    return await syncQueueLock;
+  } finally {
+    syncQueueLock = null;
+  }
+}
+
+async function processSyncQueueInternal(): Promise<SyncResult[]> {
   const results: SyncResult[] = [];
 
   // Get orders ready for retry from the queue
@@ -375,13 +395,17 @@ let backgroundSyncCallbacks: Array<(results: SyncResult[]) => void> = [];
  */
 export function startBackgroundSync(
   onSyncComplete?: (results: SyncResult[]) => void
-): void {
+): () => void {
   if (backgroundSyncInterval) {
     // Already running, just add callback if provided
     if (onSyncComplete) {
       backgroundSyncCallbacks.push(onSyncComplete);
     }
-    return;
+    return () => {
+      if (onSyncComplete) {
+        removeBackgroundSyncCallback(onSyncComplete);
+      }
+    };
   }
 
   if (onSyncComplete) {
@@ -411,6 +435,12 @@ export function startBackgroundSync(
       console.error("Background sync error:", error);
     }
   }, SYNC_INTERVAL);
+
+  return () => {
+    if (onSyncComplete) {
+      removeBackgroundSyncCallback(onSyncComplete);
+    }
+  };
 }
 
 /**

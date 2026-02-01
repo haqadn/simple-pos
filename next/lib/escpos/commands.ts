@@ -187,8 +187,12 @@ export class EscPosBuilder {
    * Print two columns: left-aligned text and right-aligned text
    */
   columns(left: string, right: string, width: number = 48): this {
-    const spaces = Math.max(1, width - left.length - right.length);
-    this.text(left + ' '.repeat(spaces) + right);
+    const maxLeft = width - right.length - 1; // at least 1 space between columns
+    const truncatedLeft = left.length > maxLeft
+      ? left.substring(0, Math.max(0, maxLeft - 3)) + '...'
+      : left;
+    const spaces = Math.max(1, width - truncatedLeft.length - right.length);
+    this.text(truncatedLeft + ' '.repeat(spaces) + right);
     this.newline();
     return this;
   }

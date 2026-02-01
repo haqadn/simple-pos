@@ -126,13 +126,13 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     if (newApi.baseUrl) {
       newApi.baseUrl = newApi.baseUrl.replace(/\/+$/, '');
     }
-    set({ api: newApi });
     saveSettings({ ...get(), api: newApi });
+    set({ api: newApi });
   },
 
   setSkipKotCategories: (categoryIds) => {
-    set({ skipKotCategories: categoryIds });
     saveSettings({ ...get(), skipKotCategories: categoryIds });
+    set({ skipKotCategories: categoryIds });
   },
 
   toggleSkipKotCategory: (categoryId) => {
@@ -140,8 +140,8 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     const newCategories = current.includes(categoryId)
       ? current.filter(id => id !== categoryId)
       : [...current, categoryId];
-    set({ skipKotCategories: newCategories });
     saveSettings({ ...get(), skipKotCategories: newCategories });
+    set({ skipKotCategories: newCategories });
   },
 
   addShortcut: (name, url) => {
@@ -151,22 +151,22 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       url,
     };
     const newShortcuts = [...get().pageShortcuts, newShortcut];
-    set({ pageShortcuts: newShortcuts });
     saveSettings({ ...get(), pageShortcuts: newShortcuts });
+    set({ pageShortcuts: newShortcuts });
   },
 
   updateShortcut: (id, name, url) => {
     const newShortcuts = get().pageShortcuts.map(s =>
       s.id === id ? { ...s, name, url } : s
     );
-    set({ pageShortcuts: newShortcuts });
     saveSettings({ ...get(), pageShortcuts: newShortcuts });
+    set({ pageShortcuts: newShortcuts });
   },
 
   removeShortcut: (id) => {
     const newShortcuts = get().pageShortcuts.filter(s => s.id !== id);
-    set({ pageShortcuts: newShortcuts });
     saveSettings({ ...get(), pageShortcuts: newShortcuts });
+    set({ pageShortcuts: newShortcuts });
   },
 
   addPaymentMethod: (label) => {
@@ -174,27 +174,27 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     const key = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
     const newMethod: PaymentMethodConfig = { key, label };
     const newMethods = [...get().paymentMethods, newMethod];
-    set({ paymentMethods: newMethods });
     saveSettings({ ...get(), paymentMethods: newMethods });
+    set({ paymentMethods: newMethods });
   },
 
   updatePaymentMethod: (key, label) => {
     const newMethods = get().paymentMethods.map(m =>
       m.key === key ? { ...m, label } : m
     );
-    set({ paymentMethods: newMethods });
     saveSettings({ ...get(), paymentMethods: newMethods });
+    set({ paymentMethods: newMethods });
   },
 
   removePaymentMethod: (key) => {
     const newMethods = get().paymentMethods.filter(m => m.key !== key);
-    set({ paymentMethods: newMethods });
     saveSettings({ ...get(), paymentMethods: newMethods });
+    set({ paymentMethods: newMethods });
   },
 
   reorderPaymentMethods: (methods) => {
-    set({ paymentMethods: methods });
     saveSettings({ ...get(), paymentMethods: methods });
+    set({ paymentMethods: methods });
   },
 
   isConfigured: () => {

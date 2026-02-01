@@ -61,69 +61,71 @@ export async function updateLocalOrder(
   frontendId: string,
   updates: Partial<OrderSchema>
 ): Promise<LocalOrder> {
-  const existing = await db.orders.get(frontendId);
+  return await db.transaction('rw', db.orders, async () => {
+    const existing = await db.orders.get(frontendId);
 
-  if (!existing) {
-    throw new OrderNotFoundError(frontendId);
-  }
+    if (!existing) {
+      throw new OrderNotFoundError(frontendId);
+    }
 
-  // Merge the updates into the existing order data
-  const updatedData: OrderSchema = {
-    ...existing.data,
-    ...updates,
-    // Preserve the frontend ID in meta_data
-    meta_data: mergeMetaData(existing.data.meta_data, updates.meta_data, frontendId),
-  };
-
-  // Handle line_items array updates specifically
-  if (updates.line_items !== undefined) {
-    updatedData.line_items = updates.line_items;
-  }
-
-  // Handle shipping_lines array updates specifically
-  if (updates.shipping_lines !== undefined) {
-    updatedData.shipping_lines = updates.shipping_lines;
-  }
-
-  // Handle coupon_lines array updates specifically
-  if (updates.coupon_lines !== undefined) {
-    updatedData.coupon_lines = updates.coupon_lines;
-  }
-
-  // Handle billing object updates specifically (merge instead of replace)
-  if (updates.billing !== undefined) {
-    updatedData.billing = {
-      ...existing.data.billing,
-      ...updates.billing,
+    // Merge the updates into the existing order data
+    const updatedData: OrderSchema = {
+      ...existing.data,
+      ...updates,
+      // Preserve the frontend ID in meta_data
+      meta_data: mergeMetaData(existing.data.meta_data, updates.meta_data, frontendId),
     };
-  }
 
-  // Recalculate order totals when line_items, shipping_lines, or coupon_lines change
-  // This is necessary because WooCommerce calculates totals server-side, but local orders
-  // need immediate total updates for the UI
-  const shouldRecalculateTotal =
-    updates.line_items !== undefined ||
-    updates.shipping_lines !== undefined ||
-    updates.coupon_lines !== undefined ||
-    updates.discount_total !== undefined;
+    // Handle line_items array updates specifically
+    if (updates.line_items !== undefined) {
+      updatedData.line_items = updates.line_items;
+    }
 
-  if (shouldRecalculateTotal) {
-    // Calculate subtotal from line items
-    updatedData.subtotal = calculateSubtotal(updatedData.line_items);
-    // Calculate total: subtotal - discount + shipping
-    updatedData.total = calculateOrderTotal(updatedData);
-  }
+    // Handle shipping_lines array updates specifically
+    if (updates.shipping_lines !== undefined) {
+      updatedData.shipping_lines = updates.shipping_lines;
+    }
 
-  const updatedOrder: LocalOrder = {
-    ...existing,
-    data: updatedData,
-    updatedAt: new Date(),
-  };
+    // Handle coupon_lines array updates specifically
+    if (updates.coupon_lines !== undefined) {
+      updatedData.coupon_lines = updates.coupon_lines;
+    }
 
-  // Update in Dexie
-  await db.orders.put(updatedOrder);
+    // Handle billing object updates specifically (merge instead of replace)
+    if (updates.billing !== undefined) {
+      updatedData.billing = {
+        ...existing.data.billing,
+        ...updates.billing,
+      };
+    }
 
-  return updatedOrder;
+    // Recalculate order totals when line_items, shipping_lines, or coupon_lines change
+    // This is necessary because WooCommerce calculates totals server-side, but local orders
+    // need immediate total updates for the UI
+    const shouldRecalculateTotal =
+      updates.line_items !== undefined ||
+      updates.shipping_lines !== undefined ||
+      updates.coupon_lines !== undefined ||
+      updates.discount_total !== undefined;
+
+    if (shouldRecalculateTotal) {
+      // Calculate subtotal from line items
+      updatedData.subtotal = calculateSubtotal(updatedData.line_items);
+      // Calculate total: subtotal - discount + shipping
+      updatedData.total = calculateOrderTotal(updatedData);
+    }
+
+    const updatedOrder: LocalOrder = {
+      ...existing,
+      data: updatedData,
+      updatedAt: new Date(),
+    };
+
+    // Update in Dexie
+    await db.orders.put(updatedOrder);
+
+    return updatedOrder;
+  });
 }
 
 /**
@@ -189,44 +191,46 @@ export async function updateLocalOrderSyncStatus(
     lastSyncAttempt?: Date;
   }
 ): Promise<LocalOrder> {
-  const existing = await db.orders.get(frontendId);
+  return await db.transaction('rw', db.orders, async () => {
+    const existing = await db.orders.get(frontendId);
 
-  if (!existing) {
-    throw new OrderNotFoundError(frontendId);
-  }
-
-  const updatedOrder: LocalOrder = {
-    ...existing,
-    syncStatus,
-    updatedAt: new Date(),
-    ...(options?.serverId !== undefined && { serverId: options.serverId }),
-    ...(options?.syncError !== undefined && { syncError: options.syncError }),
-    ...(options?.lastSyncAttempt !== undefined && { lastSyncAttempt: options.lastSyncAttempt }),
-  };
-
-  // If synced successfully, update the server ID in the order data meta_data
-  if (syncStatus === "synced" && options?.serverId !== undefined) {
-    const existingServerIdMeta = updatedOrder.data.meta_data?.find(
-      (m) => m.key === "pos_server_id"
-    );
-    if (!existingServerIdMeta) {
-      updatedOrder.data.meta_data = [
-        ...(updatedOrder.data.meta_data ?? []),
-        { key: "pos_server_id", value: options.serverId },
-      ];
+    if (!existing) {
+      throw new OrderNotFoundError(frontendId);
     }
-    // Also update the order ID in data
-    updatedOrder.data.id = options.serverId;
-  }
 
-  // Clear sync error if status is not error
-  if (syncStatus !== "error") {
-    updatedOrder.syncError = undefined;
-  }
+    const updatedOrder: LocalOrder = {
+      ...existing,
+      syncStatus,
+      updatedAt: new Date(),
+      ...(options?.serverId !== undefined && { serverId: options.serverId }),
+      ...(options?.syncError !== undefined && { syncError: options.syncError }),
+      ...(options?.lastSyncAttempt !== undefined && { lastSyncAttempt: options.lastSyncAttempt }),
+    };
 
-  await db.orders.put(updatedOrder);
+    // If synced successfully, update the server ID in the order data meta_data
+    if (syncStatus === "synced" && options?.serverId !== undefined) {
+      const existingServerIdMeta = updatedOrder.data.meta_data?.find(
+        (m) => m.key === "pos_server_id"
+      );
+      if (!existingServerIdMeta) {
+        updatedOrder.data.meta_data = [
+          ...(updatedOrder.data.meta_data ?? []),
+          { key: "pos_server_id", value: options.serverId },
+        ];
+      }
+      // Also update the order ID in data
+      updatedOrder.data.id = options.serverId;
+    }
 
-  return updatedOrder;
+    // Clear sync error if status is not error
+    if (syncStatus !== "error") {
+      updatedOrder.syncError = undefined;
+    }
+
+    await db.orders.put(updatedOrder);
+
+    return updatedOrder;
+  });
 }
 
 /**

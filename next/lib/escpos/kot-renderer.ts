@@ -128,6 +128,15 @@ export function renderKot(data: KotData, options: KotRenderOptions): Uint8Array 
     const words = data.customerNote.split(' ');
     let currentLine = '';
     words.forEach((word) => {
+      // Hard-break words longer than charWidth
+      while (word.length > charWidth) {
+        if (currentLine) {
+          builder.text(currentLine.trim()).newline();
+          currentLine = '';
+        }
+        builder.text(word.substring(0, charWidth)).newline();
+        word = word.substring(charWidth);
+      }
       if ((currentLine + ' ' + word).trim().length > charWidth) {
         builder.text(currentLine.trim()).newline();
         currentLine = word;
