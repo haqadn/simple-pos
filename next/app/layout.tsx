@@ -26,7 +26,7 @@ export default function RootLayout({
               </div>
             </div>
             <div className="flex flex-row flex-1 overflow-hidden">
-              <aside className="w-48 px-4 overflow-y-auto">
+              <aside className="w-56 px-4 overflow-y-auto">
                 <Sidebar />
               </aside>
               <main className="flex-1 px-4">
