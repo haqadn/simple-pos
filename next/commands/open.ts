@@ -62,7 +62,6 @@ export class OpenCommand extends BaseCommand {
     }
 
     context.navigateToOrder(identifier);
-    context.showMessage(`Opening order ${identifier}`);
   }
 
   getAutocompleteSuggestions(partialInput: string): CommandSuggestion[] {

@@ -239,14 +239,30 @@ export const useCurrentOrder = () => {
 	}, [isServerId, localOrderByServerIdQuery.isSuccess, localOrderByServerIdQuery.data, router]);
 
 	useEffect(() => {
-		// Redirect to orders list if order not found (for server IDs)
-		// Only redirect if the order is not found locally AND not found on server
-		if (!isLegacyNew && isServerId && orderId && orderQuery.isSuccess && orderQuery.data === null && localOrderByServerIdQuery.isSuccess && !localOrderByServerIdQuery.data) {
-			router.replace('/orders');
+		const redirectToFirstOrder = async () => {
+			const orders = await listLocalOrders({
+				status: ['pending', 'processing', 'on-hold', 'draft'],
+				limit: 1,
+			});
+			if (orders.length > 0) {
+				router.replace(`/orders/${orders[0].frontendId}`);
+			} else {
+				router.replace('/orders');
+			}
+		};
+
+		// Redirect if orderId is not a valid format (not a frontend ID, server ID, or 'new')
+		if (orderId && !isLegacyNew && !isFrontendId && !isServerId) {
+			redirectToFirstOrder();
+			return;
 		}
-		// Redirect if local order not found (for frontend IDs)
+		// Redirect to first order if order not found (for server IDs)
+		if (!isLegacyNew && isServerId && orderId && orderQuery.isSuccess && orderQuery.data === null && localOrderByServerIdQuery.isSuccess && !localOrderByServerIdQuery.data) {
+			redirectToFirstOrder();
+		}
+		// Redirect to first order if local order not found (for frontend IDs)
 		if (isFrontendId && localOrderQuery.isSuccess && !localOrderQuery.data) {
-			router.replace('/orders');
+			redirectToFirstOrder();
 		}
 	}, [isLegacyNew, isFrontendId, isServerId, orderId, orderQuery.data, orderQuery.isSuccess, localOrderQuery.data, localOrderQuery.isSuccess, localOrderByServerIdQuery.data, localOrderByServerIdQuery.isSuccess, router]);
 
