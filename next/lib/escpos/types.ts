@@ -5,7 +5,7 @@ export interface PrinterConnection {
   usbName?: string;
   networkHost?: string;
   networkPort?: number;
-  paperWidth?: 58 | 80;
+  paperWidth?: number;
 }
 
 export interface BillCustomization {
@@ -29,7 +29,7 @@ export interface PrintConfig {
   kotPrinter: PrinterConnection;
   enableDrawer: boolean;
   drawerPulsePin: 2 | 5;
-  paperWidth: 58 | 80;
+  paperWidth: number;
   bill: BillCustomization;
   kot: KotSettings;
   enablePrinting: boolean;

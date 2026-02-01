@@ -6,7 +6,7 @@ import type { BillCustomization, BillData } from './types';
 
 interface BillRenderOptions {
   customization: BillCustomization;
-  paperWidth: 58 | 80;
+  paperWidth: number;
 }
 
 /**
@@ -36,7 +36,7 @@ export async function renderBill(
   options: BillRenderOptions
 ): Promise<Uint8Array> {
   const { customization, paperWidth } = options;
-  const charWidth = paperWidth === 80 ? 46 : 32;
+  const charWidth = Math.round(paperWidth * (46 / 80));
 
   const builder = new EscPosBuilder();
   builder.init();
@@ -45,7 +45,7 @@ export async function renderBill(
   if (customization.logo) {
     try {
       // Use wider logo: 576px for 80mm, 384px for 58mm (full printable width)
-      const logoWidth = customization.logoWidth || (paperWidth === 80 ? 576 : 384);
+      const logoWidth = customization.logoWidth || Math.round(paperWidth * (576 / 80));
       const { data: imageData, widthBytes, height } = await encodeImageForPrint(
         customization.logo,
         logoWidth

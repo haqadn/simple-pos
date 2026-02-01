@@ -183,6 +183,18 @@ export function PrinterConnectionForm({
       )}
 
       {connection.type !== 'none' && (
+        <Input
+          label="Paper Width (mm)"
+          placeholder="80"
+          type="number"
+          value={String(connection.paperWidth || 80)}
+          onValueChange={(v) => onChange({ ...connection, paperWidth: parseInt(v) || 80 })}
+          size="sm"
+          className="w-36"
+        />
+      )}
+
+      {connection.type !== 'none' && (
         <div className="flex items-center gap-2">
           <Button
             variant="flat"

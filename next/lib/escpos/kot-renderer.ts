@@ -5,7 +5,7 @@ import type { KotSettings, KotData } from './types';
 
 interface KotRenderOptions {
   settings: KotSettings;
-  paperWidth: 58 | 80;
+  paperWidth: number;
 }
 
 /**
@@ -29,7 +29,7 @@ function formatServiceDisplay(cartName: string, serviceType?: 'table' | 'deliver
  */
 export function renderKot(data: KotData, options: KotRenderOptions): Uint8Array {
   const { settings, paperWidth } = options;
-  const charWidth = paperWidth === 80 ? 46 : 32;
+  const charWidth = Math.round(paperWidth * (46 / 80));
 
   const builder = new EscPosBuilder();
   builder.init();

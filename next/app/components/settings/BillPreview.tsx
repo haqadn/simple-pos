@@ -4,7 +4,7 @@ import type { BillCustomization } from '@/lib/escpos';
 
 interface BillPreviewProps {
   customization: BillCustomization;
-  paperWidth: 58 | 80;
+  paperWidth: number;
 }
 
 // Sample data for preview
@@ -24,7 +24,7 @@ const SAMPLE_DATA = {
 };
 
 export function BillPreview({ customization, paperWidth }: BillPreviewProps) {
-  const widthPx = paperWidth === 80 ? 300 : 220;
+  const widthPx = Math.round(paperWidth * (300 / 80));
 
   const subtotal = SAMPLE_DATA.items.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -41,7 +41,7 @@ export function BillPreview({ customization, paperWidth }: BillPreviewProps) {
         style={{
           width: widthPx,
           fontFamily: 'monospace',
-          fontSize: paperWidth === 80 ? '11px' : '10px',
+          fontSize: paperWidth >= 70 ? '11px' : '10px',
         }}
       >
         {/* Logo */}
