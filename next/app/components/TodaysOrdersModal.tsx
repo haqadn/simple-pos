@@ -24,6 +24,7 @@ import {
   ArrowUpRight01Icon,
   ArrowTurnBackwardIcon,
   Cancel01Icon,
+  Download04Icon,
 } from '@hugeicons/core-free-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
@@ -188,6 +189,19 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
     }
   }, []);
 
+  // Handle download today's orders as JSON
+  const handleDownloadOrders = useCallback(() => {
+    const json = JSON.stringify(orders, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `orders-${date}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [orders]);
+
   // Handle reopen order
   const handleReopenOrder = useCallback(async () => {
     if (!selectedOrder) return;
@@ -242,7 +256,19 @@ export function TodaysOrdersModal({ isOpen, onOpenChange }: TodaysOrdersModalPro
       <ModalContent>
         {() => (
           <>
-            <ModalHeader>Today&apos;s Orders</ModalHeader>
+            <ModalHeader className="flex items-center justify-between">
+              <span>Today&apos;s Orders</span>
+              {orders.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="flat"
+                  onPress={handleDownloadOrders}
+                  startContent={<HugeiconsIcon icon={Download04Icon} className="h-4 w-4" />}
+                >
+                  Download JSON
+                </Button>
+              )}
+            </ModalHeader>
             <ModalBody className="pb-6">
               {isLoading ? (
                 <div className="flex justify-center items-center py-12">
