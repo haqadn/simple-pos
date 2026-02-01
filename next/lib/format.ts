@@ -4,7 +4,7 @@
  * @param maxDecimals - Maximum decimal places (default 2)
  * @returns Formatted string without unnecessary decimals
  */
-export function formatNumber(value: number, maxDecimals = 2): string {
+function formatNumber(value: number, maxDecimals = 2): string {
   if (Number.isInteger(value)) {
     return value.toString();
   }

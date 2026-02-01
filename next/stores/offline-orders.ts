@@ -13,8 +13,7 @@ import {
   type OrderStatus,
   createLocalOrder as createLocalOrderRecord,
 } from "../db";
-import type { OrderSchema, LineItemSchema, ShippingLineSchema, CouponLineSchema, BillingSchema, MetaDataSchema } from "../api/orders";
-import OrdersAPI from "../api/orders";
+import OrdersAPI, { type OrderSchema, type LineItemSchema, type ShippingLineSchema, type CouponLineSchema, type BillingSchema, type MetaDataSchema } from "../api/orders";
 import { generateUniqueFrontendId } from "../lib/frontend-id";
 import { calculateOrderTotal, calculateSubtotal } from "../lib/order-utils";
 

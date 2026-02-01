@@ -1,5 +1,5 @@
 import { CommandRegistry, CommandExecutionResult } from './command-registry';
-import { CommandState, CommandSuggestion } from './command';
+import { CommandState, CommandSuggestion, CurrencyConfig } from './command';
 import { ItemCommand } from './item';
 import { PayCommand } from './pay';
 import { DoneCommand } from './done';
@@ -18,13 +18,7 @@ import { ProductSchema } from '@/stores/products';
 import { ServiceMethodSchema } from '@/stores/service';
 import { PaymentMethodConfig } from '@/stores/settings';
 
-/**
- * Currency configuration for formatting
- */
-export interface CurrencyConfig {
-  symbol: string;
-  position: 'left' | 'right' | 'left_space' | 'right_space';
-}
+export type { CurrencyConfig } from './command';
 
 /**
  * Command context that provides data and functions to commands

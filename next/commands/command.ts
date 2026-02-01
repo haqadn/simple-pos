@@ -130,10 +130,21 @@ export interface MultiInputCommand extends Command {
   getMultiModeAutocompleteSuggestions(partialInput: string, multiData?: unknown): CommandSuggestion[];
 }
 
+/**
+ * Currency configuration for formatting
+ */
+export interface CurrencyConfig {
+  symbol: string;
+  position: 'left' | 'right' | 'left_space' | 'right_space';
+}
+
+const DEFAULT_CURRENCY: CurrencyConfig = { symbol: '$', position: 'left' };
+
 // Import for context type - will be defined in command-manager.ts
 // Forward declaration to avoid circular dependency
 interface BaseCommandContext {
   currentOrder?: { id: number; line_items: unknown[] };
+  getCurrency?: () => CurrencyConfig;
 }
 
 /**
@@ -171,6 +182,13 @@ export abstract class BaseCommand implements Command {
       throw new Error('No active order');
     }
     return context.currentOrder as unknown as T;
+  }
+
+  /**
+   * Get currency config from context with fallback to defaults
+   */
+  protected getCurrency(): CurrencyConfig {
+    return this._context?.getCurrency?.() || DEFAULT_CURRENCY;
   }
 
   /**

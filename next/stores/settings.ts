@@ -26,7 +26,7 @@ export interface Settings {
   paymentMethods: PaymentMethodConfig[];
 }
 
-interface SettingsStore extends Settings {
+interface SettingsState extends Settings {
   // API config
   updateApi: (config: Partial<ApiConfig>) => void;
 
@@ -117,7 +117,7 @@ function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
 }
 
-export const useSettingsStore = create<SettingsStore>((set, get) => ({
+export const useSettingsStore = create<SettingsState>((set, get) => ({
   ...loadSettings(),
 
   updateApi: (config) => {

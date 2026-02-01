@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CommandManager, CommandContext } from '@/commands/command-manager';
 import { CommandState, CommandSuggestion } from '@/commands/command';
+import { AsyncSearchCommand } from '@/commands/async-search-command';
 import { CommandExecutionResult } from '@/commands/command-registry';
 
 const COMMAND_STATE_KEY = 'pos-command-state';
@@ -171,13 +172,14 @@ export function useCommandManager() {
 
   /**
    * Set callback for async suggestion updates (e.g., customer search, order search)
+   * Applies to all commands that extend AsyncSearchCommand.
    */
   const setSuggestionsCallback = useCallback((callback: () => void) => {
     if (!managerRef.current) return;
     const registry = (managerRef.current as unknown as { registry: { getAllCommands: () => unknown[] } }).registry;
     registry?.getAllCommands().forEach(command => {
-      if (command && typeof command === 'object' && 'setSuggestionsCallback' in command) {
-        (command as { setSuggestionsCallback: (cb: () => void) => void }).setSuggestionsCallback(callback);
+      if (command instanceof AsyncSearchCommand) {
+        command.setSuggestionsCallback(callback);
       }
     });
   }, []);

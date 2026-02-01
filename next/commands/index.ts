@@ -8,6 +8,7 @@ export type {
   Command,
   MultiInputCommand,
   CommandResult,
+  CurrencyConfig,
 } from './command';
 
 export {
@@ -15,6 +16,8 @@ export {
   BaseMultiInputCommand,
   CommandUtils,
 } from './command';
+
+export { AsyncSearchCommand } from './async-search-command';
 
 export { CommandRegistry } from './command-registry';
 export type { CommandExecutionResult } from './command-registry';
@@ -33,3 +36,4 @@ export { CustomerCommand } from './customer';
 export { DrawerCommand } from './drawer';
 export { StockCommand } from './stock';
 export { OpenCommand } from './open';
+export { ServiceCommand } from './service';

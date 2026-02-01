@@ -91,7 +91,7 @@ export class ItemCommand extends BaseMultiInputCommand {
         )
         .slice(0, 8); // Limit to 8 suggestions
 
-      const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
+      const currency = this.getCurrency();
       matchingProducts.forEach(product => {
         suggestions.push({
           text: product.sku,
@@ -160,7 +160,7 @@ export class ItemCommand extends BaseMultiInputCommand {
         )
         .slice(0, 8);
 
-      const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
+      const currency = this.getCurrency();
       const productSuggestions: CommandSuggestion[] = matchingProducts.map(product => ({
         text: product.sku,
         description: `${product.name} - ${formatCurrencyWithSymbol(product.price, currency.symbol, currency.position)}`,

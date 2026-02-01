@@ -2,7 +2,7 @@ import { BaseCommand, CommandMetadata, CommandSuggestion } from './command';
 import { CommandContext } from './command-manager';
 import { formatCurrency, formatCurrencyWithSymbol } from '@/lib/format';
 import { OrderSchema } from '@/api/orders';
-import { resolvePaymentMethod, getAllPaymentMethods } from '@/lib/payment-method-match';
+import { resolvePaymentMethod, getPaymentMethodSuggestions } from '@/lib/payment-method-match';
 
 /**
  * Done command - complete the order and navigate to next
@@ -61,7 +61,7 @@ export class DoneCommand extends BaseCommand {
     // Check if payment is sufficient
     if (orderTotal - paymentReceived > 0.005) {
       const remaining = orderTotal - paymentReceived;
-      const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
+      const currency = this.getCurrency();
       throw new Error(`Insufficient payment. Due: ${formatCurrencyWithSymbol(remaining, currency.symbol, currency.position)}`);
     }
 
@@ -89,7 +89,7 @@ export class DoneCommand extends BaseCommand {
     }
 
     if (change > 0) {
-      const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
+      const currency = this.getCurrency();
       context.showMessage(`Order completed! Change: ${formatCurrencyWithSymbol(change, currency.symbol, currency.position)}`);
     } else {
       context.showMessage('Order completed!');
@@ -107,9 +107,10 @@ export class DoneCommand extends BaseCommand {
       const methodPartial = parts.slice(2).join(' ').toLowerCase();
       const amountStr = parts[1];
       const commandKeyword = parts[0];
+      const methods = (this._context as CommandContext | undefined)?.paymentMethods || [];
       return [
         ...baseSuggestions,
-        ...this.getMethodSuggestions(methodPartial, commandKeyword, amountStr),
+        ...getPaymentMethodSuggestions(methodPartial, methods, `/${commandKeyword} ${amountStr}`),
       ];
     }
 
@@ -133,7 +134,7 @@ export class DoneCommand extends BaseCommand {
 
       // Suggest common round amounts that cover the remaining balance
       const roundAmounts = [10, 20, 50, 100, 200, 500].filter(a => a >= remaining);
-      const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
+      const currency = this.getCurrency();
       roundAmounts.slice(0, 2).forEach(amount => {
         suggestions.push({
           text: amount.toString(),
@@ -149,28 +150,4 @@ export class DoneCommand extends BaseCommand {
     return baseSuggestions;
   }
 
-  /**
-   * Get payment method suggestions for the third argument position
-   */
-  private getMethodSuggestions(
-    methodPartial: string,
-    commandKeyword: string,
-    amountStr: string,
-  ): CommandSuggestion[] {
-    const context = this._context as CommandContext | undefined;
-    const methods = context?.paymentMethods || [];
-    const allMethods = getAllPaymentMethods(methods);
-
-    return allMethods
-      .filter(m =>
-        m.key.toLowerCase().startsWith(methodPartial) ||
-        m.label.toLowerCase().startsWith(methodPartial)
-      )
-      .map(m => ({
-        text: m.label,
-        description: `Pay with ${m.label}`,
-        insertText: `/${commandKeyword} ${amountStr} ${m.key}`,
-        type: 'value' as const,
-      }));
-  }
 }

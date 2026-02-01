@@ -56,12 +56,7 @@ export default class ProductsAPI extends API {
         ...params,
       },
     });
-    try {
-      return ServerSideProductSchema.array().parse(response.data);
-    } catch (error) {
-      console.error(error);
-      return [];
-    }
+    return ServerSideProductSchema.array().parse(response.data);
   }
 
   static async getVariations(productId: number): Promise<ServerSideVariationSchema[]> {
@@ -71,12 +66,7 @@ export default class ProductsAPI extends API {
         status: "publish",
       },
     });
-    try {
-      return ServerSideVariationSchema.array().parse(response.data);
-    } catch (error) {
-      console.error(error);
-      return [];
-    }
+    return ServerSideVariationSchema.array().parse(response.data);
   }
 
   static async updateProduct(productId: ServerSideProductSchema['id'], data: Partial<ServerSideProductSchema>) {

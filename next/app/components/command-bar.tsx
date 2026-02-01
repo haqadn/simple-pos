@@ -5,40 +5,36 @@ import { Input } from '@heroui/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
 import { useCommandManager } from '@/hooks/useCommandManager';
-import { useCurrentOrder, useOrdersQuery, useServiceQuery } from '@/stores/orders';
+import { useCurrentOrder, useServiceQuery } from '@/stores/orders';
 import { useProductsQuery, useGetProductById } from '@/stores/products';
 import { useTablesQuery, useDeliveryZonesQuery } from '@/stores/service';
 import type { ServiceMethodSchema } from '@/stores/service';
-import { usePrintStore } from '@/stores/print';
-import { buildPrintData, buildPrintMetaUpdates } from '@/lib/print-data';
-import { CommandContext, CustomerData, CurrencyConfig } from '@/commands/command-manager';
+import { CommandContext, CurrencyConfig } from '@/commands/command-manager';
 import { CommandSuggestion } from '@/commands/command';
-import OrdersAPI, { OrderSchema, CouponLineSchema } from '@/api/orders';
-import CouponsAPI, { validateCoupon } from '@/api/coupons';
+import OrdersAPI, { OrderSchema } from '@/api/orders';
 import { DRAFT_ORDER_ID, useDraftOrderStore } from '@/stores/draft-order';
 import { useDraftOrderState } from '@/hooks/useDraftOrderState';
 import { useSettingsStore } from '@/stores/settings';
 import { isAppShortcut } from '@/lib/shortcuts';
-import { createShouldSkipForKot } from '@/lib/kot';
 import { HelpTextBar, CommandSuggestions, applySuggestion } from './command-bar/index';
 import { isValidFrontendId } from '@/lib/frontend-id';
-import { updateLocalOrderStatus, getLocalOrder, updateLocalOrder } from '@/stores/offline-orders';
+import { updateLocalOrder } from '@/stores/offline-orders';
 import { updateLineItem } from '@/lib/line-item-ops';
-import { syncOrder } from '@/services/sync';
 import type { LocalOrder } from '@/db';
 import { useCurrencySettings } from '@/stores/currency';
 
-interface CommandMessage {
-  id: number;
-  text: string;
-  type: 'success' | 'error';
-}
+// Extracted hooks
+import { useCommandMessages } from '@/hooks/useCommandMessages';
+import { usePaymentHandler } from '@/hooks/usePaymentHandler';
+import { useOrderCompletion } from '@/hooks/useOrderCompletion';
+import { useCouponHandler } from '@/hooks/useCouponHandler';
+import { usePrintHandler } from '@/hooks/usePrintHandler';
+import { useOrderNoteAndCustomer } from '@/hooks/useOrderNoteAndCustomer';
 
 export default function CommandBar() {
   const [input, setInput] = useState('');
   const [suggestions, setSuggestions] = useState<CommandSuggestion[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState(-1);
-  const [messages, setMessages] = useState<CommandMessage[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -48,9 +44,7 @@ export default function CommandBar() {
   // Hooks for data
   const orderQuery = useCurrentOrder();
   const { data: products = [] } = useProductsQuery();
-  const { ordersQuery } = useOrdersQuery();
   const getProductById = useGetProductById();
-  const skipKotCategories = useSettingsStore(state => state.skipKotCategories);
   const paymentMethods = useSettingsStore(state => state.paymentMethods);
   const { data: currencySettings } = useCurrencySettings();
 
@@ -63,15 +57,13 @@ export default function CommandBar() {
     return [...tables, ...deliveryZones];
   }, [tables, deliveryZones]);
 
-  // Command feedback messages
-  const showCommandMessage = useCallback((text: string | unknown, type: 'success' | 'error') => {
-    const id = Date.now();
-    const message = typeof text === 'string' ? text : (text instanceof Error ? text.message : String(text));
-    setMessages(prev => [...prev, { id, text: message, type }]);
-    setTimeout(() => {
-      setMessages(prev => prev.filter(m => m.id !== id));
-    }, 3000);
-  }, []);
+  // --- Extracted hooks ---
+  const { messages, showCommandMessage } = useCommandMessages();
+  const { handleSetPayment, getPaymentReceived } = usePaymentHandler();
+  const { handleCompleteOrder } = useOrderCompletion();
+  const { handleApplyCoupon, handleRemoveCoupon } = useCouponHandler();
+  const { handlePrint, handleOpenDrawer } = usePrintHandler();
+  const { handleSetNote, handleSetCustomer } = useOrderNoteAndCustomer();
 
   // Draft order support
   const updateDraftLineItems = useDraftOrderStore((state) => state.updateDraftLineItems);
@@ -85,12 +77,6 @@ export default function CommandBar() {
     setSavedOrderId,
   } = useDraftOrderState();
 
-  // Helper to check if a line item should be skipped on KOT based on category
-  const shouldSkipForKot = useMemo(
-    () => createShouldSkipForKot(products, skipKotCategories),
-    [products, skipKotCategories]
-  );
-  
   // Command manager
   const {
     isReady,
@@ -105,6 +91,7 @@ export default function CommandBar() {
   } = useCommandManager();
 
   // Handle adding products to the order
+  // Kept inline: tightly coupled to draft order save locks and routing
   const handleAddProduct = useCallback(async (productId: number, variationId: number, quantity: number, mode: 'set' | 'increment') => {
     try {
       const product = getProductById(productId, variationId);
@@ -290,6 +277,7 @@ export default function CommandBar() {
   }, [orderQuery, getProductById, queryClient, router, params, updateDraftLineItems, getDraftData, acquireSaveLock, releaseSaveLock, getSavePromise, setSavePromise, getSavedOrderId, setSavedOrderId]);
 
   // Clear all items from order
+  // Kept inline: uses queryClient cache reads and server-order deletion pattern
   const handleClearOrder = useCallback(async () => {
     if (!orderQuery.data) throw new Error('No active order');
 
@@ -331,361 +319,6 @@ export default function CommandBar() {
     queryClient.setQueryData(orderQueryKey, updatedOrder);
 
     await queryClient.invalidateQueries({ queryKey: ['orders', orderId, 'lineItem'] });
-  }, [orderQuery, queryClient, params]);
-
-  // Complete the order
-  const handleCompleteOrder = useCallback(async () => {
-    if (!orderQuery.data) throw new Error('No active order');
-
-    const orderId = orderQuery.data.id;
-    const urlOrderId = params?.orderId as string | undefined;
-    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
-
-    if (isFrontendIdOrder && urlOrderId) {
-      // Local-first flow: Mark order complete locally first
-      const localOrder = await getLocalOrder(urlOrderId);
-      if (!localOrder) {
-        throw new Error('Local order not found');
-      }
-
-      // Update local order status to completed
-      await updateLocalOrderStatus(urlOrderId, 'completed');
-
-      // Invalidate local order query to reflect new status
-      await queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
-
-      // Trigger sync attempt on completion (non-blocking)
-      syncOrder(urlOrderId).then((result) => {
-        if (result.success) {
-          // Sync succeeded - invalidate queries to refresh with server data
-          queryClient.invalidateQueries({ queryKey: ['orders'] });
-          queryClient.invalidateQueries({ queryKey: ['localOrder', urlOrderId] });
-          console.log(`Order ${urlOrderId} synced successfully with server ID ${result.serverId}`);
-        } else {
-          // Sync failed - order will be retried via background sync
-          console.warn(`Order ${urlOrderId} sync failed: ${result.error}. Will retry automatically.`);
-        }
-      }).catch((error) => {
-        console.error(`Unexpected error syncing order ${urlOrderId}:`, error);
-      });
-    } else {
-      // Legacy flow for server-side orders: Update order status directly via API
-      await OrdersAPI.updateOrder(orderId.toString(), { status: 'completed' });
-
-      // Invalidate queries
-      await queryClient.invalidateQueries({ queryKey: ['orders'] });
-    }
-
-    // Navigate to next pending order or home
-    const orders = ordersQuery.data || [];
-    const nextOrder = orders.find(o => {
-      // Skip the current order (check both orderId and urlOrderId)
-      if (o.id === orderId) return false;
-      // Also check if the order's frontend ID matches
-      const orderFrontendId = o.meta_data?.find(m => m.key === 'pos_frontend_id')?.value;
-      if (orderFrontendId === urlOrderId) return false;
-      return o.status === 'pending';
-    });
-
-    if (nextOrder) {
-      // Prefer using frontend ID if available
-      const nextFrontendId = nextOrder.meta_data?.find(m => m.key === 'pos_frontend_id')?.value;
-      if (nextFrontendId && typeof nextFrontendId === 'string') {
-        router.push(`/orders/${nextFrontendId}`);
-      } else {
-        router.push(`/orders/${nextOrder.id}`);
-      }
-    } else {
-      router.push('/');
-    }
-  }, [orderQuery, queryClient, ordersQuery, router, params]);
-
-  // Set payment amount (with optional payment method key, defaults to 'cash')
-  const handleSetPayment = useCallback(async (amount: number, method?: string) => {
-    if (!orderQuery.data) throw new Error('No active order');
-
-    // Check if we're on a frontend ID URL (local-first order)
-    const urlOrderId = params?.orderId as string | undefined;
-    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
-
-    // Get fresh order data
-    const currentOrder = orderQuery.data;
-
-    // Parse existing split_payments to merge with new payment
-    const existingSplitMeta = (currentOrder.meta_data || []).find(m => m.key === 'split_payments');
-    let existingSplitPayments: Record<string, number> = {};
-    if (existingSplitMeta && typeof existingSplitMeta.value === 'string') {
-      try {
-        existingSplitPayments = JSON.parse(existingSplitMeta.value);
-      } catch { /* ignore parse errors */ }
-    }
-
-    // Determine the payment method key (default to 'cash')
-    const methodKey = method || 'cash';
-
-    // Set the amount for the specified method (replaces any existing amount for that method)
-    const updatedSplitPayments = { ...existingSplitPayments, [methodKey]: amount };
-
-    // Calculate total received across all methods
-    const totalReceived = Object.values(updatedSplitPayments).reduce((sum, val) => sum + (val || 0), 0);
-
-    // Update meta_data with both split_payments (for UI) and payment_received (for legacy)
-    const metaData = (currentOrder.meta_data || []).filter(
-      m => m.key !== 'payment_received' && m.key !== 'split_payments'
-    );
-    metaData.push({ key: 'split_payments', value: JSON.stringify(updatedSplitPayments) });
-    metaData.push({ key: 'payment_received', value: totalReceived.toString() });
-
-    // For frontend ID orders - handle locally via Dexie
-    if (isFrontendIdOrder && urlOrderId) {
-      const updatedLocalOrder = await updateLocalOrder(urlOrderId, { meta_data: metaData });
-      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
-      return;
-    }
-
-    // Legacy flow for server orders
-    const orderId = currentOrder.id;
-    const orderQueryKey = ['orders', orderId, 'detail'];
-
-    // Optimistic update
-    queryClient.setQueryData(orderQueryKey, { ...currentOrder, meta_data: metaData });
-
-    // API call
-    const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), { meta_data: metaData });
-    queryClient.setQueryData(orderQueryKey, updatedOrder);
-  }, [orderQuery, queryClient, params]);
-
-  // Get current payment received
-  const getPaymentReceived = useCallback((): number => {
-    if (!orderQuery.data) return 0;
-    const paymentMeta = orderQuery.data.meta_data.find(m => m.key === 'payment_received');
-    return paymentMeta ? parseFloat(String(paymentMeta.value)) : 0;
-  }, [orderQuery.data]);
-
-  // Apply coupon
-  const handleApplyCoupon = useCallback(async (code: string) => {
-    if (!orderQuery.data) throw new Error('No active order');
-
-    // Validate coupon against the server first
-    let coupon;
-    try {
-      coupon = await CouponsAPI.getCouponByCode(code);
-    } catch {
-      throw new Error(`Failed to validate coupon "${code}"`);
-    }
-    if (!coupon) {
-      throw new Error(`Coupon "${code}" not found`);
-    }
-
-    const validation = validateCoupon(coupon);
-    if (!validation.isValid) {
-      throw new Error(validation.error || 'Coupon is not valid');
-    }
-
-    // Check if we're on a frontend ID URL (local-first order)
-    const urlOrderId = params?.orderId as string | undefined;
-    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
-
-    // For frontend ID orders - calculate discount and save locally
-    if (isFrontendIdOrder && urlOrderId) {
-      const subtotal = parseFloat(orderQuery.data.subtotal || orderQuery.data.total || '0');
-      let discountAmount = 0;
-
-      if (coupon.discount_type === 'percent') {
-        discountAmount = (subtotal * parseFloat(coupon.amount)) / 100;
-      } else {
-        // fixed_cart or fixed_product
-        discountAmount = parseFloat(coupon.amount);
-      }
-
-      const newCouponLine: CouponLineSchema = {
-        code,
-        discount: discountAmount.toFixed(2),
-        discount_tax: '0.00',
-      };
-
-      const existingCoupons = (orderQuery.data.coupon_lines || []).filter(c => c.code !== code);
-      const updatedCouponLines = [...existingCoupons, newCouponLine];
-      const totalDiscount = updatedCouponLines.reduce((sum, c) => sum + parseFloat(c.discount || '0'), 0);
-
-      const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
-        coupon_lines: updatedCouponLines,
-        discount_total: totalDiscount.toFixed(2),
-      });
-      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
-      return;
-    }
-
-    // Server orders - WooCommerce calculates the discount
-    const orderId = orderQuery.data.id;
-    const existingCodes = (orderQuery.data.coupon_lines || []).map(c => ({ code: c.code }));
-    const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), {
-      coupon_lines: [...existingCodes, { code }]
-    } as Partial<OrderSchema>);
-
-    const orderQueryKey = ['orders', orderId, 'detail'];
-    queryClient.setQueryData(orderQueryKey, updatedOrder);
-  }, [orderQuery, queryClient, params]);
-
-  // Remove coupon
-  const handleRemoveCoupon = useCallback(async () => {
-    if (!orderQuery.data) throw new Error('No active order');
-
-    // Check if we're on a frontend ID URL (local-first order)
-    const urlOrderId = params?.orderId as string | undefined;
-    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
-
-    // For frontend ID orders - handle locally via Dexie
-    if (isFrontendIdOrder && urlOrderId) {
-      const updatedLocalOrder = await updateLocalOrder(urlOrderId, {
-        coupon_lines: [],
-      });
-      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
-      return;
-    }
-
-    // Legacy flow for server orders
-    const orderId = orderQuery.data.id;
-
-    const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), {
-      coupon_lines: []
-    } as Partial<OrderSchema>);
-
-    const orderQueryKey = ['orders', orderId, 'detail'];
-    queryClient.setQueryData(orderQueryKey, updatedOrder);
-  }, [orderQuery, queryClient, params]);
-
-  // Print - uses print store queue
-  const printStore = usePrintStore();
-
-  const handlePrint = useCallback(async (type: 'bill' | 'kot') => {
-    if (!orderQuery.data) throw new Error('No active order');
-
-    // Check if we're on a frontend ID URL (local-first order)
-    const urlOrderId = params?.orderId as string | undefined;
-    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
-
-    // For frontend ID orders, get fresh data from local cache
-    // For server orders, use the orderQuery.data directly (already fresh from cache)
-    let order = orderQuery.data;
-    if (isFrontendIdOrder && urlOrderId) {
-      const cachedLocalOrder = queryClient.getQueryData<LocalOrder>(['localOrder', urlOrderId]);
-      if (cachedLocalOrder) {
-        order = cachedLocalOrder.data;
-      }
-    }
-
-    const orderId = order.id;
-
-    // Build print data using shared utility
-    const printData = buildPrintData({
-      order,
-      type,
-      urlOrderId,
-      shouldSkipForKot,
-    });
-
-    // Queue the print job
-    await printStore.push(type, printData);
-
-    // Build meta_data updates (only updates last_kot_items when there are actual changes)
-    const metaUpdates = buildPrintMetaUpdates({ order, type, printData });
-
-    // For frontend ID orders - save print meta_data to Dexie
-    if (isFrontendIdOrder && urlOrderId) {
-      const updatedLocalOrder = await updateLocalOrder(urlOrderId, { meta_data: metaUpdates });
-      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
-      return;
-    }
-
-    // For server orders - save to server
-    if (orderId !== DRAFT_ORDER_ID && orderId !== 0) {
-      await OrdersAPI.updateOrder(orderId.toString(), {
-        meta_data: metaUpdates
-      });
-    }
-  }, [orderQuery, printStore, shouldSkipForKot, params, queryClient]);
-
-  // Open cash drawer
-  const handleOpenDrawer = useCallback(async () => {
-    await printStore.push('drawer', null);
-  }, [printStore]);
-
-  // Set customer note
-  const handleSetNote = useCallback(async (note: string) => {
-    if (!orderQuery.data) throw new Error('No active order');
-
-    // Check if we're on a frontend ID URL (local-first order)
-    const urlOrderId = params?.orderId as string | undefined;
-    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
-
-    // For frontend ID orders - handle locally via Dexie
-    if (isFrontendIdOrder && urlOrderId) {
-      const updatedLocalOrder = await updateLocalOrder(urlOrderId, { customer_note: note });
-      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
-      return;
-    }
-
-    // Legacy flow for server orders
-    const orderId = orderQuery.data.id;
-    const orderQueryKey = ['orders', orderId, 'detail'];
-    const noteQueryKey = ['orders', orderId, 'note'];
-
-    const currentOrder = queryClient.getQueryData<OrderSchema>(orderQueryKey) || orderQuery.data;
-
-    // Optimistic update
-    queryClient.setQueryData(orderQueryKey, { ...currentOrder, customer_note: note });
-    queryClient.setQueryData(noteQueryKey, note);
-
-    // API call
-    const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), { customer_note: note });
-    queryClient.setQueryData(orderQueryKey, updatedOrder);
-    queryClient.setQueryData(noteQueryKey, updatedOrder.customer_note);
-  }, [orderQuery, queryClient, params]);
-
-  // Set customer info
-  const handleSetCustomer = useCallback(async (customer: CustomerData) => {
-    if (!orderQuery.data) throw new Error('No active order');
-
-    // Check if we're on a frontend ID URL (local-first order)
-    const urlOrderId = params?.orderId as string | undefined;
-    const isFrontendIdOrder = urlOrderId ? isValidFrontendId(urlOrderId) : false;
-
-    // Parse name into first and last
-    const nameParts = customer.name.split(' ');
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || '';
-
-    const billing = {
-      ...orderQuery.data.billing,
-      first_name: firstName,
-      last_name: lastName,
-      phone: customer.phone,
-      ...(customer.address && { address_1: customer.address })
-    };
-
-    // For frontend ID orders - handle locally via Dexie
-    if (isFrontendIdOrder && urlOrderId) {
-      const updatedLocalOrder = await updateLocalOrder(urlOrderId, { billing });
-      queryClient.setQueryData<LocalOrder>(['localOrder', urlOrderId], updatedLocalOrder);
-      return;
-    }
-
-    // Legacy flow for server orders
-    const orderId = orderQuery.data.id;
-    const orderQueryKey = ['orders', orderId, 'detail'];
-    const customerInfoKey = ['orders', orderId, 'customerInfo'];
-
-    const currentOrder = queryClient.getQueryData<OrderSchema>(orderQueryKey) || orderQuery.data;
-
-    // Optimistic update
-    queryClient.setQueryData(orderQueryKey, { ...currentOrder, billing });
-    queryClient.setQueryData(customerInfoKey, billing);
-
-    // API call
-    const updatedOrder = await OrdersAPI.updateOrder(orderId.toString(), { billing });
-    queryClient.setQueryData(orderQueryKey, updatedOrder);
-    queryClient.setQueryData(customerInfoKey, updatedOrder.billing);
   }, [orderQuery, queryClient, params]);
 
   // Navigate to an order by identifier (frontend ID or server ID)
@@ -800,12 +433,12 @@ export default function CommandBar() {
   // Handle input submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!input.trim()) return;
 
     try {
       const result = await processInput(input.trim());
-      
+
       if (result.success) {
         setInput('');
         setSuggestions([]);
@@ -840,7 +473,7 @@ export default function CommandBar() {
       case 'ArrowUp':
         e.preventDefault();
         if (suggestions.length > 0) {
-          setSelectedSuggestion(prev => 
+          setSelectedSuggestion(prev =>
             prev <= 0 ? suggestions.length - 1 : prev - 1
           );
         } else {
@@ -855,7 +488,7 @@ export default function CommandBar() {
       case 'ArrowDown':
         e.preventDefault();
         if (suggestions.length > 0) {
-          setSelectedSuggestion(prev => 
+          setSelectedSuggestion(prev =>
             prev >= suggestions.length - 1 ? -1 : prev + 1
           );
         } else {
@@ -928,7 +561,7 @@ export default function CommandBar() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          classNames={{ 
+          classNames={{
             mainWrapper: 'w-full',
           }}
           labelPlacement="outside-left"
@@ -946,7 +579,7 @@ export default function CommandBar() {
           autoComplete="off"
           aria-label="Command input field"
         />
-        
+
         {/* Autocomplete suggestions */}
         <CommandSuggestions
           suggestions={suggestions}
@@ -960,7 +593,7 @@ export default function CommandBar() {
           }}
         />
       </form>
-      
+
       {/* Help text */}
       <HelpTextBar multiMode={multiMode} activeCommand={activeCommand} />
 

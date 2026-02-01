@@ -92,45 +92,26 @@ const OrderSearchResponseSchema = z.object({
 
 export default class OrdersAPI extends API {
   static async saveOrder(order: Partial<OrderSchema>) {
-    try {
-      const response = await this.client.post("/orders", order);
-      return OrderSchema.parse(response.data);
-    } catch (error) {
-      console.error(error);
-      return null;
-    }
+    const response = await this.client.post("/orders", order);
+    return OrderSchema.parse(response.data);
   }
 
   static async updateOrder(id: string, order: Partial<OrderSchema>) {
-    try {
-      const response = await this.client.put(`/orders/${id}`, order);
-      return OrderSchema.parse(response.data);
-    } catch (error) {
-      console.error('Failed to update order:', error);
-      throw error;
-    }
+    const response = await this.client.put(`/orders/${id}`, order);
+    return OrderSchema.parse(response.data);
   }
 
   static async getOrder(id: string) {
-    try {
-      const response = await this.client.get(`/orders/${id}`);
-      return OrderSchema.parse(response.data);
-    } catch (error) {
-      console.error(error);
-      return null;
-    }
+    const response = await this.client.get(`/orders/${id}`);
+    return OrderSchema.parse(response.data);
   }
 
   static async listOrders(params: Record<string, string>) {
-    try {
-      const response = await this.client.get("/orders", { params });
-      return OrderSchema.array().parse(response.data);
-    } catch (error) {
-      console.error(error);
-      return [];
-    }
+    const response = await this.client.get("/orders", { params });
+    return OrderSchema.array().parse(response.data);
   }
 
+  // Returns empty array on error: search failures should not break the UI
   static async searchOrders(query: string): Promise<OrderSearchResult[]> {
     if (!query || query.length < 1) return [];
 
@@ -146,12 +127,7 @@ export default class OrdersAPI extends API {
   }
 
   static async cancelOrder(id: string) {
-    try {
-      const response = await this.client.put(`/orders/${id}`, { status: "cancelled" });
-      return OrderSchema.parse(response.data);
-    } catch (error) {
-      console.error('Failed to cancel order:', error);
-      throw error;
-    }
+    const response = await this.client.put(`/orders/${id}`, { status: "cancelled" });
+    return OrderSchema.parse(response.data);
   }
 }

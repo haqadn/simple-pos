@@ -1,4 +1,5 @@
 import { PaymentMethodConfig } from '@/stores/settings';
+import { CommandSuggestion } from '@/commands/command';
 
 /**
  * Match result from resolving a payment method input string
@@ -118,4 +119,36 @@ export function getAllPaymentMethods(
     { key: 'cash', label: 'Cash' },
     ...methods.map(m => ({ key: m.key, label: m.label })),
   ];
+}
+
+/**
+ * Get payment method autocomplete suggestions filtered by a partial input.
+ *
+ * This is the shared suggestion builder used by any command that accepts a
+ * payment method argument (e.g. /pay, /done).
+ *
+ * @param partialMethod - The partial method string the user has typed so far (lowercase)
+ * @param methods       - The configured payment methods from settings
+ * @param insertPrefix  - Text placed before the method key in `insertText`
+ *                        (e.g. "/pay 500" or "500" for multi-input mode)
+ * @returns Filtered and formatted CommandSuggestion array
+ */
+export function getPaymentMethodSuggestions(
+  partialMethod: string,
+  methods: PaymentMethodConfig[],
+  insertPrefix: string,
+): CommandSuggestion[] {
+  const allMethods = getAllPaymentMethods(methods);
+
+  return allMethods
+    .filter(m =>
+      m.key.toLowerCase().startsWith(partialMethod) ||
+      m.label.toLowerCase().startsWith(partialMethod)
+    )
+    .map(m => ({
+      text: m.label,
+      description: `Pay with ${m.label}`,
+      insertText: `${insertPrefix} ${m.key}`,
+      type: 'value' as const,
+    }));
 }

@@ -171,26 +171,22 @@ export default class CouponsAPI extends API {
    * Returns null if coupon not found
    */
   static async getCouponByCode(code: string): Promise<CouponSchema | null> {
-    try {
-      const response = await this.client.get<CouponSchema[]>(`/coupons`, {
-        params: {
-          code: code.trim().toLowerCase(),
-        },
-      });
+    const response = await this.client.get<CouponSchema[]>(`/coupons`, {
+      params: {
+        code: code.trim().toLowerCase(),
+      },
+    });
 
-      // WooCommerce returns an array of matching coupons
-      const coupons = z.array(CouponSchema).parse(response.data);
+    // WooCommerce returns an array of matching coupons
+    const coupons = z.array(CouponSchema).parse(response.data);
 
-      if (coupons.length === 0) {
-        return null;
-      }
-
-      // Return the first matching coupon
-      return coupons[0];
-    } catch (error) {
-      console.error("Failed to fetch coupon:", error);
-      throw error;
+    if (coupons.length === 0) {
+      // Intentional null: "not found" is a valid result, not an error
+      return null;
     }
+
+    // Return the first matching coupon
+    return coupons[0];
   }
 
   /**

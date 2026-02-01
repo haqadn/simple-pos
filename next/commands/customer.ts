@@ -1,4 +1,5 @@
-import { BaseCommand, CommandMetadata, CommandSuggestion } from './command';
+import { CommandMetadata, CommandSuggestion } from './command';
+import { AsyncSearchCommand } from './async-search-command';
 import { CommandContext } from './command-manager';
 import CustomersAPI, { CustomerSchema } from '@/api/customers';
 
@@ -12,25 +13,9 @@ export interface CustomerData {
  * Customer command - set customer info on order
  * Supports searching previous customers by name or phone
  */
-export class CustomerCommand extends BaseCommand {
-  private searchCache: CustomerSchema[] = [];
-  private lastSearchQuery = '';
-  private searchTimeout: ReturnType<typeof setTimeout> | null = null;
-  private onSuggestionsUpdate?: () => void;
-
-  /** Set callback to notify when suggestions update (for async search) */
-  setSuggestionsCallback(callback: () => void) {
-    this.onSuggestionsUpdate = callback;
-  }
-
-  /** Cleanup method to clear pending timeouts */
-  dispose() {
-    if (this.searchTimeout) {
-      clearTimeout(this.searchTimeout);
-      this.searchTimeout = null;
-    }
-    this.searchCache = [];
-    this.onSuggestionsUpdate = undefined;
+export class CustomerCommand extends AsyncSearchCommand<CustomerSchema> {
+  protected async performSearch(query: string): Promise<CustomerSchema[]> {
+    return CustomersAPI.search(query);
   }
 
   getMetadata(): CommandMetadata {
@@ -118,23 +103,5 @@ export class CustomerCommand extends BaseCommand {
     }
 
     return baseSuggestions;
-  }
-
-  private triggerSearch(query: string): void {
-    // Debounce search
-    if (this.searchTimeout) {
-      clearTimeout(this.searchTimeout);
-    }
-
-    this.searchTimeout = setTimeout(async () => {
-      try {
-        const results = await CustomersAPI.search(query);
-        this.searchCache = results;
-        // Notify that suggestions have updated
-        this.onSuggestionsUpdate?.();
-      } catch {
-        this.searchCache = [];
-      }
-    }, 150);
   }
 }

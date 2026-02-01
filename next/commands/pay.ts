@@ -2,7 +2,7 @@ import { BaseMultiInputCommand, CommandMetadata, CommandSuggestion } from './com
 import { CommandContext } from './command-manager';
 import { formatCurrency, formatCurrencyWithSymbol } from '@/lib/format';
 import { OrderSchema } from '@/api/orders';
-import { resolvePaymentMethod, getAllPaymentMethods } from '@/lib/payment-method-match';
+import { resolvePaymentMethod, getPaymentMethodSuggestions } from '@/lib/payment-method-match';
 
 interface PayCommandData {
   totalPaid: number;
@@ -85,7 +85,7 @@ export class PayCommand extends BaseMultiInputCommand {
     // But getPaymentReceived may not have updated yet, so calculate from the multi-mode total
     // For single execution (not multi-mode), use the amount directly against order total
     const change = amount - orderTotal;
-    const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
+    const currency = this.getCurrency();
 
     if (change >= 0) {
       context.showMessage(`${methodLabel}: ${formatCurrencyWithSymbol(amount, currency.symbol, currency.position)} | Change: ${formatCurrencyWithSymbol(change, currency.symbol, currency.position)}`);
@@ -108,7 +108,7 @@ export class PayCommand extends BaseMultiInputCommand {
       const orderTotal = parseFloat(context.currentOrder?.total || '0');
       const change = this._multiModeTotal - orderTotal;
       if (change >= 0) {
-        const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
+        const currency = this.getCurrency();
         context.showMessage(`Total paid: ${formatCurrencyWithSymbol(this._multiModeTotal, currency.symbol, currency.position)} | Change: ${formatCurrencyWithSymbol(change, currency.symbol, currency.position)}`);
       }
     }
@@ -125,7 +125,8 @@ export class PayCommand extends BaseMultiInputCommand {
     // If user has typed an amount and is now typing a method name
     if (parts.length >= 2) {
       const methodPartial = parts.slice(1).join(' ').toLowerCase();
-      return this.getMethodSuggestions(methodPartial, parts[0]);
+      const methods = (this._context as CommandContext | undefined)?.paymentMethods || [];
+      return getPaymentMethodSuggestions(methodPartial, methods, parts[0]);
     }
 
     const orderTotal = parseFloat(context.currentOrder.total);
@@ -144,7 +145,7 @@ export class PayCommand extends BaseMultiInputCommand {
 
     // Suggest common round amounts
     const roundAmounts = [10, 20, 50, 100].filter(a => a >= remaining);
-    const currency = context.getCurrency?.() || { symbol: '$', position: 'left' as const };
+    const currency = this.getCurrency();
     roundAmounts.slice(0, 2).forEach(amount => {
       suggestions.push({
         text: amount.toString(),
@@ -168,9 +169,10 @@ export class PayCommand extends BaseMultiInputCommand {
       const methodPartial = parts.slice(2).join(' ').toLowerCase();
       const amountStr = parts[1];
       const commandKeyword = parts[0];
+      const methods = (this._context as CommandContext | undefined)?.paymentMethods || [];
       return [
         ...baseSuggestions,
-        ...this.getMethodSuggestionsForCommand(methodPartial, commandKeyword, amountStr),
+        ...getPaymentMethodSuggestions(methodPartial, methods, `/${commandKeyword} ${amountStr}`),
       ];
     }
 
@@ -196,52 +198,6 @@ export class PayCommand extends BaseMultiInputCommand {
     }
 
     return baseSuggestions;
-  }
-
-  /**
-   * Get method suggestions for multi-input mode (no command prefix)
-   */
-  private getMethodSuggestions(methodPartial: string, amountStr: string): CommandSuggestion[] {
-    const context = this._context as CommandContext | undefined;
-    const methods = context?.paymentMethods || [];
-    const allMethods = getAllPaymentMethods(methods);
-
-    return allMethods
-      .filter(m =>
-        m.key.toLowerCase().startsWith(methodPartial) ||
-        m.label.toLowerCase().startsWith(methodPartial)
-      )
-      .map(m => ({
-        text: m.label,
-        description: `Pay with ${m.label}`,
-        insertText: `${amountStr} ${m.key}`,
-        type: 'value' as const,
-      }));
-  }
-
-  /**
-   * Get method suggestions for command mode (with /pay prefix)
-   */
-  private getMethodSuggestionsForCommand(
-    methodPartial: string,
-    commandKeyword: string,
-    amountStr: string,
-  ): CommandSuggestion[] {
-    const context = this._context as CommandContext | undefined;
-    const methods = context?.paymentMethods || [];
-    const allMethods = getAllPaymentMethods(methods);
-
-    return allMethods
-      .filter(m =>
-        m.key.toLowerCase().startsWith(methodPartial) ||
-        m.label.toLowerCase().startsWith(methodPartial)
-      )
-      .map(m => ({
-        text: m.label,
-        description: `Pay with ${m.label}`,
-        insertText: `/${commandKeyword} ${amountStr} ${m.key}`,
-        type: 'value' as const,
-      }));
   }
 
   private parseFloat(value: string): number | null {
