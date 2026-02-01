@@ -11,10 +11,13 @@ import { CustomerCommand, CustomerData } from './customer';
 import { DrawerCommand } from './drawer';
 import { StockCommand } from './stock';
 import { OpenCommand } from './open';
+import { ServiceCommand } from './service';
 export type { CustomerData };
 
 import { OrderSchema } from '@/api/orders';
 import { ProductSchema } from '@/stores/products';
+import { ServiceMethodSchema } from '@/stores/service';
+import { PaymentMethodConfig } from '@/stores/settings';
 
 /**
  * Currency configuration for formatting
@@ -42,8 +45,11 @@ export interface CommandContext {
   completeOrder: () => Promise<void>;
 
   // Payment operations
-  setPayment: (amount: number) => Promise<void>;
+  setPayment: (amount: number, method?: string) => Promise<void>;
   getPaymentReceived?: () => number;
+
+  // Payment method configuration
+  paymentMethods?: PaymentMethodConfig[];
 
   // Coupon operations
   applyCoupon: (code: string) => Promise<void>;
@@ -59,6 +65,10 @@ export interface CommandContext {
   // Customer operations
   setNote: (note: string) => Promise<void>;
   setCustomer: (customer: CustomerData) => Promise<void>;
+
+  // Service operations
+  availableServices?: ServiceMethodSchema[];
+  setService?: (service: ServiceMethodSchema) => Promise<void>;
 
   // Navigation
   navigateToNextOrder?: () => void;
@@ -225,6 +235,7 @@ export class CommandManager {
     this.registry.registerCommand(new DrawerCommand());
     this.registry.registerCommand(new StockCommand());
     this.registry.registerCommand(new OpenCommand());
+    this.registry.registerCommand(new ServiceCommand());
   }
 
   /**

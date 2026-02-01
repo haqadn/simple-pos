@@ -2,10 +2,11 @@ import { BaseCommand, CommandMetadata, CommandSuggestion } from './command';
 import { CommandContext } from './command-manager';
 import { formatCurrency, formatCurrencyWithSymbol } from '@/lib/format';
 import { OrderSchema } from '@/api/orders';
+import { resolvePaymentMethod, getAllPaymentMethods } from '@/lib/payment-method-match';
 
 /**
  * Done command - complete the order and navigate to next
- * Optionally accepts a payment amount to record before completing
+ * Optionally accepts a payment amount and method to record before completing
  */
 export class DoneCommand extends BaseCommand {
   getMetadata(): CommandMetadata {
@@ -13,7 +14,7 @@ export class DoneCommand extends BaseCommand {
       keyword: 'done',
       aliases: ['dn'],
       description: 'Complete order and navigate to next',
-      usage: ['/done', '/done <amount>'],
+      usage: ['/done', '/done <amount>', '/done <amount> <method>'],
       parameters: [
         {
           name: 'amount',
@@ -43,7 +44,17 @@ export class DoneCommand extends BaseCommand {
       if (amount === null || amount < 0) {
         throw new Error('Amount must be a positive number');
       }
-      await context.setPayment(amount);
+
+      // Resolve payment method (defaults to cash)
+      let methodKey: string | undefined;
+      if (args.length > 1) {
+        const methodToken = args.slice(1).join(' ');
+        const methods = context.paymentMethods || [];
+        const match = resolvePaymentMethod(methodToken, methods);
+        methodKey = match.key;
+      }
+
+      await context.setPayment(amount, methodKey);
       paymentReceived = amount;
     }
 
@@ -90,6 +101,18 @@ export class DoneCommand extends BaseCommand {
     const context = this._context as CommandContext | undefined;
 
     const parts = partialInput.trim().split(/\s+/);
+
+    // If user has typed command + amount + partial method (3+ parts)
+    if (parts.length >= 3 && this.matches(parts[0]) && context?.currentOrder) {
+      const methodPartial = parts.slice(2).join(' ').toLowerCase();
+      const amountStr = parts[1];
+      const commandKeyword = parts[0];
+      return [
+        ...baseSuggestions,
+        ...this.getMethodSuggestions(methodPartial, commandKeyword, amountStr),
+      ];
+    }
+
     // If we're typing the amount parameter (second part)
     if (parts.length === 2 && this.matches(parts[0]) && context?.currentOrder) {
       const orderTotal = parseFloat(context.currentOrder.total);
@@ -124,5 +147,30 @@ export class DoneCommand extends BaseCommand {
     }
 
     return baseSuggestions;
+  }
+
+  /**
+   * Get payment method suggestions for the third argument position
+   */
+  private getMethodSuggestions(
+    methodPartial: string,
+    commandKeyword: string,
+    amountStr: string,
+  ): CommandSuggestion[] {
+    const context = this._context as CommandContext | undefined;
+    const methods = context?.paymentMethods || [];
+    const allMethods = getAllPaymentMethods(methods);
+
+    return allMethods
+      .filter(m =>
+        m.key.toLowerCase().startsWith(methodPartial) ||
+        m.label.toLowerCase().startsWith(methodPartial)
+      )
+      .map(m => ({
+        text: m.label,
+        description: `Pay with ${m.label}`,
+        insertText: `/${commandKeyword} ${amountStr} ${m.key}`,
+        type: 'value' as const,
+      }));
   }
 }

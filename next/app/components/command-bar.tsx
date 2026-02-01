@@ -5,8 +5,10 @@ import { Input } from '@heroui/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
 import { useCommandManager } from '@/hooks/useCommandManager';
-import { useCurrentOrder, useOrdersQuery } from '@/stores/orders';
+import { useCurrentOrder, useOrdersQuery, useServiceQuery } from '@/stores/orders';
 import { useProductsQuery, useGetProductById } from '@/stores/products';
+import { useTablesQuery, useDeliveryZonesQuery } from '@/stores/service';
+import type { ServiceMethodSchema } from '@/stores/service';
 import { usePrintStore } from '@/stores/print';
 import { buildPrintData, buildPrintMetaUpdates } from '@/lib/print-data';
 import { CommandContext, CustomerData, CurrencyConfig } from '@/commands/command-manager';
@@ -49,7 +51,17 @@ export default function CommandBar() {
   const { ordersQuery } = useOrdersQuery();
   const getProductById = useGetProductById();
   const skipKotCategories = useSettingsStore(state => state.skipKotCategories);
+  const paymentMethods = useSettingsStore(state => state.paymentMethods);
   const { data: currencySettings } = useCurrencySettings();
+
+  // Service data (tables and delivery zones)
+  const [, serviceMutation] = useServiceQuery(orderQuery);
+  const { data: tables = [] } = useTablesQuery();
+  const { data: deliveryZones = [] } = useDeliveryZonesQuery();
+
+  const availableServices = useMemo((): ServiceMethodSchema[] => {
+    return [...tables, ...deliveryZones];
+  }, [tables, deliveryZones]);
 
   // Command feedback messages
   const showCommandMessage = useCallback((text: string | unknown, type: 'success' | 'error') => {
@@ -388,8 +400,8 @@ export default function CommandBar() {
     }
   }, [orderQuery, queryClient, ordersQuery, router, params]);
 
-  // Set payment amount
-  const handleSetPayment = useCallback(async (amount: number) => {
+  // Set payment amount (with optional payment method key, defaults to 'cash')
+  const handleSetPayment = useCallback(async (amount: number, method?: string) => {
     if (!orderQuery.data) throw new Error('No active order');
 
     // Check if we're on a frontend ID URL (local-first order)
@@ -399,12 +411,30 @@ export default function CommandBar() {
     // Get fresh order data
     const currentOrder = orderQuery.data;
 
+    // Parse existing split_payments to merge with new payment
+    const existingSplitMeta = (currentOrder.meta_data || []).find(m => m.key === 'split_payments');
+    let existingSplitPayments: Record<string, number> = {};
+    if (existingSplitMeta && typeof existingSplitMeta.value === 'string') {
+      try {
+        existingSplitPayments = JSON.parse(existingSplitMeta.value);
+      } catch { /* ignore parse errors */ }
+    }
+
+    // Determine the payment method key (default to 'cash')
+    const methodKey = method || 'cash';
+
+    // Set the amount for the specified method (replaces any existing amount for that method)
+    const updatedSplitPayments = { ...existingSplitPayments, [methodKey]: amount };
+
+    // Calculate total received across all methods
+    const totalReceived = Object.values(updatedSplitPayments).reduce((sum, val) => sum + (val || 0), 0);
+
     // Update meta_data with both split_payments (for UI) and payment_received (for legacy)
     const metaData = (currentOrder.meta_data || []).filter(
       m => m.key !== 'payment_received' && m.key !== 'split_payments'
     );
-    metaData.push({ key: 'split_payments', value: JSON.stringify({ cash: amount }) });
-    metaData.push({ key: 'payment_received', value: amount.toString() });
+    metaData.push({ key: 'split_payments', value: JSON.stringify(updatedSplitPayments) });
+    metaData.push({ key: 'payment_received', value: totalReceived.toString() });
 
     // For frontend ID orders - handle locally via Dexie
     if (isFrontendIdOrder && urlOrderId) {
@@ -663,6 +693,12 @@ export default function CommandBar() {
     router.push(`/orders/${identifier}`);
   }, [router]);
 
+  // Set service (table or delivery zone)
+  const handleSetService = useCallback(async (service: ServiceMethodSchema) => {
+    if (!orderQuery.data) throw new Error('No active order');
+    await serviceMutation.mutateAsync({ service });
+  }, [orderQuery.data, serviceMutation]);
+
   // Get currency configuration for commands
   const getCurrency = useCallback((): CurrencyConfig => {
     return {
@@ -685,6 +721,7 @@ export default function CommandBar() {
       completeOrder: handleCompleteOrder,
       setPayment: handleSetPayment,
       getPaymentReceived,
+      paymentMethods,
       applyCoupon: handleApplyCoupon,
       removeCoupon: handleRemoveCoupon,
       print: handlePrint,
@@ -694,12 +731,14 @@ export default function CommandBar() {
       },
       setNote: handleSetNote,
       setCustomer: handleSetCustomer,
+      availableServices,
+      setService: handleSetService,
       navigateToOrder: handleNavigateToOrder,
       getCurrency,
       showMessage: (msg) => showCommandMessage(msg, 'success'),
       showError: (err) => showCommandMessage(err, 'error')
     };
-  }, [orderQuery.data, products, handleAddProduct, handleClearOrder, handleCompleteOrder, handleSetPayment, getPaymentReceived, handleApplyCoupon, handleRemoveCoupon, handlePrint, handleOpenDrawer, handleSetNote, handleSetCustomer, handleNavigateToOrder, getCurrency, queryClient, showCommandMessage]);
+  }, [orderQuery.data, products, handleAddProduct, handleClearOrder, handleCompleteOrder, handleSetPayment, getPaymentReceived, paymentMethods, handleApplyCoupon, handleRemoveCoupon, handlePrint, handleOpenDrawer, handleSetNote, handleSetCustomer, availableServices, handleSetService, handleNavigateToOrder, getCurrency, queryClient, showCommandMessage]);
 
   // Set up command context when ready
   useEffect(() => {
