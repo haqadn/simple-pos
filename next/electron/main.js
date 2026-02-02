@@ -4,9 +4,7 @@ const { spawn, execSync } = require('child_process');
 const net = require('net');
 const fs = require('fs');
 const os = require('os');
-
-// Handle Squirrel events for Windows installer
-if (require('electron-squirrel-startup')) app.quit();
+const { autoUpdater } = require('electron-updater');
 
 let mainWindow;
 let nextServer;
@@ -332,9 +330,33 @@ ipcMain.handle('open-drawer-escpos', async (event, { connection, pin }) => {
   return { success: false, error: 'No drawer printer configured' };
 });
 
+// Auto-update setup
+function setupAutoUpdater() {
+  autoUpdater.logger = { info: log, warn: log, error: log };
+
+  autoUpdater.on('checking-for-update', () => log('Checking for updates...'));
+  autoUpdater.on('update-available', () => log('Update available, downloading...'));
+  autoUpdater.on('update-not-available', () => log('App is up to date.'));
+  autoUpdater.on('download-progress', (progress) => {
+    log(`Download progress: ${Math.round(progress.percent)}%`);
+  });
+  autoUpdater.on('update-downloaded', () => {
+    log('Update downloaded. Will install on next restart.');
+  });
+  autoUpdater.on('error', (err) => log(`Update error: ${err.message}`));
+
+  // Check now, then every 4 hours
+  autoUpdater.checkForUpdatesAndNotify();
+  setInterval(() => autoUpdater.checkForUpdatesAndNotify(), 4 * 60 * 60 * 1000);
+}
+
 // App lifecycle
 app.whenReady().then(() => {
   createWindow();
+
+  if (app.isPackaged) {
+    setupAutoUpdater();
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
