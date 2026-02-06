@@ -42,46 +42,6 @@ add_filter( 'rest_pre_serve_request', function( $served, $result, $request, $ser
 	return $served;
 }, 10, 4 );
 
-
-function spos_register_scripts() {
-
-	$manifest = json_decode( file_get_contents( plugin_dir_path( __FILE__ ) . 'front-end/dist/manifest.json' ), true );
-
-	$js = $manifest['index.html']['file'];
-	$css = $manifest['style.css']['file'];
-
-	wp_register_style( 'simple-pos-iconfont', 'https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css', array(), '1.0.0', 'all' );
-	wp_register_style( 'simple-pos', plugins_url( "front-end/dist/$css", __FILE__ ), array('simple-pos-iconfont'), '1.0.0', 'all' );
-	wp_register_script( 'simple-pos', plugins_url( "front-end/dist/$js", __FILE__ ), array(), '1.0.0', true );
-	wp_localize_script( 'simple-pos', 'simplePosSettings', array(
-		'nonce' => wp_create_nonce( 'wp_rest' ),
-		'url' => get_bloginfo( 'url' ),
-		'method' => 'nonce'
-	) );
-}
-add_action( 'wp_enqueue_scripts', 'spos_register_scripts' );
-
-function spos_shortcode() {
-	ob_start();
-	wp_enqueue_style( 'simple-pos-iconfont' );
-	wp_enqueue_style( 'simple-pos' );
-	wp_enqueue_script( 'simple-pos' );
-	add_filter('script_loader_tag', 'spos_add_type_attribute' , 10, 3);
-	?>
-	<div id="pos-app"></div>
-	<?php
-	return ob_get_clean();
-}
-add_shortcode('simple-pos', 'spos_shortcode');
-
-
-function spos_add_type_attribute($tag, $handle, $src) {
-	if ( 'simple-pos' === $handle){
-		$tag = '<script crossorigin type="module" type="text/javascript" src="' . esc_url( $src ) . '" id="simple-pos"></script>';   
-	}
-	return $tag;
-}
-
 add_filter('woocommerce_checkout_get_value', function($input, $key ) {
 
 	global $current_user;

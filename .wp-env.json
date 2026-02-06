@@ -2,7 +2,7 @@
   "core": "WordPress/WordPress#master",
   "plugins": [
     "https://downloads.wordpress.org/plugin/woocommerce.latest-stable.zip",
-    "../"
+    "./wordpress-plugin"
   ],
   "config": {
     "WP_DEBUG": true,

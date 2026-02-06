@@ -6,16 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Simple POS is a WooCommerce-based Point of Sale system:
 
-- **WordPress Plugin** (`simple-pos.php`) - Backend extending WooCommerce with POS-specific REST endpoints
-- **Next.js Frontend** (`/next/`) - React-based POS interface (active development)
-- **Vue.js Frontend** (`/front-end/`) - Legacy reference implementation (do not modify, reference only)
+- **Next.js Frontend** (repo root) - React-based POS interface
+- **WordPress Plugin** (`/wordpress-plugin/`) - Backend extending WooCommerce with POS-specific REST endpoints
 
 The ultimate goal is to package the Next.js frontend into an Electron app for Windows.
 
 ## Development Commands
 
 ```bash
-cd next
 npm install
 npm run dev:setup    # One-time setup: starts wp-env and configures credentials
 npm run dev          # Development server with Turbopack
@@ -28,7 +26,6 @@ npm run lint         # Next.js linting
 ### Quick Start (New Developers)
 
 ```bash
-cd next
 npm install
 npm run dev:setup    # Starts wp-env and generates API credentials
 npm run dev          # Start the Next.js dev server
@@ -45,14 +42,13 @@ Use `npm run dev:setup -- --force` to regenerate credentials.
 
 ### WordPress Backend (wp-env)
 ```bash
-cd next
 npm run wp-env:start   # Start WordPress environment (port 8888)
 npm run wp-env:stop    # Stop WordPress environment
 ```
 
-The wp-env configuration is in `/next/.wp-env.json` and automatically:
+The wp-env configuration is in `.wp-env.json` and automatically:
 - Installs WooCommerce
-- Loads the Simple POS plugin from the parent directory
+- Loads the Simple POS plugin from `./wordpress-plugin`
 - Configures WooCommerce settings for testing
 
 ### First-Run Setup (Production)
@@ -85,7 +81,7 @@ Credentials are stored in browser localStorage and persist across sessions.
 
 ### Directory Structure
 ```
-/next/
+/
 ├── api/                    # API client layer (Repository pattern)
 │   ├── api.ts              # Base Axios client with auth
 │   ├── orders.ts           # Order operations + Zod schemas
@@ -116,11 +112,16 @@ Credentials are stored in browser localStorage and persist across sessions.
 │   └── useConnectivity.ts  # Network status monitoring
 ├── components/             # Shared UI components
 │   └── print/              # Print preview components
-└── app/                    # Next.js App Router pages
-    ├── components/         # App-level components
-    │   ├── settings/       # Settings modal tabs
-    │   └── OfflineIndicator.tsx  # Connectivity status
-    └── orders/             # Order management pages
+├── app/                    # Next.js App Router pages
+│   ├── components/         # App-level components
+│   │   ├── settings/       # Settings modal tabs
+│   │   └── OfflineIndicator.tsx  # Connectivity status
+│   └── orders/             # Order management pages
+└── wordpress-plugin/       # WooCommerce backend plugin
+    ├── simple-pos.php      # Plugin entry point
+    ├── endpoints/          # Custom REST API endpoints
+    ├── composer.json       # PHP dependencies
+    └── composer.lock
 ```
 
 ## Command System Architecture
@@ -184,28 +185,18 @@ WooCommerce requires specific handling for line items:
 
 ## Implementation Status
 
-See `/next/FEATURES.md` for detailed feature documentation.
-
-## Vue.js Reference
-
-The `/front-end/` directory contains the legacy Vue.js implementation. Use it as a reference for:
-- Feature behavior and business logic
-- Command implementations
-- Print system architecture
-- KOT change detection logic
-
-**Do not modify Vue.js code** - it's reference only.
+See `FEATURES.md` for detailed feature documentation.
 
 ## Key Patterns to Follow
 
 ### Adding a New Command
-1. Create file in `/next/commands/[command-name].ts`
+1. Create file in `/commands/[command-name].ts`
 2. Extend `BaseCommand` or `BaseMultiInputCommand`
 3. Implement `getMetadata()`, `execute()`, `getAutocompleteSuggestions()`
 4. Register in `command-registry.ts`
 
 ### Adding State Management
-1. Create hook in `/next/stores/[domain].ts`
+1. Create hook in `/stores/[domain].ts`
 2. Use TanStack Query for server state
 3. Implement optimistic updates in `onMutate`
 4. Use `useDebounce` and `useAvoidParallel` for mutations
@@ -214,7 +205,7 @@ The `/front-end/` directory contains the legacy Vue.js implementation. Use it as
 1. Server components for data fetching where possible
 2. Client components for interactivity
 3. Use HeroUI components for consistent styling
-4. Follow existing patterns in `/next/app/orders/`
+4. Follow existing patterns in `/app/orders/`
 
 ## Offline-First Architecture
 
@@ -226,7 +217,7 @@ Each order is assigned a unique 6-character alphanumeric **Frontend ID** (e.g., 
 
 **Format**: 6 characters from charset `A-Z, 0-9` (36 possible characters per position)
 
-**Generation** (`/next/lib/frontend-id.ts`):
+**Generation** (`/lib/frontend-id.ts`):
 ```typescript
 // Generate cryptographically secure random ID
 const id = generateFrontendId();  // Returns "A3X9K2"
@@ -243,7 +234,7 @@ const isValid = isValidFrontendId("A3X9K2");  // true
 ### Local Database Schema
 
 ```typescript
-// /next/db/index.ts
+// /db/index.ts
 interface LocalOrder {
   frontendId: string;      // Primary key (6-char alphanumeric)
   serverId?: number;       // WooCommerce order ID (null until synced)
@@ -273,7 +264,7 @@ interface LocalOrder {
 ### Sync Service
 
 ```typescript
-// /next/services/sync.ts
+// /services/sync.ts
 
 // Sync single order
 const result = await syncOrder(frontendId);
@@ -310,7 +301,7 @@ interface PaymentMethodConfig {
 ### Settings Store
 
 ```typescript
-// /next/stores/settings.ts
+// /stores/settings.ts
 const { paymentMethods, addPaymentMethod, removePaymentMethod } = useSettingsStore();
 
 // Add new method
@@ -339,7 +330,7 @@ The CouponCard component provides real-time coupon validation before applying to
 ### Validation Hook
 
 ```typescript
-// /next/stores/coupons.ts
+// /stores/coupons.ts
 const {
   code, setCode,           // Coupon code input
   status,                  // idle, validating, valid, invalid, error
