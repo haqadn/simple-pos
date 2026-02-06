@@ -1,0 +1,88 @@
+{
+  "name": "simple-pos",
+  "version": "0.1.0",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "NODE_OPTIONS='--inspect' next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "electron:dev": "node scripts/electron-dev.js",
+    "electron:build": "next build && node scripts/prepare-electron.js && electron-builder",
+    "electron:start": "electron .",
+    "dev:setup": "node scripts/dev-setup.js",
+    "wp-env": "wp-env",
+    "wp-env:start": "wp-env start",
+    "wp-env:stop": "wp-env stop",
+    "test:e2e:credentials": "node e2e/scripts/setup-api-credentials.js",
+    "test:e2e:seed": "node e2e/scripts/seed-products.js",
+    "test:e2e:setup": "node e2e/scripts/setup.js",
+    "test:e2e": "node e2e/scripts/setup.js && playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:trace": "TRACE=1 playwright test",
+    "test:e2e:report": "playwright show-report playwright-report"
+  },
+  "dependencies": {
+    "@heroui/react": "2.7.8",
+    "@hugeicons/core-free-icons": "^1.0.14",
+    "@hugeicons/react": "^1.0.5",
+    "@tanstack/react-query": "^5.62.11",
+    "@tanstack/react-query-devtools": "^5.75.4",
+    "axios": "^1.9.0",
+    "dexie": "^4.2.1",
+    "electron-updater": "^6.7.3",
+    "framer-motion": "^11.15.0",
+    "next": "15.1.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.5.3",
+    "zod": "^3.24.4",
+    "zustand": "^5.0.9"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.57.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@wordpress/env": "^10.15.0",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^8.2.2",
+    "cross-env": "^10.1.0",
+    "detect-port": "^2.1.0",
+    "electron": "^28.1.0",
+    "electron-builder": "^24.9.1",
+    "eslint": "^9",
+    "eslint-config-next": "15.1.3",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.simplepos.app",
+    "productName": "Simple POS",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      ".next/**/*",
+      "public/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "public/icon.icns"
+    },
+    "publish": {
+      "provider": "github"
+    }
+  }
+}

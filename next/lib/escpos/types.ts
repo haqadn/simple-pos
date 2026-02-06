@@ -1,0 +1,98 @@
+// Shared types for ESC/POS printing
+
+export interface PrinterConnection {
+  type: 'usb' | 'network' | 'none';
+  usbName?: string;
+  networkHost?: string;
+  networkPort?: number;
+  paperWidth?: number;
+}
+
+export interface BillCustomization {
+  logo?: string;
+  logoWidth?: number; // Default: 576 for 80mm, 384 for 58mm (full printable width)
+  headerText: string;
+  footerText: string;
+  showDateTime: boolean;
+  showOrderNumber: boolean;
+}
+
+export interface KotSettings {
+  showOrderNumber: boolean;
+  showTableName: boolean;
+  showCustomerNote: boolean;
+  highlightChanges: boolean;
+}
+
+export interface PrintConfig {
+  billPrinter: PrinterConnection;
+  kotPrinter: PrinterConnection;
+  enableDrawer: boolean;
+  drawerPulsePin: 2 | 5;
+  paperWidth: number;
+  bill: BillCustomization;
+  kot: KotSettings;
+  enablePrinting: boolean;
+}
+
+export interface BillData {
+  orderId?: number;
+  orderReference?: string;
+  frontendId?: string;     // 6-char alphanumeric frontend ID (e.g., "A3X9K2")
+  serverId?: number;       // WooCommerce server ID (only if synced)
+  cartName?: string;
+  serviceType?: 'table' | 'delivery';
+  orderTime?: string;
+  customer?: {
+    name?: string;
+    phone?: string;
+    address?: string;
+  };
+  items?: Array<{
+    id: number;
+    name: string;
+    quantity: number;
+    price: number;
+  }>;
+  discountTotal?: number;
+  shippingTotal?: number;
+  payment?: number;
+  total?: number;
+}
+
+export interface KotData {
+  orderId?: number;
+  orderReference?: string;
+  frontendId?: string;     // 6-char alphanumeric frontend ID (e.g., "A3X9K2")
+  serverId?: number;       // WooCommerce server ID (only if synced)
+  cartName?: string;
+  serviceType?: 'table' | 'delivery';
+  customerNote?: string;
+  kotItems?: Array<{
+    id: number;
+    name: string;
+    quantity: number;
+    previousQuantity?: number;
+  }>;
+}
+
+export const DEFAULT_PRINT_CONFIG: PrintConfig = {
+  billPrinter: { type: 'none', paperWidth: 80 },
+  kotPrinter: { type: 'none', paperWidth: 80 },
+  enableDrawer: true,
+  drawerPulsePin: 2,
+  paperWidth: 80, // Kept for backwards compatibility
+  bill: {
+    headerText: '',
+    footerText: 'Thank you for your visit!',
+    showDateTime: true,
+    showOrderNumber: true,
+  },
+  kot: {
+    showOrderNumber: true,
+    showTableName: true,
+    showCustomerNote: true,
+    highlightChanges: true,
+  },
+  enablePrinting: true,
+};

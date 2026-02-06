@@ -2,53 +2,37 @@ name: Build and Release
 
 on:
   release:
-    types:
-      - created
+    types: [created]
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        os: [windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+  build-windows:
+    runs-on: windows-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: 18  # use the Node.js version your project requires
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: next/package-lock.json
 
-    - name: Install dependencies
-      run: npm install
-      working-directory: ./front-end
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./next
 
-    - name: Build the project
-      run: npm run build
-      working-directory: ./front-end
+      - name: Build Next.js
+        run: npm run build
+        working-directory: ./next
 
-    - name: Build Electron app
-      run: npm run make
-      working-directory: ./front-end
+      - name: Prepare standalone output
+        run: node scripts/prepare-electron.js
+        working-directory: ./next
 
-    - name: Set asset path and name (Windows)
-      if: matrix.os == 'windows-latest'
-      id: asset-info-windows
-      run: echo "::set-output name=path::front-end/out/make/squirrel.windows/x64/simple-pos-1.0.0 Setup.exe" && echo "::set-output name=name::simple-pos.exe"
-
-    - name: Set asset path and name (macOS)
-      if: matrix.os == 'macos-latest'
-      id: asset-info-macos
-      run: echo "::set-output name=path::front-end/out/make/zip/darwin/x64/simple-pos-darwin-x64-1.0.0.zip" && echo "::set-output name=name::simple-pos-mac.zip"  # Adjust the path and name if necessary
-
-    - name: Upload artifact to release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ${{ steps.asset-info-windows.outputs.path || steps.asset-info-macos.outputs.path }}
-        asset_name: ${{ steps.asset-info-windows.outputs.name || steps.asset-info-macos.outputs.name }}
-        asset_content_type: application/${{ matrix.os == 'windows-latest' && 'x-msdownload' || 'zip' }}
+      - name: Build and publish Electron app
+        run: npx electron-builder --win --publish always
+        working-directory: ./next
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

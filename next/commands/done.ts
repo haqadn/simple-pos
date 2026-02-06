@@ -1,0 +1,153 @@
+import { BaseCommand, CommandMetadata, CommandSuggestion } from './command';
+import { CommandContext } from './command-manager';
+import { formatCurrency, formatCurrencyWithSymbol } from '@/lib/format';
+import { OrderSchema } from '@/api/orders';
+import { resolvePaymentMethod, getPaymentMethodSuggestions } from '@/lib/payment-method-match';
+
+/**
+ * Done command - complete the order and navigate to next
+ * Optionally accepts a payment amount and method to record before completing
+ */
+export class DoneCommand extends BaseCommand {
+  getMetadata(): CommandMetadata {
+    return {
+      keyword: 'done',
+      aliases: ['dn'],
+      description: 'Complete order and navigate to next',
+      usage: ['/done', '/done <amount>', '/done <amount> <method>'],
+      parameters: [
+        {
+          name: 'amount',
+          type: 'number',
+          required: false,
+          description: 'Optional payment amount to record before completing'
+        }
+      ]
+    };
+  }
+
+  async execute(args: string[]): Promise<void> {
+    const context = this.requireContext<CommandContext>();
+    const order = this.requireActiveOrder<OrderSchema>();
+
+    const orderTotal = parseFloat(order.total);
+    let paymentReceived = context.getPaymentReceived?.() || 0;
+
+    // Check if order has items
+    if (order.line_items.length === 0) {
+      throw new Error('Cannot complete empty order');
+    }
+
+    // If amount provided, record payment first
+    if (args.length > 0) {
+      const amount = this.parseNumber(args[0]);
+      if (amount === null || amount < 0) {
+        throw new Error('Amount must be a positive number');
+      }
+
+      // Resolve payment method (defaults to cash)
+      let methodKey: string | undefined;
+      if (args.length > 1) {
+        const methodToken = args.slice(1).join(' ');
+        const methods = context.paymentMethods || [];
+        const match = resolvePaymentMethod(methodToken, methods);
+        methodKey = match.key;
+      }
+
+      await context.setPayment(amount, methodKey);
+      paymentReceived = amount;
+    }
+
+    // Check if payment is sufficient
+    if (orderTotal - paymentReceived > 0.005) {
+      const remaining = orderTotal - paymentReceived;
+      const currency = this.getCurrency();
+      throw new Error(`Insufficient payment. Due: ${formatCurrencyWithSymbol(remaining, currency.symbol, currency.position)}`);
+    }
+
+    // Complete the order
+    await context.completeOrder();
+
+    const change = paymentReceived - orderTotal;
+
+    // Check if there's cash payment (from split_payments meta)
+    const splitPaymentsMeta = order.meta_data.find(m => m.key === 'split_payments');
+    let cashPayment = 0;
+    if (splitPaymentsMeta && typeof splitPaymentsMeta.value === 'string') {
+      try {
+        const payments = JSON.parse(splitPaymentsMeta.value);
+        cashPayment = payments.cash || 0;
+      } catch { /* ignore */ }
+    } else {
+      // Legacy: if no split_payments, assume all payment is cash
+      cashPayment = paymentReceived;
+    }
+
+    // Open drawer if there's cash payment or change to give
+    if (cashPayment > 0 || change > 0) {
+      await context.openDrawer();
+    }
+
+    if (change > 0) {
+      const currency = this.getCurrency();
+      context.showMessage(`Order completed! Change: ${formatCurrencyWithSymbol(change, currency.symbol, currency.position)}`);
+    } else {
+      context.showMessage('Order completed!');
+    }
+  }
+
+  getAutocompleteSuggestions(partialInput: string): CommandSuggestion[] {
+    const baseSuggestions = super.getAutocompleteSuggestions(partialInput);
+    const context = this._context as CommandContext | undefined;
+
+    const parts = partialInput.trim().split(/\s+/);
+
+    // If user has typed command + amount + partial method (3+ parts)
+    if (parts.length >= 3 && this.matches(parts[0]) && context?.currentOrder) {
+      const methodPartial = parts.slice(2).join(' ').toLowerCase();
+      const amountStr = parts[1];
+      const commandKeyword = parts[0];
+      const methods = (this._context as CommandContext | undefined)?.paymentMethods || [];
+      return [
+        ...baseSuggestions,
+        ...getPaymentMethodSuggestions(methodPartial, methods, `/${commandKeyword} ${amountStr}`),
+      ];
+    }
+
+    // If we're typing the amount parameter (second part)
+    if (parts.length === 2 && this.matches(parts[0]) && context?.currentOrder) {
+      const orderTotal = parseFloat(context.currentOrder.total);
+      const currentPayment = context.getPaymentReceived?.() || 0;
+      const remaining = orderTotal - currentPayment;
+
+      const suggestions: CommandSuggestion[] = [];
+
+      // Suggest exact amount needed
+      if (remaining > 0) {
+        suggestions.push({
+          text: formatCurrency(remaining),
+          description: `Exact amount to complete`,
+          insertText: `/${parts[0]} ${formatCurrency(remaining)}`,
+          type: 'parameter'
+        });
+      }
+
+      // Suggest common round amounts that cover the remaining balance
+      const roundAmounts = [10, 20, 50, 100, 200, 500].filter(a => a >= remaining);
+      const currency = this.getCurrency();
+      roundAmounts.slice(0, 2).forEach(amount => {
+        suggestions.push({
+          text: amount.toString(),
+          description: `${formatCurrencyWithSymbol(amount, currency.symbol, currency.position)} (change: ${formatCurrencyWithSymbol(amount - remaining, currency.symbol, currency.position)})`,
+          insertText: `/${parts[0]} ${amount}`,
+          type: 'parameter'
+        });
+      });
+
+      return [...baseSuggestions, ...suggestions];
+    }
+
+    return baseSuggestions;
+  }
+
+}
