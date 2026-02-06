@@ -3,10 +3,21 @@ name: Build and Release
 on:
   release:
     types: [created]
+  workflow_dispatch:
+    inputs:
+      build_electron:
+        description: 'Build Electron app'
+        type: boolean
+        default: true
+      build_plugin:
+        description: 'Build WordPress plugin'
+        type: boolean
+        default: true
 
 jobs:
   build-windows:
     runs-on: windows-latest
+    if: github.event_name == 'release' || inputs.build_electron
 
     steps:
       - name: Checkout code
@@ -32,3 +43,34 @@ jobs:
         run: npx electron-builder --win --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-plugin:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' || inputs.build_plugin
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --optimize-autoloader
+        working-directory: wordpress-plugin
+
+      - name: Create plugin zip
+        run: |
+          cp -r wordpress-plugin simple-pos
+          zip -r simple-pos.zip simple-pos/
+
+      - name: Upload plugin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: simple-pos-plugin
+          path: simple-pos.zip
+
+      - name: Attach plugin to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: simple-pos.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
