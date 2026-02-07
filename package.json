@@ -3,12 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "main": "electron/main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/haqadn/simple-pos.git"
+  },
   "scripts": {
-    "dev": "NODE_OPTIONS='--inspect' next dev --turbopack",
+    "dev": "npm run dev:web",
+    "dev:web": "NODE_OPTIONS='--inspect' next dev --turbopack",
+    "dev:desktop": "node scripts/electron-dev.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "electron:dev": "node scripts/electron-dev.js",
+    "electron:dev": "npm run dev:desktop",
     "electron:build": "next build && node scripts/prepare-electron.js && electron-builder",
     "electron:start": "electron .",
     "dev:setup": "node scripts/dev-setup.js",
@@ -81,8 +87,12 @@
       "target": "dmg",
       "icon": "public/icon.icns"
     },
-    "publish": {
-      "provider": "github"
-    }
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "haqadn",
+        "repo": "simple-pos"
+      }
+    ]
   }
 }

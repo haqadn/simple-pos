@@ -8,13 +8,23 @@ A WooCommerce-based Point of Sale system built with Next.js 15, React 19, and Ta
 
 - Node.js 18+
 - npm or yarn
-- WooCommerce backend running (see main project README)
+- WooCommerce backend running (local wp-env *or* a remote WooCommerce site)
+
+### Docs
+
+- Store setup (WooCommerce): `docs/store-setup.md`
+- Electron auto-updates (GitHub Releases): `docs/electron-auto-updates.md`
 
 ### Development Server
 
 ```bash
 npm install
+
+# Default: web app only (Next.js)
 npm run dev
+
+# Optional: Electron wrapper + Next dev server
+npm run dev:desktop
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.

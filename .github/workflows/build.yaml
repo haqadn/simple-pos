@@ -15,9 +15,15 @@ on:
         default: true
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
+  build-electron:
+    name: Build Electron (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     if: github.event_name == 'release' || inputs.build_electron
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
 
     steps:
       - name: Checkout code
@@ -39,10 +45,12 @@ jobs:
       - name: Prepare standalone output
         run: node scripts/prepare-electron.js
 
+      # NOTE: Code signing is not configured here. macOS builds will be unsigned.
       - name: Build and publish Electron app
-        run: npx electron-builder --win --publish always
+        run: npx electron-builder --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
   build-plugin:
     runs-on: ubuntu-latest

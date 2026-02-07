@@ -419,10 +419,25 @@ async function main() {
 
   const args = process.argv.slice(2);
   const force = args.includes("--force");
+  const remote = args.includes("--remote");
 
   if (force) {
     log("Force mode enabled - will regenerate credentials", "info");
     console.log("");
+  }
+
+  // If we're using a remote WooCommerce site (no wp-env/Docker), and credentials already exist,
+  // we can skip local wp-env setup entirely.
+  if (remote && credentialsExist() && !force) {
+    log("Remote mode enabled -- skipping wp-env (Docker) setup", "success");
+    log("Using existing API credentials from .env.local", "success");
+    console.log("");
+    console.log("=== Setup Complete! ===");
+    console.log("");
+    console.log("Environment ready! Start the app with:");
+    console.log("  npm run dev");
+    console.log("");
+    process.exit(0);
   }
 
   // Step 1: Check/Start wp-env

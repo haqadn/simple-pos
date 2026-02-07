@@ -12,7 +12,30 @@ use SimplePOS\Endpoints\PickupLocations;
 use SimplePOS\Endpoints\Customers;
 use SimplePOS\Endpoints\Orders;
 
-require plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
+$autoload = plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
+
+// If this plugin was built with Composer, use the generated autoloader.
+// Otherwise, fall back to a minimal PSR-4 autoloader (no external deps required).
+if ( file_exists( $autoload ) ) {
+	require $autoload;
+} else {
+	spl_autoload_register( function ( $class ) {
+		$prefix   = 'SimplePOS\\Endpoints\\';
+		$base_dir = plugin_dir_path( __FILE__ ) . 'endpoints/';
+
+		$len = strlen( $prefix );
+		if ( strncmp( $prefix, $class, $len ) !== 0 ) {
+			return;
+		}
+
+		$relative_class = substr( $class, $len );
+		$file           = $base_dir . str_replace( '\\', '/', $relative_class ) . '.php';
+
+		if ( file_exists( $file ) ) {
+			require $file;
+		}
+	} );
+}
 
 // Instantiate and initialize the custom endpoints
 (new Customers())->init();
