@@ -22,7 +22,7 @@ async function start() {
     'npx',
     [
       'concurrently',
-      `"npm run dev"`,
+      `"npm run dev:web"`,
       `"wait-on http://localhost:${port} && electron ."`,
     ],
     {
