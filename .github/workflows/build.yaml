@@ -15,7 +15,8 @@ on:
         default: true
 
 jobs:
-  build-windows:
+  build-electron:
+    name: Build Electron (Windows)
     runs-on: windows-latest
     if: github.event_name == 'release' || inputs.build_electron
 
@@ -39,10 +40,29 @@ jobs:
       - name: Prepare standalone output
         run: node scripts/prepare-electron.js
 
-      - name: Build and publish Electron app
-        run: npx electron-builder --win --publish always
+      - name: Build Electron app (Windows)
+        run: npx electron-builder --win
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload update artifacts to WordPress (generic update server)
+        shell: bash
+        env:
+          WP_UPDATES_BASE_URL: ${{ secrets.WP_UPDATES_BASE_URL }}
+          WP_UPDATES_USER: ${{ secrets.WP_UPDATES_USER }}
+          WP_UPDATES_APP_PASSWORD: ${{ secrets.WP_UPDATES_APP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          echo "Uploading update artifacts from dist-electron..."
+
+          # electron-builder writes update metadata (latest.yml) in the output dir for nsis
+          node scripts/wp-updates-upload.js dist-electron/latest.yml latest.yml
+
+          # Upload all generated exe + blockmaps (if present)
+          shopt -s nullglob
+          for f in dist-electron/*.exe dist-electron/*.blockmap; do
+            node scripts/wp-updates-upload.js "$f" "$(basename "$f")"
+          done
 
   build-plugin:
     runs-on: ubuntu-latest

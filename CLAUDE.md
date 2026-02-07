@@ -15,8 +15,10 @@ The ultimate goal is to package the Next.js frontend into an Electron app for Wi
 
 ```bash
 npm install
-npm run dev:setup    # One-time setup: starts wp-env and configures credentials
-npm run dev          # Development server with Turbopack
+npm run dev:setup           # One-time local setup: starts wp-env and configures credentials
+npm run dev:setup -- --remote # Remote WooCommerce site: uses .env.local, skips wp-env/Docker
+npm run dev          # Default: Next.js dev server only (Turbopack)
+npm run dev:desktop  # Electron wrapper + Next dev server
 npm run build        # Production build
 npm run lint         # Next.js linting
 ```

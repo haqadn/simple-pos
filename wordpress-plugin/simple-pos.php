@@ -12,7 +12,30 @@ use SimplePOS\Endpoints\PickupLocations;
 use SimplePOS\Endpoints\Customers;
 use SimplePOS\Endpoints\Orders;
 
-require plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
+$autoload = plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
+
+// If this plugin was built with Composer, use the generated autoloader.
+// Otherwise, fall back to a minimal PSR-4 autoloader (no external deps required).
+if ( file_exists( $autoload ) ) {
+	require $autoload;
+} else {
+	spl_autoload_register( function ( $class ) {
+		$prefix   = 'SimplePOS\\Endpoints\\';
+		$base_dir = plugin_dir_path( __FILE__ ) . 'endpoints/';
+
+		$len = strlen( $prefix );
+		if ( strncmp( $prefix, $class, $len ) !== 0 ) {
+			return;
+		}
+
+		$relative_class = substr( $class, $len );
+		$file           = $base_dir . str_replace( '\\', '/', $relative_class ) . '.php';
+
+		if ( file_exists( $file ) ) {
+			require $file;
+		}
+	} );
+}
 
 // Instantiate and initialize the custom endpoints
 (new Customers())->init();
@@ -84,4 +107,67 @@ add_action('rest_api_init', function() {
             return current_user_can('manage_woocommerce');
         }
     ));
+
+    // ------------------------------------------------------------
+    // Updates hosting helper (for Electron auto-updates)
+    // ------------------------------------------------------------
+    // This allows CI to upload update artifacts to a stable URL under wp-uploads:
+    //   /wp-content/uploads/simple-pos-updates/
+    // using a WordPress Application Password (Basic Auth).
+
+    register_rest_route('simple-pos/v1', '/updates/upload', array(
+        'methods' => 'POST',
+        'permission_callback' => function() {
+            return current_user_can('manage_options');
+        },
+        'callback' => function( $request ) {
+            $params = $request->get_params();
+            $name   = isset( $params['name'] ) ? sanitize_file_name( $params['name'] ) : '';
+
+            if ( empty( $name ) ) {
+                return new WP_Error( 'simplepos_missing_name', 'Missing required parameter: name', array( 'status' => 400 ) );
+            }
+
+            if ( empty( $_FILES ) || empty( $_FILES['file'] ) ) {
+                return new WP_Error( 'simplepos_missing_file', 'Missing required file upload: file', array( 'status' => 400 ) );
+            }
+
+            $upload_dir = wp_upload_dir();
+            $base_dir   = trailingslashit( $upload_dir['basedir'] ) . 'simple-pos-updates/';
+            $base_url   = trailingslashit( $upload_dir['baseurl'] ) . 'simple-pos-updates/';
+
+            if ( ! file_exists( $base_dir ) ) {
+                wp_mkdir_p( $base_dir );
+            }
+
+            $tmp  = $_FILES['file']['tmp_name'];
+            $dest = $base_dir . $name;
+
+            if ( ! @move_uploaded_file( $tmp, $dest ) ) {
+                // Fallback if move_uploaded_file fails (some hosts)
+                if ( ! @copy( $tmp, $dest ) ) {
+                    return new WP_Error( 'simplepos_upload_failed', 'Failed to save uploaded file', array( 'status' => 500 ) );
+                }
+            }
+
+            return rest_ensure_response( array(
+                'ok'  => true,
+                'url' => $base_url . $name,
+                'path' => $dest,
+            ) );
+        }
+    ) );
+
+    register_rest_route('simple-pos/v1', '/updates/base', array(
+        'methods' => 'GET',
+        'permission_callback' => function() {
+            return current_user_can('manage_options');
+        },
+        'callback' => function() {
+            $upload_dir = wp_upload_dir();
+            return rest_ensure_response( array(
+                'baseUrl' => trailingslashit( $upload_dir['baseurl'] ) . 'simple-pos-updates/',
+            ) );
+        }
+    ) );
 });
