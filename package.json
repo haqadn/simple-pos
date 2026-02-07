@@ -89,9 +89,8 @@
     },
     "publish": [
       {
-        "provider": "github",
-        "owner": "haqadn",
-        "repo": "simple-pos"
+        "provider": "generic",
+        "url": "https://daves-wordpress.tuktak.dev/wp-content/uploads/simple-pos-updates/"
       }
     ]
   }
