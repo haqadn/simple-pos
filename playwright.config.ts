@@ -136,14 +136,17 @@ export default defineConfig({
   // Set SKIP_WEB_SERVER=1 to skip if servers are already running externally
   webServer: process.env.SKIP_WEB_SERVER ? undefined : [
     // WordPress via wp-env (starts both dev and test containers)
-    {
-      command: 'npm run wp-env:start',
-      url: `${WP_BASE_URL}/wp-admin/`, // Uses test container URL (port 8889)
-      reuseExistingServer: true, // Always reuse if already running
-      timeout: 180000, // 3 minutes for WordPress to start
-      stdout: 'pipe',
-      stderr: 'pipe',
-    },
+    // In remote mode (E2E_REMOTE=1), we skip wp-env entirely.
+    ...(process.env.E2E_REMOTE ? [] : [
+      {
+        command: 'npm run wp-env:start',
+        url: `${WP_BASE_URL}/wp-admin/`, // Uses test container URL (port 8889)
+        reuseExistingServer: true, // Always reuse if already running
+        timeout: 180000, // 3 minutes for WordPress to start
+        stdout: 'pipe',
+        stderr: 'pipe',
+      },
+    ]),
     // Next.js frontend
     {
       command: 'npm run dev',
@@ -152,7 +155,6 @@ export default defineConfig({
       timeout: 120000, // 2 minutes to start
       stdout: 'pipe',
       stderr: 'pipe',
-      // Set WP_PORT environment variable for the Next.js server
       env: {
         WP_PORT,
         WP_BASE_URL,

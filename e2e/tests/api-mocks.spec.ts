@@ -180,13 +180,13 @@ test.describe('Route Interception', () => {
   test('setupMockRoutes intercepts product requests', async ({ page }) => {
     await setupMockRoutes(page);
 
-    // Navigate to a page that will fetch products
-    await page.goto('/orders');
-    await page.waitForLoadState('networkidle');
+    // Navigate to orders flow. This route redirects (/orders -> /orders/new -> /orders/:id).
+    await page.goto('/orders', { waitUntil: 'domcontentloaded' });
+    await page.waitForURL(/\/orders\/[^/]+$/, { timeout: 30000 });
 
-    // The mock data should be available - we can verify by checking
-    // that the page loaded without errors (mock routes were set up)
-    await expect(page).not.toHaveURL(/error/);
+    // Basic sanity: we ended up on an order page and did not hit the error route.
+    await expect(page).toHaveURL(/\/orders\//);
+    await expect(page).not.toHaveURL(/\/error/);
   });
 
   test('setupProductMocks allows custom product data', async ({ page }) => {
@@ -210,12 +210,9 @@ test.describe('Route Interception', () => {
 
     await setupProductMocks(page, customProducts);
 
-    // Navigate to orders page
-    await page.goto('/orders');
-    await page.waitForLoadState('networkidle');
-
-    // Page should load without errors
-    await expect(page).not.toHaveURL(/error/);
+    await page.goto('/orders', { waitUntil: 'domcontentloaded' });
+    await page.waitForURL(/\/orders\/[^/]+$/, { timeout: 30000 });
+    await expect(page).not.toHaveURL(/\/error/);
   });
 
   test('setupCustomerMocks intercepts customer search', async ({ page }) => {
@@ -226,12 +223,9 @@ test.describe('Route Interception', () => {
 
     await setupCustomerMocks(page, customCustomers);
 
-    // Navigate to orders page
-    await page.goto('/orders');
-    await page.waitForLoadState('networkidle');
-
-    // Page should load without errors
-    await expect(page).not.toHaveURL(/error/);
+    await page.goto('/orders', { waitUntil: 'domcontentloaded' });
+    await page.waitForURL(/\/orders\/[^/]+$/, { timeout: 30000 });
+    await expect(page).not.toHaveURL(/\/error/);
   });
 
   test('setupCouponMocks intercepts coupon lookup', async ({ page }) => {
@@ -258,11 +252,8 @@ test.describe('Route Interception', () => {
 
     await setupCouponMocks(page, customCoupons);
 
-    // Navigate to orders page
-    await page.goto('/orders');
-    await page.waitForLoadState('networkidle');
-
-    // Page should load without errors
-    await expect(page).not.toHaveURL(/error/);
+    await page.goto('/orders', { waitUntil: 'domcontentloaded' });
+    await page.waitForURL(/\/orders\/[^/]+$/, { timeout: 30000 });
+    await expect(page).not.toHaveURL(/\/error/);
   });
 });
